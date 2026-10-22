@@ -201,12 +201,60 @@ function AnnouncementsTab() {
   );
 }
 
+function TrackEditPanel({ t, onSaved }) {
+  const [f, setF] = useState({
+    title: t.title || "", artist: t.artist || "", published: t.published || "",
+    story: t.story || "", badges: (t.badges || []).join(", "),
+    link_tiktok: t.links?.tiktok || "", link_youtube: t.links?.youtube || "",
+    link_spotify: t.links?.spotify || "", link_instagram: t.links?.instagram || "", link_soundcloud: t.links?.soundcloud || "",
+    stat_tiktok_views: t.stats?.tiktok_views ?? "", stat_sound_views: t.stats?.sound_views ?? "", stat_sound_uses: t.stats?.sound_uses ?? "",
+  });
+  const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
+  const save = async () => {
+    try {
+      await api.patch(`/admin/tracks/${t.id}`, {
+        title: f.title, artist: f.artist, published: f.published, story: f.story,
+        badges: f.badges.split(",").map((s) => s.trim()).filter(Boolean),
+        links: { tiktok: f.link_tiktok, youtube: f.link_youtube, spotify: f.link_spotify, instagram: f.link_instagram, soundcloud: f.link_soundcloud },
+        stats: { tiktok_views: Number(f.stat_tiktok_views) || 0, sound_views: Number(f.stat_sound_views) || 0, sound_uses: Number(f.stat_sound_uses) || 0 },
+      });
+      toast.success("Piesă actualizată!");
+      onSaved();
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+  return (
+    <div className="mt-3 pt-3 border-t border-white/10 grid gap-2.5" data-testid={`edit-panel-${t.id}`}>
+      <div className="grid sm:grid-cols-3 gap-2">
+        <input value={f.title} onChange={(e) => set("title", e.target.value)} placeholder="Titlu" className={inputCls} data-testid={`edit-title-${t.id}`} />
+        <input value={f.artist} onChange={(e) => set("artist", e.target.value)} placeholder="Artist" className={inputCls} />
+        <input value={f.published} onChange={(e) => set("published", e.target.value)} placeholder="Data publicării (ex. 22.10.2026)" className={inputCls} />
+      </div>
+      <input value={f.badges} onChange={(e) => set("badges", e.target.value)} placeholder="Badge-uri (virgulă): #01, COVER, VIRAL TIKTOK..." className={inputCls} />
+      <div className="grid sm:grid-cols-2 gap-2">
+        {[["link_tiktok", "Link TikTok"], ["link_youtube", "Link YouTube"], ["link_spotify", "Link Spotify"], ["link_instagram", "Link Instagram"], ["link_soundcloud", "Link SoundCloud (gol = ascuns)"]].map(([k, ph]) => (
+          <input key={k} value={f[k]} onChange={(e) => set(k, e.target.value)} placeholder={ph} className={inputCls} data-testid={`edit-${k}-${t.id}`} />
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {[["stat_tiktok_views", "Viz. TikTok"], ["stat_sound_views", "Viz. sunet"], ["stat_sound_uses", "Folosiri sunet"]].map(([k, ph]) => (
+          <input key={k} type="number" value={f[k]} onChange={(e) => set(k, e.target.value)} placeholder={ph} className={inputCls} data-testid={`edit-${k}-${t.id}`} />
+        ))}
+      </div>
+      <textarea rows={6} value={f.story} onChange={(e) => set("story", e.target.value)} placeholder="Povestea piesei (paragrafe separate printr-o linie goală)" className={inputCls} data-testid={`edit-story-${t.id}`} />
+      <div className="flex gap-2">
+        <button onClick={save} className="px-5 py-2.5 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase rounded-full" data-testid={`edit-save-${t.id}`}>Salvează</button>
+      </div>
+    </div>
+  );
+}
+
 function TracksTab() {
   const [tracks, setTracks] = useState([]);
   const [form, setForm] = useState({ title: "", genre: "remix", tags: "", lyrics: "", download_enabled: false, cover_url: "" });
   const [audio, setAudio] = useState(null);
   const [cover, setCover] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [editing, setEditing] = useState(null);
 
   const load = () => api.get("/tracks").then((r) => setTracks(r.data || [])).catch(() => {});
   useEffect(() => { load(); }, []);
@@ -279,18 +327,25 @@ function TracksTab() {
 
       <div className="lg:col-span-2 space-y-3">
         {tracks.map((t) => (
-          <div key={t.id} data-testid={`admin-track-${t.id}`} className="glass rounded-sm p-4 flex items-center gap-4">
-            <img src={t.cover_url?.startsWith("/api") ? `${window.location.origin.replace(/:\d+$/, "")}${t.cover_url}` : t.cover_url} alt="" className="w-12 h-12 object-cover rounded-sm border border-white/10"
-              onError={(e) => { e.target.src = "/placeholder.svg"; }} />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate">{t.title}</p>
-              <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{t.genre} · {t.plays} ascultări · {t.likes} like-uri</p>
+          <div key={t.id} data-testid={`admin-track-${t.id}`} className="glass rounded-sm p-4">
+            <div className="flex items-center gap-4">
+              <img src={t.cover_url?.startsWith("/api") ? `${window.location.origin.replace(/:\d+$/, "")}${t.cover_url}` : t.cover_url} alt="" className="w-12 h-12 object-cover rounded-sm border border-white/10"
+                onError={(e) => { e.target.src = "/placeholder.svg"; }} />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">{t.title}</p>
+                <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{t.genre} · {t.plays} ascultări · {t.likes} like-uri</p>
+              </div>
+              <button data-testid={`admin-download-toggle-${t.id}`} onClick={() => toggleDownload(t)}
+                className={`px-3 py-1.5 text-[10px] uppercase tracking-widest border transition-colors ${t.download_enabled ? "border-[var(--accent)] text-[var(--accent)]" : "border-white/15 text-zinc-500"}`}>
+                DL {t.download_enabled ? "ON" : "OFF"}
+              </button>
+              <button data-testid={`admin-edit-${t.id}`} onClick={() => setEditing(editing === t.id ? null : t.id)}
+                className="px-3 py-1.5 text-[10px] uppercase tracking-widest border border-white/15 text-zinc-400 hover:text-white transition-colors">
+                {editing === t.id ? "Închide" : "Editează"}
+              </button>
+              <button data-testid={`admin-delete-track-${t.id}`} onClick={() => del(t)} className="p-2 text-zinc-500 hover:text-red-400 transition-colors" aria-label="Șterge"><Trash2 size={16} /></button>
             </div>
-            <button data-testid={`admin-download-toggle-${t.id}`} onClick={() => toggleDownload(t)}
-              className={`px-3 py-1.5 text-[10px] uppercase tracking-widest border transition-colors ${t.download_enabled ? "border-[var(--accent)] text-[var(--accent)]" : "border-white/15 text-zinc-500"}`}>
-              DL {t.download_enabled ? "ON" : "OFF"}
-            </button>
-            <button data-testid={`admin-delete-track-${t.id}`} onClick={() => del(t)} className="p-2 text-zinc-500 hover:text-red-400 transition-colors" aria-label="Șterge"><Trash2 size={16} /></button>
+            {editing === t.id && <TrackEditPanel t={t} onSaved={() => { setEditing(null); load(); }} />}
           </div>
         ))}
         {tracks.length === 0 && <p className="text-zinc-500 text-sm">Nicio piesă încă.</p>}

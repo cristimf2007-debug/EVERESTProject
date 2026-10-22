@@ -702,10 +702,38 @@ async def list_tracks(genre: Optional[str] = None):
 
 @api_router.get("/tracks/{track_id}")
 async def get_track(track_id: str):
-    t = await db.tracks.find_one({"id": track_id}, {"_id": 0})
+    t = await db.tracks.find_one({"$or": [{"id": track_id}, {"slug": track_id}]}, {"_id": 0})
     if not t:
         raise HTTPException(404, "Piesa nu există")
     return t
+
+# OG share — pagini HTML cu meta pentru WhatsApp/TikTok/Facebook
+@api_router.get("/share/{slug}")
+async def share_track(slug: str):
+    t = await db.tracks.find_one({"$or": [{"slug": slug}, {"id": slug}]}, {"_id": 0})
+    if not t:
+        raise HTTPException(404, "Piesa nu există")
+    base = SITE_URL or "https://bioxic-ai.preview.emergentagent.com"
+    cover = t.get("cover_url", "")
+    if cover.startswith("/"):
+        cover = base + cover
+    title = html_escape(f"BIOXIC — {t['title']}")
+    desc = html_escape("Ascultă piesa doar aici, în seif. No risks, no hits.")
+    page_url = f"{base}/muzica/{t.get('slug', t['id'])}"
+    html = f"""<!doctype html><html lang="ro"><head>
+<meta charset="utf-8"><title>{title}</title>
+<meta property="og:title" content="{title}">
+<meta property="og:description" content="{desc}">
+<meta property="og:type" content="music.song">
+<meta property="og:image" content="{html_escape(cover)}">
+<meta property="og:url" content="{page_url}">
+<meta name="twitter:card" content="summary_large_image">
+<meta http-equiv="refresh" content="0; url={page_url}">
+</head><body style="background:#06110d;color:#eaf2ed;font-family:sans-serif;display:grid;place-items:center;height:100vh">
+<p>Se deschide piesa… <a style="color:#f3c46a" href="{page_url}">{title}</a></p>
+</body></html>"""
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(html)
 
 @api_router.post("/tracks/{track_id}/play")
 async def count_play(track_id: str):
@@ -805,7 +833,9 @@ async def create_track(
 @api_router.patch("/admin/tracks/{track_id}")
 async def update_track(track_id: str, request: Request, admin=Depends(get_current_admin)):
     data = await request.json()
-    allowed = {k: v for k, v in data.items() if k in {"title", "genre", "tags", "lyrics", "download_enabled", "cover_url"}}
+    allowed = {k: v for k, v in data.items() if k in {"title", "artist", "genre", "tags", "lyrics", "download_enabled",
+                                                      "cover_url", "story", "links", "stats", "badges", "timeline",
+                                                      "featured", "nr", "slug", "published"}}
     if not allowed:
         raise HTTPException(400, "Nimic de actualizat")
     await db.tracks.update_one({"id": track_id}, {"$set": allowed})

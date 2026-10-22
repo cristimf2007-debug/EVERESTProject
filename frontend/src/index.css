@@ -353,4 +353,13 @@ html[data-theme="ianuarie"] div[data-testid="player-bar"] {
     *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
     .wintro { display: none; }
     .grain-overlay { animation: none; }
+
+/* cover pulsează pe beat (~130 BPM) */
+@keyframes beat-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 60px rgba(var(--accent-rgb), 0.25); }
+    14% { transform: scale(1.028); box-shadow: 0 0 90px rgba(var(--accent-rgb), 0.45); }
+    28% { transform: scale(1.005); }
+}
+.beat-pulse { animation: beat-pulse 0.46s ease-in-out infinite; }
+
 }

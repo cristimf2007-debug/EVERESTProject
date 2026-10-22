@@ -22,6 +22,7 @@ import Contact from "@/pages/Contact";
 import Cont from "@/pages/Cont";
 import Gaming from "@/pages/Gaming";
 import FanProfile from "@/pages/FanProfile";
+import TrackPage from "@/pages/TrackPage";
 import Admin from "@/pages/Admin";
 
 function useEasterEgg() {
@@ -97,6 +98,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/muzica" element={<Muzica />} />
+      <Route path="/muzica/:slug" element={<TrackPage />} />
       <Route path="/live" element={<Live />} />
       <Route path="/videoclipuri" element={<Videoclipuri />} />
       <Route path="/despre" element={<Despre />} />

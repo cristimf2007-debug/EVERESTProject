@@ -14,6 +14,13 @@ React (CRA/craco) + FastAPI + MongoDB (motor). Uploaduri → Emergent Object Sto
 - Linkuri: YouTube @djbioxic (UC2gQmatVSAB3nzqeDmYY3gw), TikTok @bioxic.exe, Instagram @crss.exe_, Spotify artist 4tlelg9L2y1OFOVpUkIiAK, Discord https://discord.gg/PJ5A45SkRs, WhatsApp +44 7400 998964.
 - Ecranul de intrare cu tranziție GSAP a fost ELIMINAT la cererea utilizatorului (22.10) — site-ul intră direct pe Home.
 
+## Implementat (22.10.2026, iter 5 — PIESA #01 reală)
+- Șterse toate cele 4 piese demo. Adăugată piesa reală „Ce bunaciune (Remake AI Cover)" — BIOXIC × Florin Salam: WAV 37MB + cover oficial (1254px) în object storage.
+- Pagină dedicată /muzica/01: hero cu cover care pulsează pe beat, buton PLAY uriaș, vizualizator canvas sub cover, statistici count-up (200K+ TikTok / 243K sunet / 21K+ folosiri), linkuri (TikTok/YouTube/Spotify/Instagram; SoundCloud ascuns până la link), Share cu pagină OG dedicată (/api/share/01 — arată cover pe WhatsApp/TikTok), „Povestea piesei" cu text exact + cronologie verticală aliniată (22.09 TikTok → SoundCloud→YouTube +2 zile → Apelul → Copyright → Strike → Dat jos).
+- Seiful: card featured mare cu badge-uri (#01, COVER, VIRAL TIKTOK, DAT JOS DE PE YOUTUBE).
+- Admin: „Editează" pe fiecare piesă — titlu, artist, dată, badge-uri, linkuri, statistici, poveste (PATCH extins cu story/links/stats/badges/timeline/nr/slug/featured).
+- Backend: GET /api/tracks acceptă și slug; /api/share/{slug} servește HTML cu Open Graph.
+
 ## Implementat (22.10.2026, iter 4 — TEME: Iarnă / Ianuarie)
 - Toate culorile hardcodate au devenit variabile CSS (--accent, --night, --frost, --mist, --berry etc.).
 - Temă „Ianuarie" (stil glass-navigation din referința Webflow): navbar plutitor tip pill de sticlă (blur 26px, glow albastru-violet), fundal navy #05070f cu blobs cyan/violet, panouri glass albe, accent #5ec8ff, player dock plutitor, wordmark de gheață; fără ninsoare/brazi/ghirlandă/intro; countdown „Până la Anul Nou"; footer „No risks, no hits.".

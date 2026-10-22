@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Play, Pause, Heart, Share2, Download, Headphones, MessageSquare, Search, ExternalLink, ListMusic, UserPlus, UserCheck } from "lucide-react";
 import api, { mediaUrl } from "@/lib/api";
@@ -177,7 +177,33 @@ export default function Muzica() {
             <p className="text-[var(--mist)] text-sm mt-1">Prima piesă exclusivă urcă curând. Revino sau urmărește pe TikTok ca să afli primul.</p>
           </div>
         )}
-        {visible.map((t, i) => (
+        {visible.filter((t) => t.featured).map((t) => (
+          <motion.div key={t.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+            data-testid={`featured-card-${t.id}`}
+            className="glass frost-edge relative overflow-hidden grid sm:grid-cols-[180px_1fr] cursor-pointer group hover:border-[var(--accent)]/50 transition-colors"
+            onClick={() => (window.location.href = `/muzica/${t.slug || t.id}`)}>
+            <div className="relative h-44 sm:h-full overflow-hidden">
+              <img src={mediaUrl(t.cover_url)} alt={t.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent to-[rgba(6,17,13,0.35)]" />
+            </div>
+            <div className="p-5 sm:p-6">
+              <div className="flex flex-wrap gap-1.5 mb-2.5">
+                {(t.badges || []).map((b) => (
+                  <span key={b} className={`font-mono-x text-[9px] tracking-[0.14em] px-2 py-1 rounded-md ${b === "DAT JOS DE PE YOUTUBE" ? "bg-[var(--berry)] text-white" : b === "#01" ? "bg-[var(--accent)] text-[var(--on-accent)] font-black" : "border border-[var(--accent)]/50 text-[var(--accent)]"}`}>{b}</span>
+                ))}
+              </div>
+              <h3 className="font-display font-extrabold text-xl sm:text-2xl group-hover:text-[var(--accent)] transition-colors">{t.title}</h3>
+              <p className="text-[var(--mist)] text-sm mt-1">{t.artist} · {t.published || ""}</p>
+              <div className="flex items-center gap-4 mt-4">
+                <span className="btn-x gold !py-2 !px-4 text-[13px]" data-testid={`featured-open-${t.id}`}>
+                  <Play size={14} fill="currentColor" /> Deschide piesa
+                </span>
+                <span className="text-xs text-[var(--dim)] flex items-center gap-1.5"><Headphones size={12} /> {t.plays} ascultări</span>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+        {visible.filter((t) => !t.featured).map((t, i) => (
           <motion.div key={t.id} id={`track-${t.id}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.3) }}>
             <div
               data-testid={`track-row-${t.id}`}
@@ -194,16 +220,18 @@ export default function Muzica() {
                 )}
               </span>
               <span className="min-w-0 grid gap-0.5">
-                <b className={`text-base font-semibold truncate ${isCurrent(t) ? "text-[var(--accent)]" : ""}`} data-testid={`track-title-${t.id}`}>
-                  {t.title}
-                  {isCurrent(t) && playing && (
-                    <span className="inline-flex gap-0.5 items-end h-3 ml-2 align-middle">
-                      {[0, 1, 2].map((b) => <i key={b} className="w-[3px] bg-[var(--accent)] rounded-sm eq-bar inline-block" style={{ height: "100%", animationDelay: `${b * 0.25}s` }} />)}
-                    </span>
-                  )}
-                </b>
+                <Link to={`/muzica/${t.slug || t.id}`} onClick={(e) => e.stopPropagation()} className="hover:underline">
+                  <b className={`text-base font-semibold truncate block ${isCurrent(t) ? "text-[var(--accent)]" : ""}`} data-testid={`track-title-${t.id}`}>
+                    {t.title}
+                    {isCurrent(t) && playing && (
+                      <span className="inline-flex gap-0.5 items-end h-3 ml-2 align-middle">
+                        {[0, 1, 2].map((b) => <i key={b} className="w-[3px] bg-[var(--accent)] rounded-sm eq-bar inline-block" style={{ height: "100%", animationDelay: `${b * 0.25}s` }} />)}
+                      </span>
+                    )}
+                  </b>
+                </Link>
                 <span className="text-[var(--mist)] text-[13px] truncate">
-                  BIOXIC {(t.tags || []).length > 0 && "· " + t.tags.map((x) => `#${x}`).join(" ")}
+                  {t.artist || "BIOXIC"} {(t.tags || []).length > 0 && "· " + t.tags.map((x) => `#${x}`).join(" ")}
                 </span>
               </span>
               <span className="hidden sm:flex items-center gap-3 text-[var(--dim)] text-xs shrink-0" onClick={(e) => e.stopPropagation()}>
