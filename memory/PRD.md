@@ -14,6 +14,10 @@ React (CRA/craco) + FastAPI + MongoDB (motor). Uploaduri → Emergent Object Sto
 - Linkuri: YouTube @djbioxic (UC2gQmatVSAB3nzqeDmYY3gw), TikTok @bioxic.exe, Instagram @crss.exe_, Spotify artist 4tlelg9L2y1OFOVpUkIiAK, Discord https://discord.gg/PJ5A45SkRs, WhatsApp +44 7400 998964.
 - Ecranul de intrare cu tranziție GSAP a fost ELIMINAT la cererea utilizatorului (22.10) — site-ul intră direct pe Home.
 
+## Implementat (22.10.2026, iter 5b — fix UX)
+- Fix: piesa featured nu mai dispare la filtrare (catalogul se aduce complet, filtrarea e client-side; featured rămâne mereu vizibilă; mesaj prietenos când o categorie e goală).
+- Fix mobil: butoanele playerului (shuffle, repeat, play, next) vizibile și funcționale și pe telefon; repeat testat — se activează.
+
 ## Implementat (22.10.2026, iter 5 — PIESA #01 reală)
 - Șterse toate cele 4 piese demo. Adăugată piesa reală „Ce bunaciune (Remake AI Cover)" — BIOXIC × Florin Salam: WAV 37MB + cover oficial (1254px) în object storage.
 - Pagină dedicată /muzica/01: hero cu cover care pulsează pe beat, buton PLAY uriaș, vizualizator canvas sub cover, statistici count-up (200K+ TikTok / 243K sunet / 21K+ folosiri), linkuri (TikTok/YouTube/Spotify/Instagram; SoundCloud ascuns până la link), Share cu pagină OG dedicată (/api/share/01 — arată cover pe WhatsApp/TikTok), „Povestea piesei" cu text exact + cronologie verticală aliniată (22.09 TikTok → SoundCloud→YouTube +2 zile → Apelul → Copyright → Strike → Dat jos).

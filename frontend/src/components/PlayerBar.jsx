@@ -72,7 +72,7 @@ export default function PlayerBar() {
           <span className="tabular-nums">{fmt(duration)}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <button data-testid="player-shuffle" onClick={() => setShuffle(!shuffle)} className={`hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center transition-colors ${shuffle ? "text-[var(--accent)] border-[var(--accent)]/50" : "text-zinc-500 hover:text-white"}`} aria-label="Shuffle"><Shuffle size={15} /></button>
+          <button data-testid="player-shuffle" onClick={() => setShuffle(!shuffle)} className={`grid w-9 h-9 rounded-full border border-white/10 place-items-center transition-colors ${shuffle ? "text-[var(--accent)] border-[var(--accent)]/50" : "text-zinc-500 hover:text-white"}`} aria-label="Shuffle"><Shuffle size={15} /></button>
           <button data-testid="player-prev" onClick={prev} className="hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-300 hover:text-[var(--accent)] transition-colors" aria-label="Anterior"><SkipBack size={16} /></button>
           <button data-testid="player-play-pause" onClick={toggle}
             className="grid w-11 h-11 rounded-full place-items-center transition-transform hover:scale-105"
@@ -81,7 +81,7 @@ export default function PlayerBar() {
             {playing ? <Pause size={18} fill="var(--on-accent)" /> : <Play size={18} fill="var(--on-accent)" />}
           </button>
           <button data-testid="player-next" onClick={next} className="grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-300 hover:text-[var(--accent)] transition-colors" aria-label="Următor"><SkipForward size={16} /></button>
-          <button data-testid="player-repeat" onClick={() => setRepeat(!repeat)} className={`hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center transition-colors ${repeat ? "text-[var(--accent)] border-[var(--accent)]/50" : "text-zinc-500 hover:text-white"}`} aria-label="Repetă"><Repeat size={15} /></button>
+          <button data-testid="player-repeat" onClick={() => setRepeat(!repeat)} className={`grid w-9 h-9 rounded-full border border-white/10 place-items-center transition-colors ${repeat ? "text-[var(--accent)] border-[var(--accent)]/50" : "text-zinc-500 hover:text-white"}`} aria-label="Repetă"><Repeat size={15} /></button>
           <div className="hidden lg:flex items-center gap-2 w-24 ml-1">
             <Volume2 size={14} className="text-zinc-500" />
             <input data-testid="player-volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(e) => setVolume(parseFloat(e.target.value))} className="w-full h-1 accent-[var(--accent)]" aria-label="Volum" />

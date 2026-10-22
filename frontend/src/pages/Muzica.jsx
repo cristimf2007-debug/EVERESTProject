@@ -73,8 +73,9 @@ export default function Muzica() {
   }, [gParam]);
 
   useEffect(() => {
-    api.get("/tracks", { params: { genre: filter } }).then((r) => setTracks(r.data || [])).catch(() => {});
-  }, [filter]);
+    // mereu aducem tot catalogul; filtrarea e în client, ca piesa featured să nu dispară niciodată
+    api.get("/tracks").then((r) => setTracks(r.data || [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (highlightId) {
@@ -83,10 +84,14 @@ export default function Muzica() {
     }
   }, [highlightId, tracks]);
 
-  const visible = useMemo(
-    () => tracks.filter((t) => (t.title + " " + (t.tags || []).join(" ")).toLowerCase().includes(query.toLowerCase())),
-    [tracks, query]
-  );
+  const visible = useMemo(() => {
+    const q = query.toLowerCase();
+    return tracks.filter((t) => {
+      const matchesQ = (t.title + " " + (t.tags || []).join(" ")).toLowerCase().includes(q);
+      const matchesF = filter === "toate" || filter === "noi" || t.genre === filter || t.featured;
+      return matchesQ && matchesF;
+    });
+  }, [tracks, filter, query]);
 
   const like = async (t) => {
     if (liked.includes(t.id)) return;
@@ -169,14 +174,8 @@ export default function Muzica() {
         ))}
       </div>
 
-      {/* LISTĂ PIESE */}
+      {/* LISTĂ PIESE — piesa featured rămâne mereu vizibilă */}
       <div className="grid gap-2.5 mt-5" data-testid="track-list">
-        {visible.length === 0 && (
-          <div className="glass p-7 border-dashed" data-testid="no-tracks">
-            <h3 className="font-semibold text-base">Seiful e gol deocamdată</h3>
-            <p className="text-[var(--mist)] text-sm mt-1">Prima piesă exclusivă urcă curând. Revino sau urmărește pe TikTok ca să afli primul.</p>
-          </div>
-        )}
         {visible.filter((t) => t.featured).map((t) => (
           <motion.div key={t.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
             data-testid={`featured-card-${t.id}`}
@@ -203,6 +202,15 @@ export default function Muzica() {
             </div>
           </motion.div>
         ))}
+        {visible.filter((t) => !t.featured).length === 0 && visible.some((t) => t.featured) && filter !== "toate" && (
+          <p className="text-[var(--dim)] text-sm py-3" data-testid="filter-note">Mai multe piese din categoria „{FILTERS.find((f) => f.key === filter)?.label}" urcă curând. Până atunci, piesa featured rămâne aici.</p>
+        )}
+        {visible.length === 0 && (
+          <div className="glass p-7 border-dashed" data-testid="no-tracks">
+            <h3 className="font-semibold text-base">Seiful e gol deocamdată</h3>
+            <p className="text-[var(--mist)] text-sm mt-1">Prima piesă exclusivă urcă curând. Revino sau urmărește pe TikTok ca să afli primul.</p>
+          </div>
+        )}
         {visible.filter((t) => !t.featured).map((t, i) => (
           <motion.div key={t.id} id={`track-${t.id}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.3) }}>
             <div
