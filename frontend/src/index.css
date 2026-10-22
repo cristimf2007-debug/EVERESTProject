@@ -1,0 +1,203 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 120 22% 2.5%;
+        --foreground: 0 0% 100%;
+        --card: 120 15% 4%;
+        --card-foreground: 0 0% 100%;
+        --popover: 120 15% 4%;
+        --popover-foreground: 0 0% 100%;
+        --primary: 108 100% 54%;
+        --primary-foreground: 120 30% 3%;
+        --secondary: 151 100% 39%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 120 8% 12%;
+        --muted-foreground: 240 5% 64.9%;
+        --accent: 108 100% 54%;
+        --accent-foreground: 120 30% 3%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 0 0% 100% / 0.1;
+        --input: 0 0% 100%;
+        --ring: 108 100% 54%;
+        --radius: 0.125rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-white/10;
+    }
+    body {
+        @apply text-white;
+        background-color: #050805;
+        font-family: 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    h1, h2, h3, .font-display {
+        font-family: 'Orbitron', sans-serif;
+    }
+}
+
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+    [data-debug-wrapper="true"] > * {
+        margin-left: inherit; margin-right: inherit; margin-top: inherit; margin-bottom: inherit;
+        padding-left: inherit; padding-right: inherit; padding-top: inherit; padding-bottom: inherit;
+        column-gap: inherit; row-gap: inherit; gap: inherit;
+        border-left-width: inherit; border-right-width: inherit; border-top-width: inherit; border-bottom-width: inherit;
+        border-left-style: inherit; border-right-style: inherit; border-top-style: inherit; border-bottom-style: inherit;
+        border-left-color: inherit; border-right-color: inherit; border-top-color: inherit; border-bottom-color: inherit;
+    }
+}
+
+/* ===== BIOXIC THEME EFFECTS ===== */
+
+.font-display { font-family: 'Orbitron', sans-serif; }
+
+.text-glow { text-shadow: 0 0 20px rgba(57, 255, 20, 0.5), 0 0 60px rgba(57, 255, 20, 0.2); }
+.box-glow { box-shadow: 0 0 24px rgba(57, 255, 20, 0.15), inset 0 0 24px rgba(57, 255, 20, 0.03); }
+.box-glow-strong { box-shadow: 0 0 40px rgba(57, 255, 20, 0.3), inset 0 0 30px rgba(57, 255, 20, 0.06); }
+
+.glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.noise-overlay {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.scanlines {
+    position: relative;
+}
+.scanlines::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+    background: repeating-linear-gradient(0deg, rgba(57,255,20,0.025) 0px, rgba(57,255,20,0.025) 1px, transparent 1px, transparent 4px);
+}
+
+/* Glitch on hover for titles */
+.glitch-hover { position: relative; display: inline-block; }
+.glitch-hover:hover { animation: glitch-shift 0.3s ease-in-out; color: #39FF14; }
+.glitch-hover:hover::before, .glitch-hover:hover::after {
+    content: attr(data-text); position: absolute; left: 0; top: 0; width: 100%; overflow: hidden;
+}
+.glitch-hover:hover::before { color: #39FF14; transform: translate(-2px, -1px); clip-path: inset(20% 0 40% 0); opacity: 0.8; }
+.glitch-hover:hover::after { color: #00C853; transform: translate(2px, 1px); clip-path: inset(60% 0 10% 0); opacity: 0.8; }
+@keyframes glitch-shift {
+    0% { transform: translate(0); }
+    25% { transform: translate(-2px, 1px); }
+    50% { transform: translate(2px, -1px); }
+    75% { transform: translate(-1px, -1px); }
+    100% { transform: translate(0); }
+}
+
+/* Intro infection pulse */
+@keyframes infect-pulse {
+    0%, 100% { filter: drop-shadow(0 0 12px rgba(57,255,20,0.6)); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 45px rgba(57,255,20,0.95)); transform: scale(1.04); }
+}
+.infect-pulse { animation: infect-pulse 1.1s ease-in-out infinite; }
+
+@keyframes intro-glitch {
+    0% { transform: translate(0) skewX(0); opacity: 1; }
+    20% { transform: translate(-4px, 2px) skewX(-4deg); opacity: 0.85; }
+    40% { transform: translate(4px, -2px) skewX(3deg); }
+    60% { transform: translate(-2px, 1px) skewX(-2deg); opacity: 0.9; }
+    80% { transform: translate(2px, -1px); }
+    100% { transform: translate(0) skewX(0); opacity: 1; }
+}
+.intro-glitch { animation: intro-glitch 0.5s steps(2) infinite; }
+
+@keyframes light-sweep {
+    0% { transform: translateX(-120%) skewX(-20deg); }
+    100% { transform: translateX(220%) skewX(-20deg); }
+}
+.light-sweep { animation: light-sweep 1.8s ease-in-out infinite; }
+
+@keyframes wipe-reveal {
+    0% { clip-path: inset(0 0 0 0); }
+    100% { clip-path: inset(0 0 100% 0); }
+}
+
+/* Floating reactions */
+@keyframes float-up {
+    0% { transform: translateY(0) scale(0.6); opacity: 0; }
+    15% { opacity: 1; }
+    100% { transform: translateY(-320px) scale(1.3) rotate(12deg); opacity: 0; }
+}
+.float-reaction { animation: float-up 2.6s ease-out forwards; }
+
+/* Visualizer bars */
+@keyframes eq-bar {
+    0%, 100% { transform: scaleY(0.3); }
+    50% { transform: scaleY(1); }
+}
+.eq-bar { transform-origin: bottom; animation: eq-bar 0.8s ease-in-out infinite; }
+
+/* Live pulse dot */
+@keyframes live-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(57,255,20,0.7); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 8px rgba(57,255,20,0); }
+}
+.live-dot { animation: live-pulse 1.4s ease-in-out infinite; }
+
+/* Infection easter egg */
+@keyframes screen-infect {
+    0% { box-shadow: inset 0 0 0 0 rgba(57,255,20,0); }
+    40% { box-shadow: inset 0 0 180px 60px rgba(57,255,20,0.45); }
+    100% { box-shadow: inset 0 0 0 0 rgba(57,255,20,0); }
+}
+/* Buton principal — glow care respiră */
+@keyframes breathe {
+    0%, 100% { box-shadow: 0 0 18px rgba(57,255,20,0.35), 0 0 50px rgba(57,255,20,0.12); }
+    50% { box-shadow: 0 0 40px rgba(57,255,20,0.75), 0 0 110px rgba(57,255,20,0.3); }
+}
+.btn-breathe { animation: breathe 2.2s ease-in-out infinite; }
+
+/* Inel de energie pentru tranziție */
+.energy-ring {
+    border: 2px solid rgba(57,255,20,0.8);
+    border-radius: 9999px;
+    box-shadow: 0 0 30px rgba(57,255,20,0.6), inset 0 0 30px rgba(57,255,20,0.3);
+}
+
+.screen-infect { animation: screen-infect 2s ease-in-out; }
+
+/* Marquee ticker */
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+.marquee-track { display: flex; width: max-content; animation: marquee 30s linear infinite; }
+.marquee-track:hover { animation-play-state: paused; }
+
+/* Glitch discret pe imagini (logo) */
+.glitch-img:hover { animation: glitch-shift 0.3s ease-in-out; filter: drop-shadow(0 0 14px rgba(57,255,20,0.8)) saturate(1.4); }
+
+
+
+/* Colțuri tăiate — stil cyber pentru butoane principale */
+.btn-cut { clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #050805; }
+::-webkit-scrollbar-thumb { background: rgba(57,255,20,0.3); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: rgba(57,255,20,0.6); }
+
+::selection { background: #39FF14; color: #050805; }
+
+@media (prefers-reduced-motion: reduce) {
+    .infect-pulse, .intro-glitch, .light-sweep, .eq-bar, .float-reaction { animation: none !important; }
+}

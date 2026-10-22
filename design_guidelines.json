@@ -1,0 +1,143 @@
+{
+  "project_context": {
+    "brand": "BIOXIC",
+    "description": "Official site of artist/producer BIOXIC (remixed manele + 'Manele Artificiale' AI concept).",
+    "theme": "Dark mode, toxic/neon green on almost black, cinematic futuristic bio-toxic cyber vibe.",
+    "language": "Romanian",
+    "target_audience": "Mobile-first, TikTok-driven fan base. Needs to be extremely responsive and high-performance.",
+    "app_type": "hybrid_fullstack"
+  },
+  "typography": {
+    "primary_font": "Orbitron",
+    "secondary_font": "Inter",
+    "import_instruction": "Import fonts from Google Fonts: @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap');",
+    "scale": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter uppercase",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight uppercase",
+      "h3": "text-xl sm:text-2xl font-bold",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm tracking-wide"
+    },
+    "usage": {
+      "headings": "Orbitron, always uppercase or highly stylized, tight tracking.",
+      "body": "Inter, left-aligned for readability, loose line-height.",
+      "labels": "Inter, uppercase, wide tracking (tracking-[0.2em]) for overlines and tags."
+    }
+  },
+  "colors": {
+    "background": {
+      "main": "#050805",
+      "card": "rgba(255, 255, 255, 0.03)",
+      "overlay": "rgba(5, 8, 5, 0.8)"
+    },
+    "primary": {
+      "neon_green": "#39FF14",
+      "emerald": "#00C853"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A1A1AA",
+      "muted": "#71717A"
+    },
+    "gradients": {
+      "glow": "radial-gradient(circle, rgba(57,255,20,0.15) 0%, rgba(5,8,5,0) 70%)",
+      "card_hover": "linear-gradient(180deg, rgba(57,255,20,0.1) 0%, rgba(255,255,255,0.02) 100%)"
+    },
+    "border": {
+      "default": "rgba(255, 255, 255, 0.1)",
+      "glow": "rgba(57, 255, 20, 0.3)"
+    }
+  },
+  "effects": {
+    "glassmorphism": "backdrop-blur-xl bg-white/5 border border-white/10 hover:border-[#39FF14]/40 transition-colors",
+    "noise": "Subtle grain texture overlay fixed over the entire background (opacity 0.03 to 0.05).",
+    "glitch_hover": "Custom CSS keyframe animation on title hover simulating a digital glitch (color shifts to #39FF14 and slightly translates).",
+    "scanlines": "Repeating linear-gradient simulating CRT or cyber scanlines over hero sections (very low opacity).",
+    "particles": "Use tsparticles for slow, floating toxic green particles in the background."
+  },
+  "layouts": {
+    "spacing": "Generous. Use p-6, p-8, p-12 for sections. Gap-6 or gap-8 in grids.",
+    "grids": "Bento-style grids for the home page sections (AI vs Remix cards). Music grid 1 col mobile, 2-3 col desktop.",
+    "alignment": "Mobile-first. Left-align text for readability, center only for hero headings if needed.",
+    "navigation": "Sticky glassmorphic top nav (z-50) with #050805/80 background and blur. No fully transparent navs."
+  },
+  "components": {
+    "buttons": "Sharp edges or very slight rounding (rounded-sm). Dark background with #39FF14 border, on hover fill with #39FF14 and turn text black.",
+    "audio_player": "Persistent bottom bar (fixed bottom-0, z-50). Glassmorphism background, toxic green progress bar.",
+    "cards": "Glassmorphism, 1px inner border. Image at top, padding for text. Hover state adds #39FF14 glow box-shadow.",
+    "inputs": "Shadcn UI customized: background #050805, border white/20, focus:border-[#39FF14] focus:ring-1 focus:ring-[#39FF14]."
+  },
+  "pages_and_features": {
+    "Intro": "Cinematic overlay. Shows 'Infection Effect' logo, skip button. Use sessionStorage to show only once.",
+    "Home": "Hero with dark background, neon green accents. YouTube stats (static fallback). Latest videos grid (RSS mockup). Split cards: 'Manele Remixate' vs 'Manele Artificiale (AI)'.",
+    "Muzica": "Tracklist with filters (Remixuri, AI, Colaborari, Noi). Like button, listen counter. Play button triggers persistent bottom player.",
+    "Live": "Embed YouTube Live. Realtime chat UI (mocked via sockets/state), floating reaction emojis, viewer count, schedule.",
+    "Videoclipuri": "Gallery of thumbnails opening in a Lightbox video player.",
+    "Despre": "Story of BIOXIC. Quote by Nicolae Guta. Collaborators list (AMMA, Big Up Music, Nek Music). Timeline.",
+    "Contact": "Booking form + prominent WhatsApp button.",
+    "Admin": "Dashboard. Login, Track CRUD (upload audio/cover mockup), Live mode toggle, Moderation, Stats."
+  },
+  "image_urls": [
+    {
+      "category": "Hero / Artist Profile",
+      "description": "DJ in a dark club setting illuminated by neon green lights",
+      "url": "https://images.unsplash.com/photo-1788767722296-20b312fc5047?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwxfHxjeWJlcnB1bmslMjBESiUyMGRhcmslMjBuZW9uJTIwZ3JlZW58ZW58MHx8fHwxNzkyNjg3Mjg1fDA&ixlib=rb-4.1.0&q=85"
+    },
+    {
+      "category": "Live Concert / Videos",
+      "description": "DJ at mixer with vibrant lights, dynamic night club scene",
+      "url": "https://images.pexels.com/photos/13137879/pexels-photo-13137879.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "Live Concert / Videos",
+      "description": "Musician on stage during a vibrant concert",
+      "url": "https://images.pexels.com/photos/10063275/pexels-photo-10063275.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "Manele Artificiale (AI Concept)",
+      "description": "Man with binary code projected on face",
+      "url": "https://images.pexels.com/photos/5474035/pexels-photo-5474035.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "Manele Artificiale (AI Concept)",
+      "description": "Interaction with robotic hand, neon cyber aesthetic",
+      "url": "https://images.pexels.com/photos/7688748/pexels-photo-7688748.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "Manele Remixate (Toxic/Biohazard)",
+      "description": "Abstract green and black substance, toxic vibe",
+      "url": "https://images.unsplash.com/photo-1636119429637-3c21657b3844?crop=entropy&cs=srgb&fm=jpg"
+    },
+    {
+      "category": "Manele Remixate (Toxic/Biohazard)",
+      "description": "3D render of virus/toxic particles on dark green",
+      "url": "https://images.pexels.com/photos/7542650/pexels-photo-7542650.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    {
+      "category": "Decor / Background Texture",
+      "description": "Toxin inscription with spreading microorganisms",
+      "url": "https://images.pexels.com/photos/5841759/pexels-photo-5841759.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    }
+  ],
+  "instructions_to_main_agent": [
+    "Strictly adhere to the dark toxic theme: Backgrounds are #050805, accents are #39FF14.",
+    "Do NOT use standard Shadcn rounded styles for main visual elements (buttons, cards). Keep them sharp (rounded-none or rounded-sm) to match the cyber aesthetic.",
+    "Integrate Lucide-react for icons. Use toxic green colored icons for primary actions.",
+    "Use framer-motion for page transitions and micro-interactions (glitch effects, floating elements).",
+    "Build the cinematic intro as a full-screen overlay component that renders before the main app. Check sessionStorage to ensure it only plays once per session.",
+    "The persistent audio player must be built in a layout wrapper so it persists across page navigations.",
+    "In the Admin panel, respect the dark mode. Use Shadcn datatables but style them with black backgrounds and white/green borders.",
+    "Include 'data-testid' on all interactive elements (e.g., data-testid='play-track-button', data-testid='skip-intro-button').",
+    "Ensure all copy is in Romanian as specified in the brief.",
+    "For the glitch effect on titles, implement custom CSS in your index.css to create text-shadow shifts or translate animations on hover."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Do not use transparent backgrounds on headers or overlays; always apply a blur or semi-solid background (e.g., bg-black/80 backdrop-blur-md).",
+    "Never apply 'transition: all' universally. Apply specific transitions like 'transition-colors' or 'transition-transform'.",
+    "Do not center-align app containers (.App { text-align: center }). Use proper structural layouts.",
+    "Use layered z-index hierarchy effectively. Background (noise) -> Base UI -> Glassmorphism Cards -> Sticky Nav -> Modals/Overlays.",
+    "Do not use generic assistant emojis. Use professional SVGs or Lucide icons.",
+    "Apply generous spacing (p-6, p-8 minimum for large sections) to allow the cyber/toxic visual assets to breathe.",
+    "Use sonner for all toast notifications, styled with the dark toxic theme."
+  ]
+}
