@@ -18,6 +18,8 @@ import Videoclipuri from "@/pages/Videoclipuri";
 import Despre from "@/pages/Despre";
 import Contact from "@/pages/Contact";
 import Cont from "@/pages/Cont";
+import Gaming from "@/pages/Gaming";
+import FanProfile from "@/pages/FanProfile";
 import Admin from "@/pages/Admin";
 
 function useEasterEgg() {
@@ -122,6 +124,8 @@ function AppRoutes() {
       <Route path="/despre" element={<Despre />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/cont" element={<Cont />} />
+      <Route path="/gaming" element={<Gaming />} />
+      <Route path="/fan/:userId" element={<FanProfile />} />
       <Route path="/admin" element={<Admin />} />
     </Routes>
   );

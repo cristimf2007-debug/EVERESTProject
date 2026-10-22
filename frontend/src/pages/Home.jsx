@@ -1,26 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Play, Youtube, Radio, Disc3, Bot, ArrowRight, Users, Eye, Video, UserPlus } from "lucide-react";
+import { Play, Youtube, Radio, Disc3, Bot, ArrowRight, Users, Eye, Video, UserPlus, Megaphone } from "lucide-react";
 import api from "@/lib/api";
 import DiscordButton from "@/components/DiscordButton";
 
 const AI_IMG = "https://images.pexels.com/photos/5474035/pexels-photo-5474035.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
-const REMIX_IMG = "https://images.pexels.com/photos/7542650/pexels-photo-7542650.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
-
-const VIDEO_CATS = [
-  { key: "toate", label: "Toate" },
-  { key: "remix", label: "Remixuri" },
-  { key: "ai", label: "AI" },
-  { key: "original", label: "Originale" },
-];
-
-function videoCat(v) {
-  const t = v.title.toLowerCase();
-  if (t.includes("artificial") || t.includes(" ai ") || t.includes("(ai") || t.includes(" ai)")) return "ai";
-  if (t.includes("remix")) return "remix";
-  return "original";
-}
+const REMIX_IMG = "https://images.pexels.com/photos/10063275/pexels-photo-10063275.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
 function Stat({ icon: Icon, label, value, testid }) {
   return (
@@ -37,20 +23,17 @@ export default function Home() {
   const [stats, setStats] = useState(null);
   const [live, setLive] = useState(false);
   const [tagline, setTagline] = useState("Manele Remixate & Manele Artificiale");
-  const [vcat, setVcat] = useState("toate");
+  const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
     api.get("/youtube/videos").then((r) => setVideos(r.data || [])).catch(() => {});
     api.get("/youtube/stats").then((r) => setStats(r.data)).catch(() => {});
     api.get("/live/status").then((r) => setLive(!!r.data.is_live)).catch(() => {});
+    api.get("/announcements").then((r) => setAnnouncements(r.data || [])).catch(() => {});
     api.get("/content").then((r) => { if (r.data.hero_tagline) setTagline(r.data.hero_tagline); }).catch(() => {});
   }, []);
 
   const latest = videos[0];
-  const filteredVideos = useMemo(
-    () => (vcat === "toate" ? videos : videos.filter((v) => videoCat(v) === vcat)),
-    [videos, vcat]
-  );
 
   return (
     <div data-testid="home-page">
@@ -123,43 +106,28 @@ export default function Home() {
         </div>
       </div>
 
-      {/* VIDEOCLIPURI */}
-      <section className="max-w-7xl mx-auto px-6 py-14">
-        <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-          <h2 className="font-display font-bold text-2xl sm:text-4xl uppercase tracking-tight">Ultimele <span className="text-[#39FF14]">videoclipuri</span></h2>
-          <Link to="/videoclipuri" data-testid="see-all-videos" className="text-xs uppercase tracking-widest text-zinc-400 hover:text-[#39FF14] transition-colors flex items-center gap-2">Toate <ArrowRight size={14} /></Link>
-        </div>
-        <div className="flex flex-wrap gap-2 mb-8" data-testid="video-cats">
-          {VIDEO_CATS.map((c) => (
-            <button key={c.key} data-testid={`vcat-${c.key}`} onClick={() => setVcat(c.key)}
-              className={`px-5 py-2 text-xs uppercase tracking-widest border transition-colors ${vcat === c.key ? "bg-[#39FF14] text-black border-[#39FF14] font-bold" : "border-white/15 text-zinc-400 hover:border-[#39FF14]/50 hover:text-white"}`}>
-              {c.label}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredVideos.slice(0, 6).map((v, i) => (
-            <motion.a key={v.id} href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noopener noreferrer"
-              data-testid={`home-video-${i}`}
-              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
-              className="group glass rounded-sm overflow-hidden hover:box-glow transition-shadow">
-              <div className="relative aspect-video overflow-hidden">
-                <img src={v.thumbnail} alt={v.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Play size={40} className="text-[#39FF14]" fill="#39FF14" />
-                </div>
-                {i === 0 && vcat === "toate" && (
-                  <span className="absolute top-3 left-3 px-2.5 py-1 bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest">Nou</span>
-                )}
-              </div>
-              <div className="p-4">
-                <p className="text-sm font-semibold line-clamp-2 group-hover:text-[#39FF14] transition-colors">{v.title}</p>
-                <p className="text-[11px] text-zinc-500 mt-2">{new Date(v.published).toLocaleDateString("ro-RO")}</p>
-              </div>
-            </motion.a>
-          ))}
-        </div>
-        {filteredVideos.length === 0 && <p className="text-zinc-500 py-10 text-sm" data-testid="no-videos-cat">Niciun videoclip în această categorie.</p>}
+      {/* ANUNȚURI */}
+      <section className="max-w-7xl mx-auto px-6 py-12" data-testid="announcements-section">
+        <h2 className="font-display font-bold text-2xl sm:text-3xl uppercase tracking-tight mb-8 flex items-center gap-3">
+          <Megaphone size={22} className="text-[#39FF14]" /> Anunțuri
+        </h2>
+        {announcements.length === 0 ? (
+          <div className="glass rounded-sm p-8 text-center" data-testid="no-announcements">
+            <p className="text-zinc-500 text-sm">Niciun anunț încă. Cele mai importante vești despre piese, live-uri și concursuri apar aici.</p>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {announcements.map((a, i) => (
+              <motion.div key={a.id} data-testid={`announcement-${a.id}`}
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}
+                className="glass rounded-sm p-6 hover:border-[#39FF14]/40 transition-colors">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-[#00C853] mb-2">{new Date(a.created_at).toLocaleDateString("ro-RO")}</p>
+                <h3 className="font-display font-bold text-base uppercase tracking-wide mb-2">{a.title}</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">{a.text}</p>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* STATS */}

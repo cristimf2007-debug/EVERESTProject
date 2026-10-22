@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Biohazard, Bot, Disc3, Youtube } from "lucide-react";
 
 const AI_IMG = "https://images.pexels.com/photos/7688748/pexels-photo-7688748.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
-const TOX_IMG = "https://images.pexels.com/photos/5841759/pexels-photo-5841759.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
+const STAGE_IMG = "https://images.pexels.com/photos/10063275/pexels-photo-10063275.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
 const TIMELINE = [
   { year: "Începuturi", text: "Primele remixuri de manele încărcate pe YouTube — bas mai greu, tempo de club." },
@@ -47,7 +47,7 @@ export default function Despre() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#050805] to-transparent" />
           </div>
           <div className="absolute -bottom-6 -right-2 sm:-right-6 w-40 h-40 rounded-sm overflow-hidden border border-[#39FF14]/40 box-glow hidden sm:block">
-            <img src={TOX_IMG} alt="Textură toxică" className="w-full h-full object-cover" />
+            <img src={STAGE_IMG} alt="BIOXIC pe scenă" className="w-full h-full object-cover" />
           </div>
         </motion.div>
       </div>

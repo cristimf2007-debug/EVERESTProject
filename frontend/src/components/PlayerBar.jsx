@@ -23,17 +23,21 @@ export default function PlayerBar() {
   const pct = duration ? (progress / duration) * 100 : 0;
 
   return (
-    <div data-testid="player-bar" className="fixed bottom-0 inset-x-0 z-50 glass border-t border-[#39FF14]/20">
+    <div data-testid="player-bar" className="fixed bottom-0 inset-x-0 z-50 backdrop-blur-2xl bg-[#050805]/90 border-t border-white/10">
+      {/* linie glow deasupra */}
+      <div className="absolute -top-px inset-x-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(57,255,20,0.6), transparent)" }} />
       {/* bară progres */}
       <div
         data-testid="player-progress"
-        className="h-1 bg-white/10 cursor-pointer group"
+        className="h-1.5 bg-white/10 cursor-pointer group relative"
         onClick={(e) => {
           const rect = e.currentTarget.getBoundingClientRect();
           seek(((e.clientX - rect.left) / rect.width) * duration);
         }}
       >
-        <div className="h-full bg-[#39FF14] transition-[width] duration-200" style={{ width: `${pct}%`, boxShadow: "0 0 10px rgba(57,255,20,0.8)" }} />
+        <div className="h-full bg-[#39FF14] relative transition-[width] duration-200" style={{ width: `${pct}%`, boxShadow: "0 0 12px rgba(57,255,20,0.9)" }}>
+          <span className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#39FF14] rounded-full opacity-0 group-hover:opacity-100 transition-opacity" style={{ boxShadow: "0 0 10px rgba(57,255,20,1)" }} />
+        </div>
       </div>
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center gap-3 sm:gap-4">
         <img src={mediaUrl(current.cover_url) || "/placeholder.svg"} alt={current.title} className="w-11 h-11 object-cover rounded-sm border border-white/10" data-testid="player-cover" />

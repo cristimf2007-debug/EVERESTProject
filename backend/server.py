@@ -60,7 +60,10 @@ def get_object(path: str):
 
 JWT_ALGORITHM = "HS256"
 CHANNEL_ID = "UC2gQmatVSAB3nzqeDmYY3gw"
-RSS_URL = f"https://www.youtube.com/feeds/videos.xml?channel_id={CHANNEL_ID}"
+YT_CHANNELS = [
+    {"id": "UC2gQmatVSAB3nzqeDmYY3gw", "name": "BIOXIC"},
+    {"id": "UCNg7-CLdLxeiP3RgK2R68zQ", "name": "Everest Manele"},
+]
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -94,6 +97,8 @@ async def get_current_admin(request: Request) -> dict:
         user = await db.users.find_one({"_id": payload["sub"]})
         if not user:
             raise HTTPException(401, "Utilizator inexistent")
+        if user.get("role") != "admin":
+            raise HTTPException(403, "Acces interzis — doar administratori")
         user.pop("password_hash", None)
         return user
     except jwt.ExpiredSignatureError:
@@ -267,6 +272,80 @@ async def notify_subscribers(titlu: str, mesaj: str, cta_text: str, cta_url: str
         await send_email(to=to, subject=subject, html=html)
     logger.info(f"Notificare trimisă către {len(recipients)} abonați: {subject}")
 
+# ---------- ADMINI MULTIPLI ----------
+
+class AdminCreate(BaseModel):
+    email: str
+    password: str
+
+@api_router.get("/admin/admins")
+async def list_admins(admin=Depends(get_current_admin)):
+    return await db.users.find({"role": "admin"}, {"_id": 0, "email": 1, "created_at": 1}).to_list(50)
+
+@api_router.post("/admin/admins")
+async def create_admin(a: AdminCreate, admin=Depends(get_current_admin)):
+    email = a.email.lower().strip()
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        raise HTTPException(400, "Email invalid")
+    if len(a.password) < 8:
+        raise HTTPException(400, "Parola admin trebuie să aibă minimum 8 caractere")
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(400, "Există deja un cont cu acest email")
+    await db.users.insert_one({"_id": str(uuid.uuid4()), "email": email,
+                               "password_hash": hash_password(a.password), "role": "admin",
+                               "created_at": datetime.now(timezone.utc).isoformat()})
+    return {"ok": True, "email": email}
+
+@api_router.delete("/admin/admins/{email}")
+async def delete_admin(email: str, admin=Depends(get_current_admin)):
+    email = email.lower().strip()
+    if email == admin["email"]:
+        raise HTTPException(400, "Nu te poți șterge pe tine însuți")
+    if email == os.environ.get("ADMIN_EMAIL", "").lower():
+        raise HTTPException(400, "Contul principal de admin nu poate fi șters")
+    await db.users.delete_one({"email": email, "role": "admin"})
+    return {"ok": True}
+
+# ---------- NOTIFICĂRI ON-SITE ----------
+
+async def push_notification(kind: str, title: str, text: str, url: str = "/"):
+    await db.notifications.insert_one({
+        "id": str(uuid.uuid4()), "kind": kind, "title": title[:120], "text": text[:300], "url": url,
+        "created_at": datetime.now(timezone.utc).isoformat()})
+    await ws_manager.broadcast({"type": "notification", "kind": kind, "title": title[:120]})
+
+@api_router.get("/notifications")
+async def list_notifications():
+    return await db.notifications.find({}, {"_id": 0}).sort("created_at", -1).to_list(20)
+
+# ---------- ANUNȚURI ----------
+
+class AnnouncementInput(BaseModel):
+    title: str
+    text: str
+
+@api_router.get("/announcements")
+async def list_announcements():
+    return await db.announcements.find({}, {"_id": 0}).sort("created_at", -1).to_list(10)
+
+@api_router.post("/admin/announcements")
+async def add_announcement(a: AnnouncementInput, admin=Depends(get_current_admin)):
+    doc = {"id": str(uuid.uuid4()), "title": a.title.strip()[:120], "text": a.text.strip()[:1000],
+           "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.announcements.insert_one(doc)
+    doc.pop("_id", None)
+    asyncio.create_task(push_notification("anunt", doc["title"], doc["text"], "/"))
+    asyncio.create_task(notify_subscribers(
+        titlu=doc["title"], mesaj=doc["text"],
+        cta_text="Vezi site-ul", cta_url=SITE_URL or "https://bioxic-ai.preview.emergentagent.com",
+        subject=f"Anunț BIOXIC: {doc['title'][:60]}"))
+    return doc
+
+@api_router.delete("/admin/announcements/{aid}")
+async def delete_announcement(aid: str, admin=Depends(get_current_admin)):
+    await db.announcements.delete_one({"id": aid})
+    return {"ok": True}
+
 # ---------- FAN ACCOUNTS (email/parolă + Google) ----------
 
 class FanRegister(BaseModel):
@@ -285,7 +364,8 @@ def create_fan_token(user_id: str, email: str) -> str:
 
 def fan_out(u: dict) -> dict:
     return {"user_id": u.get("user_id") or u.get("_id"), "name": u.get("name", "Fan"),
-            "email": u["email"], "picture": u.get("picture", ""), "role": u.get("role", "fan")}
+            "email": u["email"], "picture": u.get("picture", ""), "role": u.get("role", "fan"),
+            "bio": u.get("bio", ""), "banner": u.get("banner", "")}
 
 async def get_current_fan(request: Request) -> dict:
     # 1. session_token (Google OAuth)
@@ -419,6 +499,189 @@ async def list_favorites(fan=Depends(get_current_fan)):
     tracks = await db.tracks.find({"id": {"$in": ids}}, {"_id": 0}).to_list(200)
     return tracks
 
+# ---------- FOLLOW CANAL + PROFIL FAN ----------
+
+async def get_optional_fan(request: Request):
+    try:
+        return await get_current_fan(request)
+    except HTTPException:
+        return None
+
+@api_router.post("/fans/follow")
+async def toggle_follow(fan=Depends(get_current_fan)):
+    uid = fan.get("user_id") or fan.get("_id")
+    existing = await db.follows.find_one({"user_id": uid})
+    if existing:
+        await db.follows.delete_one({"user_id": uid})
+        following = False
+    else:
+        await db.follows.insert_one({"user_id": uid, "created_at": datetime.now(timezone.utc).isoformat()})
+        following = True
+    count = await db.follows.count_documents({})
+    return {"following": following, "followers": count}
+
+@api_router.get("/follow/status")
+async def follow_status(request: Request):
+    count = await db.follows.count_documents({})
+    fan = await get_optional_fan(request)
+    following = False
+    if fan:
+        uid = fan.get("user_id") or fan.get("_id")
+        following = bool(await db.follows.find_one({"user_id": uid}))
+    return {"followers": count, "following": following}
+
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    bio: Optional[str] = None
+
+@api_router.patch("/fans/me")
+async def update_profile(p: ProfileUpdate, fan=Depends(get_current_fan)):
+    uid = fan.get("user_id") or fan.get("_id")
+    updates = {}
+    if p.name is not None and p.name.strip():
+        updates["name"] = p.name.strip()[:60]
+    if p.bio is not None:
+        updates["bio"] = p.bio.strip()[:300]
+    if updates:
+        await db.users.update_one({"user_id": uid}, {"$set": updates})
+    user = await db.users.find_one({"user_id": uid})
+    out = fan_out(user)
+    out["bio"] = user.get("bio", "")
+    return out
+
+async def _save_image_upload(file: UploadFile, sub: str) -> str:
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_IMG:
+        raise HTTPException(400, "Doar imagini (jpg, png, webp)")
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(400, "Imagine prea mare (max 10MB)")
+    path = f"{APP_NAME}/uploads/{sub}/{uuid.uuid4().hex}{ext}"
+    ct = MIME.get(ext, "image/jpeg")
+    try:
+        result = await asyncio.to_thread(put_object, path, content, ct)
+    except Exception as ex:
+        logger.error(f"Upload failed: {ex}")
+        raise HTTPException(502, "Upload-ul a eșuat. Reîncearcă.")
+    serve_url = f"/api/files/{result['path']}"
+    await db.files.insert_one({"id": str(uuid.uuid4()), "storage_path": result["path"],
+                               "serve_url": serve_url, "original_filename": file.filename,
+                               "content_type": ct, "size": result.get("size", len(content)),
+                               "is_deleted": False, "created_at": datetime.now(timezone.utc).isoformat()})
+    return serve_url
+
+@api_router.post("/fans/me/avatar")
+async def upload_avatar(avatar: UploadFile = File(...), fan=Depends(get_current_fan)):
+    serve_url = await _save_image_upload(avatar, "avatars")
+    uid = fan.get("user_id") or fan.get("_id")
+    await db.users.update_one({"user_id": uid}, {"$set": {"picture": serve_url}})
+    return {"picture": serve_url}
+
+@api_router.post("/fans/me/banner")
+async def upload_banner(banner: UploadFile = File(...), fan=Depends(get_current_fan)):
+    serve_url = await _save_image_upload(banner, "banners")
+    uid = fan.get("user_id") or fan.get("_id")
+    await db.users.update_one({"user_id": uid}, {"$set": {"banner": serve_url}})
+    return {"banner": serve_url}
+
+@api_router.get("/fans/{user_id}/public")
+async def public_profile(user_id: str):
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(404, "Profil inexistent")
+    favs = await db.fan_favorites.find({"user_id": user_id}, {"_id": 0}).to_list(100)
+    ids = [f["track_id"] for f in favs]
+    tracks = await db.tracks.find({"id": {"$in": ids}}, {"_id": 0}).to_list(100)
+    return {"user_id": user_id, "name": user.get("name", "Fan"), "picture": user.get("picture", ""),
+            "bio": user.get("bio", ""), "banner": user.get("banner", ""),
+            "created_at": user.get("created_at", ""), "favorites": tracks}
+
+# ---------- VIDEOCLIPURI UPLOADATE (admin) ----------
+
+ALLOWED_VIDEO = {".mp4", ".webm", ".mov"}
+MIME_VIDEO = {".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime"}
+
+@api_router.get("/videos")
+async def list_videos(category: Optional[str] = None):
+    q = {"category": category} if category else {}
+    return await db.videos.find(q, {"_id": 0}).sort("created_at", -1).to_list(100)
+
+@api_router.post("/videos/{video_id}/view")
+async def count_view(video_id: str):
+    await db.videos.update_one({"id": video_id}, {"$inc": {"views": 1}})
+    return {"ok": True}
+
+@api_router.post("/admin/videos")
+async def upload_video(
+    title: str = Form(...), category: str = Form("muzica"), description: str = Form(""),
+    video: UploadFile = File(...), thumb: Optional[UploadFile] = File(None),
+    admin=Depends(get_current_admin)):
+    ext = Path(video.filename).suffix.lower()
+    if ext not in ALLOWED_VIDEO:
+        raise HTTPException(400, "Doar fișiere video (mp4, webm, mov)")
+    content = await video.read()
+    if len(content) > 500 * 1024 * 1024:
+        raise HTTPException(400, "Videoclip prea mare (max 500MB)")
+    path = f"{APP_NAME}/uploads/videos/{uuid.uuid4().hex}{ext}"
+    ct = MIME_VIDEO.get(ext, "video/mp4")
+    try:
+        result = await asyncio.to_thread(put_object, path, content, ct)
+    except Exception as ex:
+        logger.error(f"Video upload failed: {ex}")
+        raise HTTPException(502, "Upload-ul a eșuat. Reîncearcă.")
+    video_url = f"/api/files/{result['path']}"
+    await db.files.insert_one({"id": str(uuid.uuid4()), "storage_path": result["path"],
+                               "serve_url": video_url, "original_filename": video.filename,
+                               "content_type": ct, "size": result.get("size", len(content)),
+                               "is_deleted": False, "created_at": datetime.now(timezone.utc).isoformat()})
+    thumb_url = ""
+    if thumb and thumb.filename:
+        thumb_url = await save_upload(thumb, "covers", ALLOWED_IMG)
+    doc = {"id": str(uuid.uuid4()), "title": title.strip()[:120], "category": category,
+           "description": description.strip()[:1000], "video_url": video_url, "thumb_url": thumb_url,
+           "views": 0, "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.videos.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.delete("/admin/videos/{video_id}")
+async def delete_video(video_id: str, admin=Depends(get_current_admin)):
+    res = await db.videos.delete_one({"id": video_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Videoclip inexistent")
+    return {"ok": True}
+
+# ---------- GAMING ----------
+
+@api_router.get("/gaming/status")
+async def gaming_status():
+    doc = await db.live.find_one({"key": "gaming_status"}, {"_id": 0})
+    if not doc:
+        doc = {"key": "gaming_status", "is_live": False, "youtube_video_id": "", "title": "BIOXIC Gaming"}
+    doc.pop("_id", None)
+    return doc
+
+class GamingUpdate(BaseModel):
+    is_live: bool
+    youtube_video_id: Optional[str] = ""
+    title: Optional[str] = "BIOXIC Gaming"
+
+@api_router.post("/admin/gaming")
+async def set_gaming(update: GamingUpdate, admin=Depends(get_current_admin)):
+    await db.live.update_one({"key": "gaming_status"},
+                             {"$set": {"key": "gaming_status", "is_live": update.is_live,
+                                       "youtube_video_id": update.youtube_video_id, "title": update.title}},
+                             upsert=True)
+    await ws_manager.broadcast({"type": "gaming_live", "is_live": update.is_live})
+    if update.is_live:
+        asyncio.create_task(push_notification("gaming", "BIOXIC e LIVE pe Gaming!", "Ne jucăm cu abonații. Intră în lobby.", "/gaming"))
+        asyncio.create_task(notify_subscribers(
+            titlu="BIOXIC e LIVE pe Gaming!",
+            mesaj="A pornit stream-ul de gaming cu abonații. Intră și joacă-te cu noi.",
+            cta_text="Intră în gaming", cta_url=f"{SITE_URL}/gaming",
+            subject="BIOXIC Gaming LIVE ACUM"))
+    return {"ok": True}
+
 # ---------- TRACKS ----------
 
 def track_out(t):
@@ -531,6 +794,7 @@ async def create_track(
              "created_at": datetime.now(timezone.utc).isoformat()}
     await db.tracks.insert_one(track)
     track.pop("_id", None)
+    asyncio.create_task(push_notification("piesa", "Piesă nouă: " + title, "Disponibilă acum pe canal.", f"/muzica?track={track['id']}"))
     asyncio.create_task(notify_subscribers(
         titlu="Piesă nouă: " + title,
         mesaj="BIOXIC tocmai a lansat o piesă nouă pe site. Ascult-o prima dată aici, înainte să ajungă peste tot.",
@@ -569,11 +833,13 @@ async def get_comments(track_id: str):
     return await db.comments.find({"track_id": track_id}, {"_id": 0}).sort("created_at", -1).to_list(100)
 
 @api_router.post("/tracks/{track_id}/comments")
-async def add_comment(track_id: str, c: CommentInput):
-    name = c.name.strip()[:40]
+async def add_comment(track_id: str, c: CommentInput, request: Request):
+    fan = await get_optional_fan(request)
+    name = (fan.get("name") if fan else c.name.strip()[:40]) or "Fan"
     if await db.banned_names.find_one({"name": name.lower()}):
         raise HTTPException(403, "Acest nume este blocat")
-    doc = {"id": str(uuid.uuid4()), "track_id": track_id, "name": name or "Fan",
+    doc = {"id": str(uuid.uuid4()), "track_id": track_id, "name": name,
+           "picture": fan.get("picture", "") if fan else "",
            "text": c.text.strip()[:500], "created_at": datetime.now(timezone.utc).isoformat()}
     await db.comments.insert_one(doc)
     doc.pop("_id", None)
@@ -594,7 +860,7 @@ _yt_cache = {"videos": None, "ts": 0}
 
 FALLBACK_VIDEOS = [
     {"id": "dQw4w9WgXcQ", "title": "BIOXIC — Videoclip nou în curând [PLACEHOLDER]",
-     "published": "2024-01-01T00:00:00+00:00",
+     "published": "2024-01-01T00:00:00+00:00", "channel": "BIOXIC",
      "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"},
 ]
 
@@ -603,39 +869,48 @@ async def youtube_videos():
     now = time.time()
     if _yt_cache["videos"] and now - _yt_cache["ts"] < 600:
         return _yt_cache["videos"]
+    ns = {"a": "http://www.w3.org/2005/Atom", "yt": "http://www.youtube.com/xml/schemas/2015",
+          "m": "http://search.yahoo.com/mrss/"}
+    videos = []
     try:
         async with httpx.AsyncClient(timeout=10, follow_redirects=True) as http:
-            r = await http.get(RSS_URL)
-            r.raise_for_status()
-        ns = {"a": "http://www.w3.org/2005/Atom", "yt": "http://www.youtube.com/xml/schemas/2015",
-              "m": "http://search.yahoo.com/mrss/"}
-        root = ET.fromstring(r.text)
-        videos = []
-        for e in root.findall("a:entry", ns):
-            vid = e.find("yt:videoId", ns).text
-            thumb = e.find("m:group/m:thumbnail", ns)
-            videos.append({
-                "id": vid,
-                "title": e.find("a:title", ns).text,
-                "published": e.find("a:published", ns).text,
-                "thumbnail": thumb.get("url") if thumb is not None else f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg",
-            })
-        _yt_cache.update({"videos": videos[:24], "ts": now})
+            for ch in YT_CHANNELS:
+                try:
+                    r = await http.get(f"https://www.youtube.com/feeds/videos.xml?channel_id={ch['id']}")
+                    r.raise_for_status()
+                    root = ET.fromstring(r.text)
+                    for e in root.findall("a:entry", ns):
+                        vid = e.find("yt:videoId", ns).text
+                        thumb = e.find("m:group/m:thumbnail", ns)
+                        videos.append({
+                            "id": vid,
+                            "title": e.find("a:title", ns).text,
+                            "published": e.find("a:published", ns).text,
+                            "thumbnail": thumb.get("url") if thumb is not None else f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg",
+                            "channel": ch["name"],
+                        })
+                except Exception as ex:
+                    logger.warning(f"RSS canal {ch['name']} eșuat: {ex}")
+        if not videos:
+            raise ValueError("niciun feed disponibil")
+        videos.sort(key=lambda v: v["published"], reverse=True)
+        videos = videos[:48]
+        _yt_cache.update({"videos": videos, "ts": now})
         # detectare videoclip NOU → notificare abonați (în fundal)
-        if videos:
-            newest = videos[0]
-            meta = await db.meta.find_one({"key": "last_video"})
-            if meta and meta.get("video_id") != newest["id"]:
-                asyncio.create_task(notify_subscribers(
-                    titlu="Videoclip nou pe canal!",
-                    mesaj=f"Tocmai a apărut „{newest['title']}” pe YouTube. Fii printre primii care îl văd.",
-                    cta_text="Vezi videoclipul", cta_url=f"{SITE_URL}/videoclipuri",
-                    subject=f"Lansare nouă BIOXIC: {newest['title'][:60]}"))
-            if not meta or meta.get("video_id") != newest["id"]:
-                await db.meta.update_one({"key": "last_video"},
-                                         {"$set": {"key": "last_video", "video_id": newest["id"], "title": newest["title"]}},
-                                         upsert=True)
-        return videos[:24]
+        newest = videos[0]
+        meta = await db.meta.find_one({"key": "last_video"})
+        if meta and meta.get("video_id") != newest["id"]:
+            asyncio.create_task(push_notification("video", "Videoclip nou: " + newest["title"][:80], "Proaspăt pe YouTube.", "/videoclipuri"))
+            asyncio.create_task(notify_subscribers(
+                titlu="Videoclip nou pe canal!",
+                mesaj=f"Tocmai a apărut „{newest['title']}” pe YouTube. Fii printre primii care îl văd.",
+                cta_text="Vezi videoclipul", cta_url=f"{SITE_URL}/videoclipuri",
+                subject=f"Lansare nouă BIOXIC: {newest['title'][:60]}"))
+        if not meta or meta.get("video_id") != newest["id"]:
+            await db.meta.update_one({"key": "last_video"},
+                                     {"$set": {"key": "last_video", "video_id": newest["id"], "title": newest["title"]}},
+                                     upsert=True)
+        return videos
     except Exception as ex:
         logger.warning(f"YouTube RSS fallback: {ex}")
         return FALLBACK_VIDEOS
@@ -662,7 +937,7 @@ async def youtube_stats():
 async def get_live_doc():
     doc = await db.live.find_one({"key": "status"}, {"_id": 0})
     if not doc:
-        doc = {"key": "status", "is_live": False, "youtube_video_id": "", "title": "BIOXIC LIVE"}
+        doc = {"key": "status", "is_live": False, "youtube_video_id": "", "title": "BIOXIC LIVE", "likes": 0}
     return doc
 
 @api_router.get("/live/status")
@@ -670,6 +945,7 @@ async def live_status():
     doc = await get_live_doc()
     doc.pop("_id", None)
     doc["viewers"] = ws_manager.count
+    doc["viewers_list"] = ws_manager.user_list()
     return doc
 
 class LiveUpdate(BaseModel):
@@ -681,8 +957,11 @@ class LiveUpdate(BaseModel):
 async def set_live(update: LiveUpdate, admin=Depends(get_current_admin)):
     await db.live.update_one({"key": "status"},
                              {"$set": {"key": "status", "is_live": update.is_live,
-                                       "youtube_video_id": update.youtube_video_id, "title": update.title}},
-                             upsert=True)
+                                       "youtube_video_id": update.youtube_video_id, "title": update.title},
+                              "$setOnInsert": {"likes": 0}}, upsert=True)
+    if update.is_live:
+        await db.live.update_one({"key": "status"}, {"$set": {"likes": 0}})
+        asyncio.create_task(push_notification("live", "BIOXIC e LIVE acum!", "Stream-ul a pornit. Intră pe chat și cere o piesă.", "/live"))
     await ws_manager.broadcast({"type": "live", "is_live": update.is_live})
     if update.is_live:
         asyncio.create_task(notify_subscribers(
@@ -736,23 +1015,56 @@ async def del_request(rid: str, admin=Depends(get_current_admin)):
 
 # ---------- CHAT (WebSocket realtime) ----------
 
+async def resolve_fan_cookies(cookies) -> Optional[dict]:
+    st = cookies.get("session_token")
+    if st:
+        sess = await db.user_sessions.find_one({"session_token": st})
+        if sess:
+            exp = sess["expires_at"]
+            if isinstance(exp, str):
+                exp = datetime.fromisoformat(exp)
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp > datetime.now(timezone.utc):
+                return await db.users.find_one({"user_id": sess["user_id"]})
+    ft = cookies.get("fan_token")
+    if ft:
+        try:
+            payload = jwt.decode(ft, os.environ["JWT_SECRET"], algorithms=[JWT_ALGORITHM])
+            return await db.users.find_one({"$or": [{"user_id": payload["sub"]}, {"_id": payload["sub"]}]})
+        except Exception:
+            return None
+    return None
+
 class WSManager:
     def __init__(self):
-        self.clients: List[WebSocket] = []
+        self.clients: dict = {}  # ws -> info {name, picture, user_id}
 
     @property
     def count(self):
         return len(self.clients)
 
-    async def connect(self, ws: WebSocket):
+    def user_list(self):
+        seen, out = set(), []
+        for info in self.clients.values():
+            uid = info.get("user_id")
+            if uid and uid not in seen:
+                seen.add(uid)
+                out.append({"user_id": uid, "name": info["name"], "picture": info.get("picture", "")})
+        return out[:40]
+
+    async def connect(self, ws: WebSocket, info: dict):
         await ws.accept()
-        self.clients.append(ws)
-        await self.broadcast({"type": "viewers", "count": self.count})
+        self.clients[ws] = info
+        await self.broadcast({"type": "viewers", "count": self.count, "users": self.user_list()})
+        if info.get("user_id"):
+            await self.broadcast({"type": "join", "id": str(uuid.uuid4()), "name": info["name"], "picture": info.get("picture", "")})
 
     def disconnect(self, ws: WebSocket):
-        if ws in self.clients:
-            self.clients.remove(ws)
-        asyncio.create_task(self.broadcast({"type": "viewers", "count": self.count}))
+        info = self.clients.pop(ws, None)
+        asyncio.create_task(self.broadcast({"type": "viewers", "count": self.count, "users": self.user_list()}))
+        if info and info.get("user_id"):
+            asyncio.create_task(self.broadcast({"type": "leave", "id": str(uuid.uuid4()), "name": info["name"]}))
 
     async def broadcast(self, msg: dict):
         dead = []
@@ -762,18 +1074,23 @@ class WSManager:
             except Exception:
                 dead.append(ws)
         for ws in dead:
-            if ws in self.clients:
-                self.clients.remove(ws)
+            self.clients.pop(ws, None)
 
 ws_manager = WSManager()
 REACTIONS = {"fire", "heart", "crown"}
 
 @app.websocket("/api/ws/chat")
 async def chat_ws(ws: WebSocket):
-    await ws_manager.connect(ws)
+    fan = await resolve_fan_cookies(ws.cookies)
+    info = {"name": (fan.get("name") if fan else "Vizitator"),
+            "picture": (fan.get("picture", "") if fan else ""),
+            "user_id": (fan.get("user_id") if fan else None)}
+    await ws_manager.connect(ws, info)
     try:
         history = await db.chat.find({}, {"_id": 0}).sort("ts", -1).limit(50).to_list(50)
         await ws.send_text(json.dumps({"type": "history", "messages": list(reversed(history))}))
+        live_doc = await get_live_doc()
+        await ws.send_text(json.dumps({"type": "like_count", "total": live_doc.get("likes", 0)}))
         while True:
             raw = await ws.receive_text()
             try:
@@ -781,7 +1098,7 @@ async def chat_ws(ws: WebSocket):
             except Exception:
                 continue
             if data.get("type") == "message":
-                name = str(data.get("name", "Fan"))[:40].strip() or "Fan"
+                name = info["name"] if info.get("user_id") else str(data.get("name", "Fan"))[:40].strip() or "Fan"
                 banned = await db.banned_names.find_one({"name": name.lower()})
                 if banned:
                     await ws.send_text(json.dumps({"type": "error", "detail": "Ești blocat pe chat"}))
@@ -789,12 +1106,18 @@ async def chat_ws(ws: WebSocket):
                 text = str(data.get("text", ""))[:300].strip()
                 if not text:
                     continue
-                msg = {"type": "message", "id": str(uuid.uuid4()), "name": name, "text": text,
+                msg = {"type": "message", "id": str(uuid.uuid4()), "name": name, "picture": info.get("picture", ""),
+                       "user_id": info.get("user_id"), "text": text,
                        "ts": datetime.now(timezone.utc).isoformat()}
                 await db.chat.insert_one({k: v for k, v in msg.items() if k != "type"})
                 await ws_manager.broadcast(msg)
             elif data.get("type") == "reaction" and data.get("emoji") in REACTIONS:
                 await ws_manager.broadcast({"type": "reaction", "id": str(uuid.uuid4()), "emoji": data["emoji"]})
+            elif data.get("type") == "tap":
+                r = await db.live.find_one_and_update({"key": "status"}, {"$inc": {"likes": 1}}, return_document=True)
+                total = (r or {}).get("likes", 1)
+                await ws_manager.broadcast({"type": "reaction", "id": str(uuid.uuid4()), "emoji": "heart"})
+                await ws_manager.broadcast({"type": "like_count", "total": total})
     except WebSocketDisconnect:
         pass
     finally:
@@ -885,7 +1208,7 @@ async def put_content(request: Request, admin=Depends(get_current_admin)):
 # ---------- SEED & STARTUP ----------
 
 DEMO_COVERS = {
-    "remix": "https://images.pexels.com/photos/7542650/pexels-photo-7542650.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "remix": "https://images.pexels.com/photos/10063275/pexels-photo-10063275.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
     "ai": "https://images.pexels.com/photos/5474035/pexels-photo-5474035.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
     "collab": "https://images.pexels.com/photos/13137879/pexels-photo-13137879.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
 }
@@ -910,7 +1233,7 @@ async def seed_tracks():
     if await db.tracks.count_documents({}) > 0:
         return
     demos = [
-        ("Demo Remix Toxic [DEMO]", "remix", 110, ["manele", "remix"]),
+        ("Demo Remix Club [DEMO]", "remix", 110, ["manele", "remix"]),
         ("Demo Manea Artificială [DEMO]", "ai", 130, ["ai", "manele-artificiale"]),
         ("Demo Colaborare [DEMO]", "collab", 98, ["colaborare"]),
         ("Demo Remix Nou [DEMO]", "remix", 146, ["manele", "nou"]),

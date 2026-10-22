@@ -14,7 +14,18 @@ React (CRA/craco) + FastAPI + MongoDB (motor). Uploaduri → Emergent Object Sto
 - Linkuri: YouTube @djbioxic (UC2gQmatVSAB3nzqeDmYY3gw), TikTok @bioxic.exe, Instagram @crss.exe_, Spotify artist 4tlelg9L2y1OFOVpUkIiAK, Discord https://discord.gg/PJ5A45SkRs, WhatsApp +44 7400 998964.
 - Ecranul de intrare cu tranziție GSAP a fost ELIMINAT la cererea utilizatorului (22.10) — site-ul intră direct pe Home.
 
-## Implementat (22.10.2026)
+## Implementat (22.10.2026, iter 2)
+- Home curățat: fără secțiunea „Ultimele videoclipuri"; secțiune ANUNȚURI (admin postează → apare pe Home + notificare on-site + email).
+- Canalul BIOXIC (/muzica): header de canal cu Follow (contor), listă piese stil Spotify, secțiune Everest Manele cu cele 5 piese oficiale (Apple Music/YT Music) + linkuri platforme (Spotify = „în curând").
+- Live: prezență cu nume+avatar (join/leave în chat), tap-tap likes cu contor, panou donații (PayPal + transfer UK), follow direct din pagină, profiluri clickabile din chat.
+- Profil fan: editare nume/bio/avatar/banner (upload în object storage), profil public /fan/:id.
+- Gaming (/gaming): control live separat din admin, clipuri gaming uploadate (MP4), CTA Discord.
+- Notificări on-site: clopoțel în navbar cu badge necitite (live/gaming/piesă/video/anunț).
+- Admin: taburi noi — Video (upload MP4), Anunțuri, Admini (multi-admin), control Gaming.
+- Securitate: rutele admin verifică role=admin (fanii primesc 401/403).
+- Curățenie brand: eliminate toate imaginile/referințele „toxic"/virus (inclusiv coverurile demo).
+
+## Implementat (22.10.2026, iter 1)
 - Home: hero cu poza artistului + logo + „No risks, no hits.", card Ultima lansare, ticker marquee, videoclipuri YouTube din RSS cu filtre (Toate/Remixuri/AI/Originale) + badge NOU, stats, carduri Remixate vs AI, citat Guță, secțiune Discord BIOXIC HOUSE + cont fan, CTA live.
 - Muzică: player persistent (play/pause/next/prev/shuffle/repeat/volum/progres/vizualizare), filtre, like (+favorite în cont), ascultări, share link, download per piesă, comentarii.
 - Live: embed YouTube live, chat WS realtime, reacții animate (fire/heart/crown), contor spectatori, cereri de piese, program + countdown.
@@ -35,5 +46,5 @@ React (CRA/craco) + FastAPI + MongoDB (motor). Uploaduri → Emergent Object Sto
 
 ## Backlog
 - P0: nimic blocant
-- P1: toggle EN/RO, PWA manifest complet, mod „Party" vizualizator fullscreen
-- P2: RTMP direct (Mux/Cloudflare Stream) — Varianta 2 live, waveform real (WebAudio analyser)
+- P1: toggle EN/RO, PWA manifest complet, mod „Party" vizualizator fullscreen, story-uri/postări pe profilul fanilor, mesaje private între fani
+- P2: RTMP direct (Mux/Cloudflare Stream), apeluri audio/video fan→fan (WebRTC — necesită infra separată), waveform real (WebAudio analyser)

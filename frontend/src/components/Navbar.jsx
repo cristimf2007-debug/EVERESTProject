@@ -3,11 +3,13 @@ import { Link, useLocation } from "react-router-dom";
 import { Menu, X, User } from "lucide-react";
 import api from "@/lib/api";
 import { useFan } from "@/context/FanContext";
+import NotificationBell from "@/components/NotificationBell";
 
 const LEFT_LINKS = [
   { to: "/", label: "Acasă", tid: "acasa" },
-  { to: "/muzica", label: "Muzică", tid: "muzica" },
+  { to: "/muzica", label: "Canal", tid: "muzica" },
   { to: "/live", label: "Live", tid: "live" },
+  { to: "/gaming", label: "Gaming", tid: "gaming" },
 ];
 const RIGHT_LINKS = [
   { to: "/videoclipuri", label: "Videoclipuri", tid: "videoclipuri" },
@@ -67,10 +69,11 @@ export default function Navbar() {
         </Link>
 
         {/* DREAPTA — linkuri + cont */}
-        <div className="flex items-center gap-7">
+        <div className="flex items-center gap-5">
           <div className="hidden md:flex items-center gap-7">
             {RIGHT_LINKS.map((l) => <NavLink key={l.to} l={l} active={location.pathname === l.to} />)}
           </div>
+          <NotificationBell />
           <Link to="/cont" data-testid="nav-link-cont"
             className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] transition-colors hover:text-[#39FF14] ${location.pathname === "/cont" ? "text-[#39FF14]" : "text-zinc-400"}`}>
             {fan && fan.picture ? (

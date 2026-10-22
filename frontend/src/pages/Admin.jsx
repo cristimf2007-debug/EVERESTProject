@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { LogOut, Upload, Trash2, Radio, Plus, BarChart3, MessageSquare, Mail, Music, Ban, FileText, RefreshCw } from "lucide-react";
+import { LogOut, Upload, Trash2, Radio, Plus, BarChart3, MessageSquare, Mail, Music, Ban, FileText, RefreshCw, ShieldCheck, Megaphone, Video as VideoIcon, Gamepad2 } from "lucide-react";
 import api, { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
 
 const inputCls = "w-full bg-black/40 border border-white/10 px-3 py-2.5 text-sm focus:border-[#39FF14] outline-none";
 const TABS = [
   { key: "tracks", label: "Piese", icon: Music },
+  { key: "videos", label: "Video", icon: VideoIcon },
+  { key: "announcements", label: "Anunțuri", icon: Megaphone },
   { key: "live", label: "Live", icon: Radio },
   { key: "moderation", label: "Moderare", icon: Ban },
   { key: "requests", label: "Cereri", icon: MessageSquare },
   { key: "messages", label: "Mesaje", icon: Mail },
   { key: "stats", label: "Statistici", icon: BarChart3 },
   { key: "content", label: "Conținut", icon: FileText },
+  { key: "admins", label: "Admini", icon: ShieldCheck },
 ];
 
 export default function Admin() {
@@ -73,12 +76,127 @@ export default function Admin() {
         ))}
       </div>
       {tab === "tracks" && <TracksTab />}
+      {tab === "videos" && <VideosTab />}
+      {tab === "announcements" && <AnnouncementsTab />}
       {tab === "live" && <LiveTab />}
       {tab === "moderation" && <ModerationTab />}
       {tab === "requests" && <RequestsTab />}
       {tab === "messages" && <MessagesTab />}
       {tab === "stats" && <StatsTab />}
       {tab === "content" && <ContentTab />}
+      {tab === "admins" && <AdminsTab />}
+    </div>
+  );
+}
+
+function VideosTab() {
+  const [videos, setVideos] = useState([]);
+  const [form, setForm] = useState({ title: "", category: "muzica", description: "" });
+  const [video, setVideo] = useState(null);
+  const [thumb, setThumb] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const load = () => api.get("/videos").then((r) => setVideos(r.data || [])).catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  const upload = async (e) => {
+    e.preventDefault();
+    if (!video) { toast.error("Alege fișierul video"); return; }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("title", form.title);
+      fd.append("category", form.category);
+      fd.append("description", form.description);
+      fd.append("video", video);
+      if (thumb) fd.append("thumb", thumb);
+      await api.post("/admin/videos", fd);
+      toast.success("Videoclip încărcat!");
+      setForm({ title: "", category: "muzica", description: "" });
+      setVideo(null); setThumb(null);
+      load();
+    } catch (err) { toast.error(formatApiError(err)); }
+    finally { setUploading(false); }
+  };
+
+  return (
+    <div className="grid lg:grid-cols-3 gap-8" data-testid="admin-videos-tab">
+      <form onSubmit={upload} className="glass rounded-sm p-6 space-y-4 h-fit">
+        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><VideoIcon size={15} className="text-[#39FF14]" /> Încarcă videoclip</h3>
+        <input data-testid="video-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Titlu videoclip" className={inputCls} />
+        <select data-testid="video-category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
+          <option value="muzica">Muzică</option>
+          <option value="gaming">Gaming</option>
+        </select>
+        <textarea data-testid="video-description" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descriere (opțional)" className={inputCls} />
+        <div>
+          <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-1">Fișier video (MP4) *</label>
+          <input data-testid="video-file" type="file" accept=".mp4,.webm,.mov" onChange={(e) => setVideo(e.target.files[0])} className="text-xs text-zinc-400 file:bg-[#39FF14] file:text-black file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-bold file:uppercase file:mr-3" />
+        </div>
+        <div>
+          <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-1">Thumbnail (opțional)</label>
+          <input data-testid="video-thumb" type="file" accept=".jpg,.jpeg,.png,.webp" onChange={(e) => setThumb(e.target.files[0])} className="text-xs text-zinc-400 file:bg-white/10 file:text-white file:border-0 file:px-3 file:py-1.5 file:text-xs file:uppercase file:mr-3" />
+        </div>
+        <button data-testid="video-upload-submit" disabled={uploading} className="w-full py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors disabled:opacity-50">
+          {uploading ? "Se încarcă..." : "Publică videoclipul"}
+        </button>
+      </form>
+      <div className="lg:col-span-2 space-y-3">
+        {videos.map((v) => (
+          <div key={v.id} data-testid={`admin-video-${v.id}`} className="glass rounded-sm p-4 flex items-center gap-4">
+            <span className="text-[10px] px-2 py-1 bg-white/5 text-[#39FF14] uppercase tracking-widest border border-white/10">{v.category}</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm truncate">{v.title}</p>
+              <p className="text-[11px] text-zinc-500">{v.views} vizualizări</p>
+            </div>
+            <button data-testid={`admin-video-delete-${v.id}`} onClick={async () => { if (window.confirm("Ștergi videoclipul?")) { await api.delete(`/admin/videos/${v.id}`); load(); } }} className="p-2 text-zinc-500 hover:text-red-400"><Trash2 size={16} /></button>
+          </div>
+        ))}
+        {videos.length === 0 && <p className="text-zinc-500 text-sm">Niciun videoclip încărcat.</p>}
+      </div>
+    </div>
+  );
+}
+
+function AnnouncementsTab() {
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState({ title: "", text: "" });
+  const load = () => api.get("/announcements").then((r) => setItems(r.data || [])).catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  const add = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post("/admin/announcements", form);
+      toast.success("Anunț publicat!", { description: "A apărut pe prima pagină + notificare la fani." });
+      setForm({ title: "", text: "" });
+      load();
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  return (
+    <div className="grid lg:grid-cols-2 gap-8" data-testid="admin-announcements-tab">
+      <form onSubmit={add} className="glass rounded-sm p-6 space-y-4 h-fit">
+        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><Megaphone size={15} className="text-[#39FF14]" /> Anunț nou</h3>
+        <p className="text-xs text-zinc-500">Apare pe prima pagină și trimite notificare + email la fani.</p>
+        <input data-testid="announcement-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Titlu anunț" className={inputCls} />
+        <textarea data-testid="announcement-text" required rows={4} value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} placeholder="Textul anunțului..." className={inputCls} />
+        <button data-testid="announcement-submit" className="px-6 py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors">Publică anunțul</button>
+      </form>
+      <div className="space-y-3">
+        {items.map((a) => (
+          <div key={a.id} data-testid={`admin-announcement-${a.id}`} className="glass rounded-sm p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold text-sm">{a.title}</p>
+                <p className="text-xs text-zinc-500 mt-1">{a.text}</p>
+                <p className="text-[10px] text-zinc-600 mt-2">{new Date(a.created_at).toLocaleString("ro-RO")}</p>
+              </div>
+              <button data-testid={`announcement-delete-${a.id}`} onClick={async () => { await api.delete(`/admin/announcements/${a.id}`); load(); }} className="p-1.5 text-zinc-500 hover:text-red-400"><Trash2 size={14} /></button>
+            </div>
+          </div>
+        ))}
+        {items.length === 0 && <p className="text-zinc-500 text-sm">Niciun anunț publicat.</p>}
+      </div>
     </div>
   );
 }
@@ -183,11 +301,13 @@ function TracksTab() {
 
 function LiveTab() {
   const [status, setStatus] = useState({ is_live: false, youtube_video_id: "", title: "BIOXIC LIVE" });
+  const [gaming, setGaming] = useState({ is_live: false, youtube_video_id: "", title: "BIOXIC Gaming" });
   const [schedule, setSchedule] = useState([]);
   const [newShow, setNewShow] = useState({ title: "", date: "" });
 
   const load = () => {
     api.get("/live/status").then((r) => setStatus(r.data)).catch(() => {});
+    api.get("/gaming/status").then((r) => setGaming(r.data)).catch(() => {});
     api.get("/live/schedule").then((r) => setSchedule(r.data || [])).catch(() => {});
   };
   useEffect(() => { load(); }, []);
@@ -195,7 +315,14 @@ function LiveTab() {
   const save = async () => {
     try {
       await api.post("/admin/live", { is_live: status.is_live, youtube_video_id: status.youtube_video_id, title: status.title });
-      toast.success(status.is_live ? "Modul LIVE pornit!" : "Modul LIVE oprit");
+      toast.success(status.is_live ? "Modul LIVE pornit! Fani primesc notificare." : "Modul LIVE oprit");
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  const saveGaming = async () => {
+    try {
+      await api.post("/admin/gaming", { is_live: gaming.is_live, youtube_video_id: gaming.youtube_video_id, title: gaming.title });
+      toast.success(gaming.is_live ? "Gaming LIVE pornit!" : "Gaming oprit");
     } catch (err) { toast.error(formatApiError(err)); }
   };
 
@@ -240,6 +367,22 @@ function LiveTab() {
             </div>
           ))}
           {schedule.length === 0 && <p className="text-zinc-500 text-sm">Niciun live programat.</p>}
+        </div>
+      </div>
+      {/* GAMING */}
+      <div className="glass rounded-sm p-6 space-y-4 lg:col-span-2">
+        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><Gamepad2 size={15} className="text-[#39FF14]" /> Control GAMING LIVE</h3>
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <button type="button" data-testid="admin-gaming-toggle" onClick={() => setGaming({ ...gaming, is_live: !gaming.is_live })}
+              className={`w-14 h-7 relative transition-colors ${gaming.is_live ? "bg-[#39FF14]" : "bg-white/10"}`}>
+              <span className={`absolute top-1 w-5 h-5 bg-white transition-all ${gaming.is_live ? "left-8" : "left-1"}`} />
+            </button>
+            <span className="text-sm">{gaming.is_live ? "GAMING PORNIT" : "Offline"}</span>
+          </label>
+          <input data-testid="admin-gaming-video-id" value={gaming.youtube_video_id || ""} onChange={(e) => setGaming({ ...gaming, youtube_video_id: e.target.value })}
+            placeholder="ID video YouTube (gaming)" className={`${inputCls} flex-1 min-w-[220px]`} />
+          <button data-testid="admin-gaming-save" onClick={saveGaming} className="px-6 py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors">Salvează</button>
         </div>
       </div>
     </div>
@@ -368,6 +511,61 @@ function StatsTab() {
             <span className="text-xs text-zinc-500">{t.plays} ascultări</span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminsTab() {
+  const [admins, setAdmins] = useState([]);
+  const [form, setForm] = useState({ email: "", password: "" });
+  const load = () => api.get("/admin/admins").then((r) => setAdmins(r.data || [])).catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  const add = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post("/admin/admins", form);
+      toast.success(`Admin adăugat: ${form.email}`, { description: "Poate urca piese și gestiona site-ul din /admin." });
+      setForm({ email: "", password: "" });
+      load();
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  const del = async (email) => {
+    if (!window.confirm(`Ștergi accesul de admin pentru ${email}?`)) return;
+    try {
+      await api.delete(`/admin/admins/${encodeURIComponent(email)}`);
+      toast.success("Admin eliminat");
+      load();
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  return (
+    <div className="grid lg:grid-cols-2 gap-8" data-testid="admin-admins-tab">
+      <form onSubmit={add} className="glass rounded-sm p-6 space-y-4 h-fit">
+        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2">
+          <ShieldCheck size={15} className="text-[#39FF14]" /> Adaugă admin
+        </h3>
+        <p className="text-xs text-zinc-500">Va putea urca piese, porni live-uri și modera. Doar tu poți adăuga sau elimina admini.</p>
+        <input data-testid="new-admin-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email admin nou" className={inputCls} />
+        <input data-testid="new-admin-password" type="password" required minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Parolă (min. 8 caractere)" className={inputCls} />
+        <button data-testid="new-admin-submit" className="px-6 py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors">Adaugă admin</button>
+      </form>
+      <div className="glass rounded-sm p-6 h-fit">
+        <h3 className="font-display font-bold text-sm uppercase tracking-widest mb-4">Admini activi</h3>
+        <div className="space-y-2">
+          {admins.map((a) => (
+            <div key={a.email} data-testid={`admin-row-${a.email}`} className="flex items-center justify-between border-b border-white/5 pb-2">
+              <div>
+                <p className="text-sm">{a.email}</p>
+                <p className="text-[10px] text-zinc-600">{a.created_at ? new Date(a.created_at).toLocaleDateString("ro-RO") : "principal"}</p>
+              </div>
+              <button data-testid={`admin-delete-${a.email}`} onClick={() => del(a.email)} className="p-2 text-zinc-500 hover:text-red-400 transition-colors" aria-label="Șterge admin"><Trash2 size={14} /></button>
+            </div>
+          ))}
+          {admins.length === 0 && <p className="text-zinc-500 text-sm">Doar contul principal.</p>}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { LogOut, Heart, ShieldCheck, Bell, User as UserIcon, Music } from "lucide-react";
+import { LogOut, Heart, ShieldCheck, Bell, User as UserIcon, Music, Camera, ImagePlus } from "lucide-react";
 import api, { formatApiError, mediaUrl } from "@/lib/api";
 import { useFan } from "@/context/FanContext";
 import { toast } from "sonner";
@@ -23,15 +23,51 @@ function GoogleButton() {
 }
 
 export default function Cont() {
-  const { fan, setFan, logout } = useFan();
+  const { fan, setFan, logout, refresh } = useFan();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [busy, setBusy] = useState(false);
   const [favorites, setFavorites] = useState([]);
+  const [edit, setEdit] = useState({ name: "", bio: "" });
 
   useEffect(() => {
-    if (fan) api.get("/fans/favorites").then((r) => setFavorites(r.data || [])).catch(() => {});
+    if (fan) {
+      api.get("/fans/favorites").then((r) => setFavorites(r.data || [])).catch(() => {});
+      setEdit({ name: fan.name || "", bio: fan.bio || "" });
+    }
   }, [fan]);
+
+  const saveProfile = async () => {
+    try {
+      await api.patch("/fans/me", edit);
+      await refresh();
+      toast.success("Profil salvat!");
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  const uploadAvatar = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("avatar", file);
+    try {
+      await api.post("/fans/me/avatar", fd);
+      await refresh();
+      toast.success("Poză de profil actualizată!");
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  const uploadBanner = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("banner", file);
+    try {
+      await api.post("/fans/me/banner", fd);
+      await refresh();
+      toast.success("Banner actualizat!");
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -57,15 +93,21 @@ export default function Cont() {
   if (fan) {
     return (
       <div data-testid="fan-profile" className="max-w-3xl mx-auto px-6 py-14">
-        <div className="glass rounded-sm p-8 mb-8">
+        <div className="glass rounded-sm p-8 mb-6">
           <div className="flex items-center gap-5">
-            {fan.picture ? (
-              <img src={fan.picture} alt={fan.name} className="w-16 h-16 rounded-full border-2 border-[#39FF14]" data-testid="fan-avatar" />
-            ) : (
-              <span className="w-16 h-16 rounded-full bg-[#39FF14]/15 border-2 border-[#39FF14] flex items-center justify-center" data-testid="fan-avatar">
-                <UserIcon size={26} className="text-[#39FF14]" />
+            <label data-testid="avatar-upload-label" className="cursor-pointer group relative shrink-0" title="Schimbă poza de profil">
+              {fan.picture ? (
+                <img src={mediaUrl(fan.picture)} alt={fan.name} className="w-16 h-16 rounded-full border-2 border-[#39FF14] object-cover" data-testid="fan-avatar" />
+              ) : (
+                <span className="w-16 h-16 rounded-full bg-[#39FF14]/15 border-2 border-[#39FF14] flex items-center justify-center" data-testid="fan-avatar">
+                  <UserIcon size={26} className="text-[#39FF14]" />
+                </span>
+              )}
+              <span className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera size={18} className="text-[#39FF14]" />
               </span>
-            )}
+              <input data-testid="avatar-upload-input" type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={uploadAvatar} />
+            </label>
             <div className="flex-1 min-w-0">
               <h1 className="font-display font-black text-2xl uppercase tracking-tight truncate" data-testid="fan-name">{fan.name}</h1>
               <p className="text-sm text-zinc-500 truncate">{fan.email}</p>
@@ -77,13 +119,27 @@ export default function Cont() {
           <div className="grid grid-cols-2 gap-3 mt-6">
             <div className="bg-black/30 border border-white/5 p-4 flex items-center gap-3">
               <Bell size={16} className="text-[#39FF14] shrink-0" />
-              <p className="text-xs text-zinc-400">Primești email la fiecare piesă nouă și live</p>
+              <p className="text-xs text-zinc-400">Primești notificări la fiecare piesă nouă și live</p>
             </div>
             <div className="bg-black/30 border border-white/5 p-4 flex items-center gap-3">
               <ShieldCheck size={16} className="text-[#39FF14] shrink-0" />
               <p className="text-xs text-zinc-400">Cont verificat, fără spam</p>
             </div>
           </div>
+        </div>
+
+        {/* EDITEAZĂ PROFILUL */}
+        <div className="glass rounded-sm p-6 mb-8" data-testid="profile-edit">
+          <h2 className="font-display font-bold text-sm uppercase tracking-widest mb-4 flex items-center gap-2"><Camera size={15} className="text-[#39FF14]" /> Profilul tău public</h2>
+          <div className="grid sm:grid-cols-2 gap-3 mb-3">
+            <input data-testid="profile-name-input" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} placeholder="Nume afișat" className={inputCls} />
+            <label className="flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-white/15 text-xs text-zinc-400 uppercase tracking-widest cursor-pointer hover:border-[#39FF14]/50 hover:text-[#39FF14] transition-colors" data-testid="banner-upload-label">
+              <ImagePlus size={14} /> {fan.banner ? "Schimbă bannerul" : "Adaugă banner"}
+              <input type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={uploadBanner} />
+            </label>
+          </div>
+          <textarea data-testid="profile-bio-input" rows={2} value={edit.bio} onChange={(e) => setEdit({ ...edit, bio: e.target.value })} placeholder="Bio scurt (ce asculți, de unde ești...)" className={`${inputCls} mb-3`} />
+          <button data-testid="profile-save" onClick={saveProfile} className="px-6 py-2.5 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors">Salvează profilul</button>
         </div>
 
         <h2 className="font-display font-bold text-lg uppercase tracking-widest mb-5 flex items-center gap-2">
