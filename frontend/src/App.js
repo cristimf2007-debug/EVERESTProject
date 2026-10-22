@@ -9,7 +9,9 @@ import api from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PlayerBar from "@/components/PlayerBar";
-import Particles from "@/components/Particles";
+import Snowfall from "@/components/Snowfall";
+import Trees from "@/components/Trees";
+import WinterIntro from "@/components/WinterIntro";
 import NewVideoWatcher from "@/components/NewVideoWatcher";
 import Home from "@/pages/Home";
 import Muzica from "@/pages/Muzica";
@@ -42,30 +44,6 @@ function useEasterEgg() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
-}
-
-function CustomCursor() {
-  const dotRef = useRef(null);
-  const ringRef = useRef(null);
-  const [enabled, setEnabled] = useState(false);
-  useEffect(() => {
-    if (!window.matchMedia("(pointer: fine)").matches) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    setEnabled(true);
-    const move = (e) => {
-      if (dotRef.current) dotRef.current.style.transform = `translate(${e.clientX - 3}px, ${e.clientY - 3}px)`;
-      if (ringRef.current) ringRef.current.style.transform = `translate(${e.clientX - 16}px, ${e.clientY - 16}px)`;
-    };
-    window.addEventListener("mousemove", move);
-    return () => window.removeEventListener("mousemove", move);
-  }, []);
-  if (!enabled) return null;
-  return (
-    <>
-      <div ref={dotRef} className="fixed top-0 left-0 w-1.5 h-1.5 bg-[#39FF14] rounded-full z-[99] pointer-events-none" style={{ boxShadow: "0 0 8px rgba(57,255,20,0.9)" }} />
-      <div ref={ringRef} className="fixed top-0 left-0 w-8 h-8 border border-[#39FF14]/40 rounded-full z-[99] pointer-events-none transition-transform duration-100" />
-    </>
-  );
 }
 
 function VisitTracker() {
@@ -106,7 +84,7 @@ function AuthCallback() {
 
   return (
     <div className="min-h-screen flex items-center justify-center" data-testid="auth-callback">
-      <p className="font-display text-[#39FF14] uppercase tracking-[0.3em] text-sm animate-pulse">Se finalizează autentificarea...</p>
+      <p className="font-display text-[#f3c46a] uppercase tracking-[0.3em] text-sm animate-pulse">Se finalizează autentificarea...</p>
     </div>
   );
 }
@@ -135,23 +113,25 @@ function App() {
   useEasterEgg();
 
   return (
-    <div className="App min-h-screen bg-[#050805] text-white">
+    <div className="App min-h-screen bg-[#06110d] text-white">
       <BrowserRouter>
         <FanProvider>
         <PlayerProvider>
           <VisitTracker />
-          <div className="noise-overlay" />
+          <div className="sky-bg" />
+          <Trees />
+          <Snowfall />
+          <div className="grain-overlay" />
           <div id="infection-overlay" className="fixed inset-0 z-[98] pointer-events-none" />
-          <Particles density={35} />
-          <CustomCursor />
+          <WinterIntro />
           <NewVideoWatcher />
           <Navbar />
-          <main className="relative z-10 pt-16">
+          <main className="relative z-10">
             <AppRoutes />
           </main>
           <Footer />
           <PlayerBar />
-          <Toaster theme="dark" position="top-center" toastOptions={{ style: { background: "#0a120a", border: "1px solid rgba(57,255,20,0.3)", color: "#fff" } }} />
+          <Toaster theme="dark" position="top-center" toastOptions={{ style: { background: "#0a120a", border: "1px solid rgba(243,196,106,0.3)", color: "#fff" } }} />
         </PlayerProvider>
         </FanProvider>
       </BrowserRouter>

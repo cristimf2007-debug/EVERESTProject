@@ -14,6 +14,16 @@ React (CRA/craco) + FastAPI + MongoDB (motor). Uploaduri → Emergent Object Sto
 - Linkuri: YouTube @djbioxic (UC2gQmatVSAB3nzqeDmYY3gw), TikTok @bioxic.exe, Instagram @crss.exe_, Spotify artist 4tlelg9L2y1OFOVpUkIiAK, Discord https://discord.gg/PJ5A45SkRs, WhatsApp +44 7400 998964.
 - Ecranul de intrare cu tranziție GSAP a fost ELIMINAT la cererea utilizatorului (22.10) — site-ul intră direct pe Home.
 
+## Implementat (22.10.2026, iter 3 — REDESIGN „Noapte de iarnă")
+- Temă vizuală nouă peste TOT site-ul (din /app/design/direction.html furnizat de user): noapte de brad (#06110d), auriu lumânare #f3c46a (accent principal), cranberry #d03a45 (badge NOU/ANUNȚ/live), text #eaf2ed/#9db3a8.
+- Fonturi: Unbounded (titluri/wordmark), Onest (text), JetBrains Mono (etichete/durate).
+- Atmosferă globală: ninsoare canvas (fulgi cu glow, legănați), siluete de brazi 3 straturi (SVG generat), grain de film animat, ghirlandă de beculețe sub header (sclipire individuală), panouri „sticlă înghețată" cu margine de chiciură (frost-edge).
+- Intro cinematic <2s (wordmark cu sclipire aurie, o dată pe sesiune, respectă reduced-motion).
+- Home: wordmark BIOXIC cu „zăpadă" pe litere, numărătoare live până la Crăciun, stats (~50M / 5M „Sună și mergem" / 3 meserii), chips colaborări (Guță, Nek, Șușanu, Lucheș, 210 Production), Noutăți (anunțuri), Exclusiv (ultima piesă din seif, play direct), socials + Discord.
+- Piese = „Seiful BIOXIC": titlu „Piese care nu sunt pe YouTube", sigiliu roșu rotativ, căutare, Ascultă tot, Follow, rânduri de piese cu EQ animat; player dock jos cu waveform canvas auriu (seek la click), butoane rotunde.
+- Contact: „Hai să facem un hit.", pills de subiect, formular-scrisoare cu stare TRIMIS (ștampilă), copylines (@crss.exe_, @bioxic.exe, +44 7400 998964).
+- Toate funcțiile platformei rămân: Live/Gaming/Videoclipuri/Despre/Admin/Cont re-temate automat în auriu.
+
 ## Implementat (22.10.2026, iter 2)
 - Home curățat: fără secțiunea „Ultimele videoclipuri"; secțiune ANUNȚURI (admin postează → apare pe Home + notificare on-site + email).
 - Canalul BIOXIC (/muzica): header de canal cu Follow (contor), listă piese stil Spotify, secțiune Everest Manele cu cele 5 piese oficiale (Apple Music/YT Music) + linkuri platforme (Spotify = „în curând").

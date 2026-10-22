@@ -37,24 +37,24 @@ export default function NotificationBell() {
 
   return (
     <div className="relative" ref={ref}>
-      <button data-testid="notif-bell" onClick={toggleOpen} className="relative p-2 text-zinc-400 hover:text-[#39FF14] transition-colors" aria-label="Notificări">
+      <button data-testid="notif-bell" onClick={toggleOpen} className="relative p-2 text-zinc-400 hover:text-[#f3c46a] transition-colors" aria-label="Notificări">
         <Bell size={17} />
         {unread > 0 && (
-          <span data-testid="notif-badge" className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-[#39FF14] text-black text-[9px] font-black flex items-center justify-center rounded-full">
+          <span data-testid="notif-badge" className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-[#f3c46a] text-black text-[9px] font-black flex items-center justify-center rounded-full">
             {unread}
           </span>
         )}
       </button>
       {open && (
-        <div data-testid="notif-panel" className="absolute right-0 top-11 w-80 max-h-96 overflow-y-auto bg-[#0a120a] border border-[#39FF14]/25 rounded-sm shadow-2xl z-[70]">
+        <div data-testid="notif-panel" className="absolute right-0 top-11 w-80 max-h-96 overflow-y-auto bg-[#0a120a] border border-[#f3c46a]/25 rounded-sm shadow-2xl z-[70]">
           <p className="px-4 py-3 text-[10px] uppercase tracking-[0.25em] text-zinc-500 border-b border-white/5">Notificări</p>
           {items.length === 0 && <p className="px-4 py-6 text-xs text-zinc-600 text-center">Nicio notificare încă. Afli primul când intrăm live sau apare ceva nou.</p>}
           {items.map((n) => {
             const Icon = KIND_ICON[n.kind] || Megaphone;
             return (
               <Link key={n.id} to={n.url || "/"} onClick={() => setOpen(false)} data-testid={`notif-${n.id}`}
-                className="flex items-start gap-3 px-4 py-3 border-b border-white/5 hover:bg-[#39FF14]/5 transition-colors">
-                <Icon size={15} className="text-[#39FF14] mt-0.5 shrink-0" />
+                className="flex items-start gap-3 px-4 py-3 border-b border-white/5 hover:bg-[#f3c46a]/5 transition-colors">
+                <Icon size={15} className="text-[#f3c46a] mt-0.5 shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold truncate">{n.title}</p>
                   {n.text && <p className="text-[11px] text-zinc-500 line-clamp-2">{n.text}</p>}

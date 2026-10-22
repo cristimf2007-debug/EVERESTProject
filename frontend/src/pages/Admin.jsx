@@ -3,7 +3,7 @@ import { LogOut, Upload, Trash2, Radio, Plus, BarChart3, MessageSquare, Mail, Mu
 import api, { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
 
-const inputCls = "w-full bg-black/40 border border-white/10 px-3 py-2.5 text-sm focus:border-[#39FF14] outline-none";
+const inputCls = "w-full bg-black/40 border border-white/10 px-3 py-2.5 text-sm focus:border-[#f3c46a] outline-none";
 const TABS = [
   { key: "tracks", label: "Piese", icon: Music },
   { key: "videos", label: "Video", icon: VideoIcon },
@@ -52,10 +52,10 @@ export default function Admin() {
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-6" data-testid="admin-login-page">
         <form onSubmit={login} className="glass rounded-sm p-8 w-full max-w-sm space-y-5">
-          <h1 className="font-display font-black text-2xl uppercase tracking-tighter text-center">Admin <span className="text-[#39FF14]">BIOXIC</span></h1>
+          <h1 className="font-display font-black text-2xl uppercase tracking-tighter text-center">Admin <span className="text-[#f3c46a]">BIOXIC</span></h1>
           <input data-testid="admin-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email admin" className={inputCls} />
           <input data-testid="admin-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Parolă" className={inputCls} />
-          <button data-testid="admin-login-submit" className="w-full py-3 bg-[#39FF14] text-black font-display font-bold text-sm tracking-widest uppercase hover:bg-[#00C853] transition-colors">Autentificare</button>
+          <button data-testid="admin-login-submit" className="w-full py-3 bg-[#f3c46a] text-black font-display font-bold text-sm tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors">Autentificare</button>
         </form>
       </div>
     );
@@ -64,13 +64,13 @@ export default function Admin() {
   return (
     <div data-testid="admin-dashboard" className="max-w-7xl mx-auto px-6 py-14">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-tighter">Panou <span className="text-[#39FF14]">Admin</span></h1>
+        <h1 className="font-display font-black text-3xl sm:text-4xl uppercase tracking-tighter">Panou <span className="text-[#f3c46a]">Admin</span></h1>
         <button data-testid="admin-logout" onClick={logout} className="flex items-center gap-2 text-xs uppercase tracking-widest text-zinc-400 hover:text-red-400 transition-colors"><LogOut size={14} /> Ieșire</button>
       </div>
       <div className="flex flex-wrap gap-2 mb-10" data-testid="admin-tabs">
         {TABS.map((t) => (
           <button key={t.key} data-testid={`admin-tab-${t.key}`} onClick={() => setTab(t.key)}
-            className={`flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-widest border transition-colors ${tab === t.key ? "bg-[#39FF14] text-black border-[#39FF14] font-bold" : "border-white/15 text-zinc-400 hover:text-white"}`}>
+            className={`flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-widest border transition-colors ${tab === t.key ? "bg-[#f3c46a] text-black border-[#f3c46a] font-bold" : "border-white/15 text-zinc-400 hover:text-white"}`}>
             <t.icon size={13} /> {t.label}
           </button>
         ))}
@@ -121,7 +121,7 @@ function VideosTab() {
   return (
     <div className="grid lg:grid-cols-3 gap-8" data-testid="admin-videos-tab">
       <form onSubmit={upload} className="glass rounded-sm p-6 space-y-4 h-fit">
-        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><VideoIcon size={15} className="text-[#39FF14]" /> Încarcă videoclip</h3>
+        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><VideoIcon size={15} className="text-[#f3c46a]" /> Încarcă videoclip</h3>
         <input data-testid="video-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Titlu videoclip" className={inputCls} />
         <select data-testid="video-category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
           <option value="muzica">Muzică</option>
@@ -130,20 +130,20 @@ function VideosTab() {
         <textarea data-testid="video-description" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Descriere (opțional)" className={inputCls} />
         <div>
           <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-1">Fișier video (MP4) *</label>
-          <input data-testid="video-file" type="file" accept=".mp4,.webm,.mov" onChange={(e) => setVideo(e.target.files[0])} className="text-xs text-zinc-400 file:bg-[#39FF14] file:text-black file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-bold file:uppercase file:mr-3" />
+          <input data-testid="video-file" type="file" accept=".mp4,.webm,.mov" onChange={(e) => setVideo(e.target.files[0])} className="text-xs text-zinc-400 file:bg-[#f3c46a] file:text-black file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-bold file:uppercase file:mr-3" />
         </div>
         <div>
           <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-1">Thumbnail (opțional)</label>
           <input data-testid="video-thumb" type="file" accept=".jpg,.jpeg,.png,.webp" onChange={(e) => setThumb(e.target.files[0])} className="text-xs text-zinc-400 file:bg-white/10 file:text-white file:border-0 file:px-3 file:py-1.5 file:text-xs file:uppercase file:mr-3" />
         </div>
-        <button data-testid="video-upload-submit" disabled={uploading} className="w-full py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors disabled:opacity-50">
+        <button data-testid="video-upload-submit" disabled={uploading} className="w-full py-3 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors disabled:opacity-50">
           {uploading ? "Se încarcă..." : "Publică videoclipul"}
         </button>
       </form>
       <div className="lg:col-span-2 space-y-3">
         {videos.map((v) => (
           <div key={v.id} data-testid={`admin-video-${v.id}`} className="glass rounded-sm p-4 flex items-center gap-4">
-            <span className="text-[10px] px-2 py-1 bg-white/5 text-[#39FF14] uppercase tracking-widest border border-white/10">{v.category}</span>
+            <span className="text-[10px] px-2 py-1 bg-white/5 text-[#f3c46a] uppercase tracking-widest border border-white/10">{v.category}</span>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm truncate">{v.title}</p>
               <p className="text-[11px] text-zinc-500">{v.views} vizualizări</p>
@@ -176,11 +176,11 @@ function AnnouncementsTab() {
   return (
     <div className="grid lg:grid-cols-2 gap-8" data-testid="admin-announcements-tab">
       <form onSubmit={add} className="glass rounded-sm p-6 space-y-4 h-fit">
-        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><Megaphone size={15} className="text-[#39FF14]" /> Anunț nou</h3>
+        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><Megaphone size={15} className="text-[#f3c46a]" /> Anunț nou</h3>
         <p className="text-xs text-zinc-500">Apare pe prima pagină și trimite notificare + email la fani.</p>
         <input data-testid="announcement-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Titlu anunț" className={inputCls} />
         <textarea data-testid="announcement-text" required rows={4} value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} placeholder="Textul anunțului..." className={inputCls} />
-        <button data-testid="announcement-submit" className="px-6 py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors">Publică anunțul</button>
+        <button data-testid="announcement-submit" className="px-6 py-3 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors">Publică anunțul</button>
       </form>
       <div className="space-y-3">
         {items.map((a) => (
@@ -250,7 +250,7 @@ function TracksTab() {
   return (
     <div className="grid lg:grid-cols-3 gap-8" data-testid="admin-tracks-tab">
       <form onSubmit={upload} className="glass rounded-sm p-6 space-y-4 h-fit">
-        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><Upload size={15} className="text-[#39FF14]" /> Încarcă piesă</h3>
+        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><Upload size={15} className="text-[#f3c46a]" /> Încarcă piesă</h3>
         <input data-testid="upload-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Titlu piesă" className={inputCls} />
         <select data-testid="upload-genre" value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} className={inputCls}>
           <option value="remix">Remix</option>
@@ -262,17 +262,17 @@ function TracksTab() {
         <input data-testid="upload-cover-url" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} placeholder="URL cover (sau încarcă fișier)" className={inputCls} />
         <div>
           <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-1">Fișier audio (MP3/WAV) *</label>
-          <input data-testid="upload-audio" type="file" accept=".mp3,.wav,.ogg,.m4a" onChange={(e) => setAudio(e.target.files[0])} className="text-xs text-zinc-400 file:bg-[#39FF14] file:text-black file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-bold file:uppercase file:mr-3" />
+          <input data-testid="upload-audio" type="file" accept=".mp3,.wav,.ogg,.m4a" onChange={(e) => setAudio(e.target.files[0])} className="text-xs text-zinc-400 file:bg-[#f3c46a] file:text-black file:border-0 file:px-3 file:py-1.5 file:text-xs file:font-bold file:uppercase file:mr-3" />
         </div>
         <div>
           <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-1">Cover (opțional)</label>
           <input data-testid="upload-cover" type="file" accept=".jpg,.jpeg,.png,.webp" onChange={(e) => setCover(e.target.files[0])} className="text-xs text-zinc-400 file:bg-white/10 file:text-white file:border-0 file:px-3 file:py-1.5 file:text-xs file:uppercase file:mr-3" />
         </div>
         <label className="flex items-center gap-3 text-sm text-zinc-300 cursor-pointer">
-          <input data-testid="upload-download-toggle" type="checkbox" checked={form.download_enabled} onChange={(e) => setForm({ ...form, download_enabled: e.target.checked })} className="accent-[#39FF14] w-4 h-4" />
+          <input data-testid="upload-download-toggle" type="checkbox" checked={form.download_enabled} onChange={(e) => setForm({ ...form, download_enabled: e.target.checked })} className="accent-[#f3c46a] w-4 h-4" />
           Permite download
         </label>
-        <button data-testid="upload-submit" disabled={uploading} className="w-full py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors disabled:opacity-50">
+        <button data-testid="upload-submit" disabled={uploading} className="w-full py-3 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors disabled:opacity-50">
           {uploading ? "Se încarcă..." : "Publică piesa"}
         </button>
       </form>
@@ -287,7 +287,7 @@ function TracksTab() {
               <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{t.genre} · {t.plays} ascultări · {t.likes} like-uri</p>
             </div>
             <button data-testid={`admin-download-toggle-${t.id}`} onClick={() => toggleDownload(t)}
-              className={`px-3 py-1.5 text-[10px] uppercase tracking-widest border transition-colors ${t.download_enabled ? "border-[#39FF14] text-[#39FF14]" : "border-white/15 text-zinc-500"}`}>
+              className={`px-3 py-1.5 text-[10px] uppercase tracking-widest border transition-colors ${t.download_enabled ? "border-[#f3c46a] text-[#f3c46a]" : "border-white/15 text-zinc-500"}`}>
               DL {t.download_enabled ? "ON" : "OFF"}
             </button>
             <button data-testid={`admin-delete-track-${t.id}`} onClick={() => del(t)} className="p-2 text-zinc-500 hover:text-red-400 transition-colors" aria-label="Șterge"><Trash2 size={16} /></button>
@@ -336,10 +336,10 @@ function LiveTab() {
   return (
     <div className="grid lg:grid-cols-2 gap-8" data-testid="admin-live-tab">
       <div className="glass rounded-sm p-6 space-y-4 h-fit">
-        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><Radio size={15} className="text-[#39FF14]" /> Control LIVE</h3>
+        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><Radio size={15} className="text-[#f3c46a]" /> Control LIVE</h3>
         <label className="flex items-center gap-3 cursor-pointer">
           <button type="button" data-testid="admin-live-toggle" onClick={() => setStatus({ ...status, is_live: !status.is_live })}
-            className={`w-14 h-7 relative transition-colors ${status.is_live ? "bg-[#39FF14]" : "bg-white/10"}`}>
+            className={`w-14 h-7 relative transition-colors ${status.is_live ? "bg-[#f3c46a]" : "bg-white/10"}`}>
             <span className={`absolute top-1 w-5 h-5 bg-white transition-all ${status.is_live ? "left-8" : "left-1"}`} />
           </button>
           <span className="text-sm">{status.is_live ? "LIVE PORNIT" : "Offline"}</span>
@@ -347,21 +347,21 @@ function LiveTab() {
         <input data-testid="admin-live-video-id" value={status.youtube_video_id || ""} onChange={(e) => setStatus({ ...status, youtube_video_id: e.target.value })}
           placeholder="ID video YouTube Live (opțional — altfel se folosește stream-ul canalului)" className={inputCls} />
         <input data-testid="admin-live-title" value={status.title || ""} onChange={(e) => setStatus({ ...status, title: e.target.value })} placeholder="Titlu live" className={inputCls} />
-        <button data-testid="admin-live-save" onClick={save} className="px-6 py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors">Salvează</button>
+        <button data-testid="admin-live-save" onClick={save} className="px-6 py-3 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors">Salvează</button>
       </div>
       <div className="glass rounded-sm p-6 space-y-4">
         <h3 className="font-display font-bold text-sm uppercase tracking-widest">Program live-uri</h3>
         <div className="flex flex-col sm:flex-row gap-2">
           <input data-testid="schedule-title" value={newShow.title} onChange={(e) => setNewShow({ ...newShow, title: e.target.value })} placeholder="Titlu live" className={inputCls} />
           <input data-testid="schedule-date" type="datetime-local" value={newShow.date} onChange={(e) => setNewShow({ ...newShow, date: e.target.value })} className={inputCls} />
-          <button data-testid="schedule-add" onClick={addShow} className="px-4 py-2.5 border border-[#39FF14] text-[#39FF14] text-xs font-bold uppercase whitespace-nowrap hover:bg-[#39FF14] hover:text-black transition-colors flex items-center gap-1"><Plus size={13} /> Adaugă</button>
+          <button data-testid="schedule-add" onClick={addShow} className="px-4 py-2.5 border border-[#f3c46a] text-[#f3c46a] text-xs font-bold uppercase whitespace-nowrap hover:bg-[#f3c46a] hover:text-black transition-colors flex items-center gap-1"><Plus size={13} /> Adaugă</button>
         </div>
         <div className="space-y-2">
           {schedule.map((s) => (
             <div key={s.id} data-testid={`schedule-item-${s.id}`} className="flex items-center justify-between border-b border-white/5 pb-2">
               <span className="text-sm">{s.title}</span>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-[#39FF14]">{new Date(s.date).toLocaleString("ro-RO")}</span>
+                <span className="text-xs text-[#f3c46a]">{new Date(s.date).toLocaleString("ro-RO")}</span>
                 <button data-testid={`schedule-delete-${s.id}`} onClick={async () => { await api.delete(`/admin/live/schedule/${s.id}`); load(); }} className="text-zinc-500 hover:text-red-400"><Trash2 size={14} /></button>
               </div>
             </div>
@@ -371,18 +371,18 @@ function LiveTab() {
       </div>
       {/* GAMING */}
       <div className="glass rounded-sm p-6 space-y-4 lg:col-span-2">
-        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><Gamepad2 size={15} className="text-[#39FF14]" /> Control GAMING LIVE</h3>
+        <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2"><Gamepad2 size={15} className="text-[#f3c46a]" /> Control GAMING LIVE</h3>
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-3 cursor-pointer">
             <button type="button" data-testid="admin-gaming-toggle" onClick={() => setGaming({ ...gaming, is_live: !gaming.is_live })}
-              className={`w-14 h-7 relative transition-colors ${gaming.is_live ? "bg-[#39FF14]" : "bg-white/10"}`}>
+              className={`w-14 h-7 relative transition-colors ${gaming.is_live ? "bg-[#f3c46a]" : "bg-white/10"}`}>
               <span className={`absolute top-1 w-5 h-5 bg-white transition-all ${gaming.is_live ? "left-8" : "left-1"}`} />
             </button>
             <span className="text-sm">{gaming.is_live ? "GAMING PORNIT" : "Offline"}</span>
           </label>
           <input data-testid="admin-gaming-video-id" value={gaming.youtube_video_id || ""} onChange={(e) => setGaming({ ...gaming, youtube_video_id: e.target.value })}
             placeholder="ID video YouTube (gaming)" className={`${inputCls} flex-1 min-w-[220px]`} />
-          <button data-testid="admin-gaming-save" onClick={saveGaming} className="px-6 py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors">Salvează</button>
+          <button data-testid="admin-gaming-save" onClick={saveGaming} className="px-6 py-3 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors">Salvează</button>
         </div>
       </div>
     </div>
@@ -410,12 +410,12 @@ function ModerationTab() {
       <div className="glass rounded-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display font-bold text-sm uppercase tracking-widest">Chat live</h3>
-          <button data-testid="moderation-refresh" onClick={load} className="text-zinc-500 hover:text-[#39FF14]"><RefreshCw size={14} /></button>
+          <button data-testid="moderation-refresh" onClick={load} className="text-zinc-500 hover:text-[#f3c46a]"><RefreshCw size={14} /></button>
         </div>
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {chat.map((m) => (
             <div key={m.id} className="flex items-start justify-between gap-2 text-sm border-b border-white/5 pb-2" data-testid={`mod-chat-${m.id}`}>
-              <div className="min-w-0"><span className="text-[#39FF14] text-xs font-semibold">{m.name}: </span><span className="text-zinc-300 break-words">{m.text}</span></div>
+              <div className="min-w-0"><span className="text-[#f3c46a] text-xs font-semibold">{m.name}: </span><span className="text-zinc-300 break-words">{m.text}</span></div>
               <div className="flex gap-1 shrink-0">
                 <button data-testid={`mod-ban-${m.id}`} onClick={() => ban(m.name)} className="p-1 text-zinc-500 hover:text-orange-400" title="Blochează"><Ban size={13} /></button>
                 <button data-testid={`mod-del-${m.id}`} onClick={async () => { await api.delete(`/admin/chat/${m.id}`); load(); }} className="p-1 text-zinc-500 hover:text-red-400" title="Șterge"><Trash2 size={13} /></button>
@@ -430,7 +430,7 @@ function ModerationTab() {
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {comments.map((c) => (
             <div key={c.id} className="flex items-start justify-between gap-2 text-sm border-b border-white/5 pb-2" data-testid={`mod-comment-${c.id}`}>
-              <div className="min-w-0"><span className="text-[#39FF14] text-xs font-semibold">{c.name}: </span><span className="text-zinc-300 break-words">{c.text}</span></div>
+              <div className="min-w-0"><span className="text-[#f3c46a] text-xs font-semibold">{c.name}: </span><span className="text-zinc-300 break-words">{c.text}</span></div>
               <button data-testid={`mod-del-comment-${c.id}`} onClick={async () => { await api.delete(`/admin/comments/${c.id}`); load(); }} className="p-1 text-zinc-500 hover:text-red-400 shrink-0" title="Șterge"><Trash2 size={13} /></button>
             </div>
           ))}
@@ -451,7 +451,7 @@ function RequestsTab() {
       <div className="space-y-2">
         {requests.map((r) => (
           <div key={r.id} className="flex items-center justify-between border-b border-white/5 pb-2" data-testid={`request-${r.id}`}>
-            <span className="text-sm"><span className="text-[#39FF14]">{r.name}</span> cere: <span className="text-white">{r.song}</span></span>
+            <span className="text-sm"><span className="text-[#f3c46a]">{r.name}</span> cere: <span className="text-white">{r.song}</span></span>
             <button data-testid={`request-delete-${r.id}`} onClick={async () => { await api.delete(`/admin/requests/${r.id}`); load(); }} className="p-1 text-zinc-500 hover:text-red-400"><Trash2 size={14} /></button>
           </div>
         ))}
@@ -471,7 +471,7 @@ function MessagesTab() {
           <div className="flex flex-wrap items-center gap-3 mb-2">
             <span className="font-semibold text-sm">{m.name}</span>
             <span className="text-xs text-zinc-500">{m.email}</span>
-            <span className="text-[10px] px-2 py-0.5 bg-[#39FF14]/10 text-[#39FF14] uppercase tracking-widest border border-[#39FF14]/30">{m.subject}</span>
+            <span className="text-[10px] px-2 py-0.5 bg-[#f3c46a]/10 text-[#f3c46a] uppercase tracking-widest border border-[#f3c46a]/30">{m.subject}</span>
             <span className="text-[10px] text-zinc-600 ml-auto">{new Date(m.created_at).toLocaleString("ro-RO")}</span>
           </div>
           <p className="text-sm text-zinc-300">{m.message}</p>
@@ -497,7 +497,7 @@ function StatsTab() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         {cards.map(([label, val, tid]) => (
           <div key={tid} className="glass rounded-sm p-6" data-testid={tid}>
-            <p className="font-display font-bold text-3xl text-[#39FF14]">{val}</p>
+            <p className="font-display font-bold text-3xl text-[#f3c46a]">{val}</p>
             <p className="text-[11px] uppercase tracking-widest text-zinc-500 mt-2">{label}</p>
           </div>
         ))}
@@ -506,7 +506,7 @@ function StatsTab() {
       <div className="space-y-2">
         {stats.top_tracks.map((t, i) => (
           <div key={t.id} className="glass rounded-sm p-4 flex items-center gap-4" data-testid={`top-track-${i}`}>
-            <span className="font-display font-black text-[#39FF14] text-lg w-8">#{i + 1}</span>
+            <span className="font-display font-black text-[#f3c46a] text-lg w-8">#{i + 1}</span>
             <span className="flex-1 text-sm truncate">{t.title}</span>
             <span className="text-xs text-zinc-500">{t.plays} ascultări</span>
           </div>
@@ -545,12 +545,12 @@ function AdminsTab() {
     <div className="grid lg:grid-cols-2 gap-8" data-testid="admin-admins-tab">
       <form onSubmit={add} className="glass rounded-sm p-6 space-y-4 h-fit">
         <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2">
-          <ShieldCheck size={15} className="text-[#39FF14]" /> Adaugă admin
+          <ShieldCheck size={15} className="text-[#f3c46a]" /> Adaugă admin
         </h3>
         <p className="text-xs text-zinc-500">Va putea urca piese, porni live-uri și modera. Doar tu poți adăuga sau elimina admini.</p>
         <input data-testid="new-admin-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email admin nou" className={inputCls} />
         <input data-testid="new-admin-password" type="password" required minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Parolă (min. 8 caractere)" className={inputCls} />
-        <button data-testid="new-admin-submit" className="px-6 py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors">Adaugă admin</button>
+        <button data-testid="new-admin-submit" className="px-6 py-3 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors">Adaugă admin</button>
       </form>
       <div className="glass rounded-sm p-6 h-fit">
         <h3 className="font-display font-bold text-sm uppercase tracking-widest mb-4">Admini activi</h3>
@@ -592,7 +592,7 @@ function ContentTab() {
         <label className="text-xs text-zinc-500 uppercase tracking-widest block mb-1">Text „Despre" (intro)</label>
         <textarea data-testid="content-about" rows={5} value={content.about_text || ""} onChange={(e) => setContent({ ...content, about_text: e.target.value })} className={inputCls} />
       </div>
-      <button data-testid="content-save" onClick={save} className="px-6 py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors">Salvează textele</button>
+      <button data-testid="content-save" onClick={save} className="px-6 py-3 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors">Salvează textele</button>
     </div>
   );
 }

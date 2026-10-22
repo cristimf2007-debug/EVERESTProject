@@ -1,0 +1,855 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>BIOXIC</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: noapte de iarnă peste pădure de brazi — header cu ghirlandă de beculețe, ninsoare pe canvas, panouri de sticlă înghețată; un singur look întunecat, ales intenționat. */
+:root{
+  --night:#06110d; --pine:#0d241b; --pine-2:#123327;
+  --frost:#eaf2ed; --mist:#9db3a8; --dim:#6c8378;
+  --gold:#f3c46a; --gold-soft:rgba(243,196,106,.16);
+  --berry:#d03a45; --ice:#bfe3ff;
+  --glass:rgba(16,38,29,.55); --glass-hi:rgba(28,58,45,.62);
+  --line:rgba(234,242,237,.11); --line-hi:rgba(234,242,237,.22);
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:18px;
+  color-scheme:dark;
+}
+html,body{background:var(--night);color:var(--frost)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.55;min-height:100%;overflow-x:hidden;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--night)}
+*{box-sizing:border-box}
+a{color:inherit}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:8px}
+
+/* ——— atmosferă ——— */
+.sky{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+   radial-gradient(1200px 600px at 78% -10%,rgba(191,227,255,.10),transparent 60%),
+   radial-gradient(900px 500px at 10% 110%,rgba(243,196,106,.07),transparent 60%),
+   linear-gradient(180deg,#081a14 0%,var(--night) 55%,#040b08 100%)}
+.trees{position:fixed;left:0;right:0;bottom:0;height:34vh;z-index:0;pointer-events:none;opacity:.9}
+#snow{position:fixed;inset:0;z-index:1;pointer-events:none;width:100%;height:100%}
+.grain{position:fixed;inset:-50%;z-index:2;pointer-events:none;opacity:.07;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 1.2s steps(6) infinite}
+@keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}60%{transform:translate(-2%,-1%)}80%{transform:translate(3%,3%)}100%{transform:translate(0,0)}}
+
+.wrap{position:relative;z-index:3;max-width:1120px;margin:0 auto}
+
+/* ——— header + ghirlandă ——— */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px))) 0;
+  padding:14px max(16px,env(safe-area-inset-right,0px)) 18px max(16px,env(safe-area-inset-left,0px));
+  background:linear-gradient(180deg,rgba(6,17,13,.92),rgba(6,17,13,.72));backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);
+  border-bottom:1px solid var(--line)}
+.bar{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex:0 0 auto;background:none;border:0;cursor:pointer;padding:0}
+.brand .mark{font-family:var(--f-display);font-weight:900;letter-spacing:.06em;font-size:19px;
+  background:linear-gradient(180deg,#fff,#cfe9db 55%,#7fbf9f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand img{height:34px;width:auto;display:block}
+nav.tabs{display:flex;gap:4px;margin-left:auto;align-items:center}
+.tab{position:relative;border:0;background:none;padding:9px 14px;border-radius:999px;cursor:pointer;color:var(--mist);
+  font-family:var(--f-display);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;transition:color .2s,background .2s}
+.tab:hover{color:var(--frost);background:rgba(234,242,237,.06)}
+.tab[aria-current="page"]{color:var(--night);background:var(--gold);box-shadow:0 0 22px rgba(243,196,106,.45)}
+.acct{flex:0 0 auto;width:40px;height:40px;border-radius:50%;border:1px solid var(--line-hi);background:var(--glass-hi);cursor:pointer;
+  display:grid;place-items:center;overflow:hidden;padding:0;position:relative}
+.acct img{width:100%;height:100%;object-fit:cover}
+.acct .dot{position:absolute;right:1px;top:1px;width:10px;height:10px;border-radius:50%;background:var(--berry);border:2px solid var(--night)}
+.lights{position:absolute;left:0;right:0;bottom:-14px;height:26px;pointer-events:none}
+.lights svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.bulb{position:absolute;width:8px;height:12px;border-radius:50% 50% 45% 45%;transform:translate(-50%,0);
+  background:var(--c);box-shadow:0 0 6px 1px var(--c),0 0 18px 4px color-mix(in srgb,var(--c) 45%,transparent);animation:tw var(--d) ease-in-out infinite alternate}
+.bulb::before{content:"";position:absolute;left:1px;right:1px;top:-3px;height:4px;border-radius:2px;background:#2b3b33}
+@keyframes tw{0%{opacity:.45;filter:saturate(.7)}100%{opacity:1;filter:saturate(1.2)}}
+
+/* ——— pagini ——— */
+main{padding-block:40px 120px}
+.view{animation:rise .55s cubic-bezier(.2,.8,.2,1)}
+@keyframes rise{from{transform:translateY(10px);opacity:.4}to{transform:none;opacity:1}}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.05}
+h2{font-size:clamp(22px,3.2vw,32px);font-weight:800;letter-spacing:.01em}
+.muted{color:var(--mist)}
+.glass{background:var(--glass);border:1px solid var(--line);border-radius:var(--r);backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 20px 50px -30px rgba(0,0,0,.8)}
+.frost-edge{position:relative}
+.frost-edge::after{content:"";position:absolute;left:10px;right:10px;top:-1px;height:10px;border-radius:0 0 8px 8px;pointer-events:none;
+  background:radial-gradient(circle at 8px 0,rgba(255,255,255,.55) 3px,transparent 3.5px) 0 0/22px 10px repeat-x,
+             radial-gradient(circle at 4px 0,rgba(255,255,255,.35) 2px,transparent 2.5px) 11px 0/17px 8px repeat-x;opacity:.55}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.25fr .75fr;gap:28px;align-items:end;padding-block:24px 8px}
+.hero > *{min-width:0}
+.wordmark{font-family:var(--f-display);font-weight:900;font-size:clamp(64px,13vw,168px);line-height:.86;letter-spacing:-.01em;margin:14px 0 18px;
+  background:linear-gradient(175deg,#ffffff 8%,#d8efe3 38%,#8cc7a8 62%,#2f7a57 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 30px rgba(140,199,168,.18));position:relative}
+.wordmark .snowcap{position:absolute;inset:0;pointer-events:none;color:transparent;
+  background:linear-gradient(180deg,#fff 0 9%,transparent 9.5%);-webkit-background-clip:text;background-clip:text;opacity:.9}
+.hero-logo{max-height:200px;max-width:100%;display:block;margin:18px 0 22px;filter:drop-shadow(0 10px 40px rgba(0,0,0,.6))}
+.lede{font-size:clamp(17px,1.8vw,20px);max-width:34ch;color:var(--frost)}
+.lede b{color:var(--gold);font-weight:600}
+.cta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.btn{display:inline-flex;align-items:center;gap:10px;border-radius:999px;padding:13px 20px;border:1px solid var(--line-hi);background:rgba(234,242,237,.06);
+  cursor:pointer;text-decoration:none;font-weight:600;transition:transform .15s,background .2s,box-shadow .2s}
+.btn:hover{transform:translateY(-1px);background:rgba(234,242,237,.1)}
+.btn.gold{background:linear-gradient(180deg,#f8d68e,var(--gold));color:#1d1406;border-color:transparent;box-shadow:0 8px 30px -8px rgba(243,196,106,.6)}
+.btn.gold:hover{box-shadow:0 10px 36px -6px rgba(243,196,106,.75)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.sm{padding:8px 14px;font-size:13px}
+
+.countdown{padding:22px;display:grid;gap:14px}
+.cd-num{display:flex;gap:10px;align-items:baseline}
+.cd-num strong{font-family:var(--f-display);font-size:64px;font-weight:900;line-height:1;color:var(--gold);font-variant-numeric:tabular-nums;text-shadow:0 0 30px rgba(243,196,106,.4)}
+.cd-sub{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cd-sub div{border:1px solid var(--line);border-radius:12px;padding:8px 10px;text-align:center}
+.cd-sub b{display:block;font-family:var(--f-mono);font-size:18px;font-variant-numeric:tabular-nums}
+.cd-sub span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:36px}
+.stat{padding:18px 20px}
+.stat b{display:block;font-family:var(--f-display);font-size:26px;font-weight:800}
+.stat span{color:var(--mist);font-size:13px}
+.collabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{font-size:12px;padding:6px 11px;border-radius:999px;border:1px solid var(--line);color:var(--mist)}
+
+.section{margin-top:56px;display:grid;gap:18px}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.home-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:start}
+.home-grid > *{min-width:0}
+
+/* postări */
+.feed{display:grid;gap:12px}
+.post{padding:18px 20px;display:grid;gap:8px;position:relative}
+.post-meta{display:flex;gap:10px;align-items:center;font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;color:var(--dim);text-transform:uppercase}
+.post p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.badge{font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.14em;padding:3px 8px;border-radius:6px;background:var(--berry);color:#fff;box-shadow:0 0 16px rgba(208,58,69,.55)}
+.badge.gold{background:var(--gold);color:#1d1406;box-shadow:0 0 16px rgba(243,196,106,.45)}
+.tagpill{color:var(--gold)}
+.del{position:absolute;right:12px;top:12px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--mist);border-radius:8px;font-size:11px;padding:4px 8px;cursor:pointer}
+.del:hover{color:#fff;border-color:var(--berry)}
+.empty{padding:28px 22px;text-align:left;display:grid;gap:8px;border-style:dashed}
+.empty h3{font-size:16px;font-weight:600}
+
+.socials{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.social{padding:14px 16px;text-decoration:none;display:grid;gap:2px;transition:border-color .2s,transform .15s}
+.social:hover{border-color:var(--gold);transform:translateY(-1px)}
+.social small{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.social b{font-weight:600;overflow-wrap:anywhere}
+
+/* ——— PIESE: seiful ——— */
+.vault-head{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end;padding-block:12px 26px;border-bottom:1px solid var(--line)}
+.vault-head > *{min-width:0}
+.vault-title{font-size:clamp(40px,8vw,92px);font-weight:900;letter-spacing:-.01em;line-height:.9}
+.vault-title em{font-style:normal;color:var(--gold)}
+.seal{width:118px;height:118px;border-radius:50%;display:grid;place-items:center;text-align:center;position:relative;
+  background:radial-gradient(circle at 35% 30%,#e04b56,#8e1621 70%);box-shadow:0 10px 40px -10px rgba(208,58,69,.7),inset 0 -6px 14px rgba(0,0,0,.35),inset 0 4px 10px rgba(255,255,255,.18)}
+.seal span{font-family:var(--f-display);font-size:10px;font-weight:800;letter-spacing:.12em;line-height:1.25;color:#ffe3e6}
+.seal::before{content:"";position:absolute;inset:7px;border-radius:50%;border:1.5px dashed rgba(255,227,230,.45);animation:spin 30s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.vault-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:20px}
+.search{flex:1 1 220px;min-width:0;display:flex;align-items:center;gap:8px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:rgba(0,0,0,.2)}
+.search input{flex:1;min-width:0;border:0;background:none;padding:11px 0;outline:none}
+.tracks{display:grid;gap:10px;margin-top:18px}
+.track{display:grid;grid-template-columns:auto 56px 1fr auto auto;gap:16px;align-items:center;padding:12px 16px 12px 12px;position:relative;cursor:pointer;
+  transition:border-color .2s,background .2s}
+.track:hover{border-color:var(--line-hi);background:var(--glass-hi)}
+.track.playing{border-color:rgba(243,196,106,.6);box-shadow:0 0 0 1px rgba(243,196,106,.25),0 20px 60px -30px rgba(243,196,106,.5)}
+.cat{font-family:var(--f-mono);font-size:11px;color:var(--dim);width:58px;letter-spacing:.06em}
+.cover{width:56px;height:56px;border-radius:12px;overflow:hidden;position:relative;display:grid;place-items:center;
+  background:conic-gradient(from 210deg,#174a35,#0b2219,#3d2a0e,#174a35)}
+.cover img{width:100%;height:100%;object-fit:cover}
+.cover .ini{font-family:var(--f-display);font-weight:900;font-size:18px;color:rgba(255,255,255,.85)}
+.tinfo{min-width:0;display:grid;gap:2px}
+.tinfo b{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tinfo span{color:var(--mist);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dur{font-family:var(--f-mono);font-size:12px;color:var(--mist);font-variant-numeric:tabular-nums}
+.play{width:44px;height:44px;border-radius:50%;border:0;background:var(--frost);color:var(--night);display:grid;place-items:center;cursor:pointer;transition:transform .15s,background .2s}
+.play:hover{transform:scale(1.06)}
+.track.playing .play{background:var(--gold)}
+.track .del{top:auto;bottom:10px;right:70px}
+.eq{display:inline-flex;gap:2px;align-items:end;height:12px;margin-left:8px;vertical-align:middle}
+.eq i{width:3px;background:var(--gold);border-radius:1px;animation:eq .8s ease-in-out infinite alternate}
+.eq i:nth-child(2){animation-delay:-.3s}.eq i:nth-child(3){animation-delay:-.55s}
+@keyframes eq{from{height:3px}to{height:12px}}
+
+/* player fix jos */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:45;padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  background:linear-gradient(180deg,rgba(6,17,13,.6),rgba(6,17,13,.95));backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--line);
+  transform:translateY(110%);transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.dock.on{transform:none}
+.dock-in{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,2fr) auto;gap:14px;align-items:center}
+.dock .cover{width:44px;height:44px;border-radius:10px}
+.dock .tinfo b{font-size:14px}
+.prog{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-family:var(--f-mono);font-size:11px;color:var(--mist);font-variant-numeric:tabular-nums}
+.prog canvas{width:100%;height:34px;display:block;cursor:pointer}
+.ctrl{display:flex;gap:8px;align-items:center}
+.ibtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:rgba(234,242,237,.05);display:grid;place-items:center;cursor:pointer}
+.ibtn.main{width:46px;height:46px;background:var(--gold);color:#1d1406;border:0}
+
+/* ——— CONTACT ——— */
+.contact-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:22px;align-items:start;margin-top:10px}
+.contact-grid > *{min-width:0}
+.letter{padding:28px;display:grid;gap:18px}
+.field{display:grid;gap:6px}
+.field label{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist)}
+.input{width:100%;border-radius:12px;border:1px solid var(--line-hi);background:rgba(0,0,0,.28);padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s}
+.input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}
+textarea.input{min-height:150px;resize:vertical}
+.kinds{display:flex;flex-wrap:wrap;gap:8px}
+.kind{border:1px solid var(--line-hi);background:none;border-radius:999px;padding:7px 13px;cursor:pointer;color:var(--mist);font-size:13px}
+.kind[aria-pressed="true"]{background:var(--frost);color:var(--night);border-color:var(--frost)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.note{font-size:13px;color:var(--mist)}
+.ok{padding:28px;display:grid;gap:10px;place-items:start}
+.ok .stamp{font-family:var(--f-display);font-weight:900;font-size:13px;letter-spacing:.14em;color:var(--gold);border:2px solid var(--gold);border-radius:10px;padding:6px 12px;transform:rotate(-4deg)}
+.side-card{padding:22px;display:grid;gap:12px}
+.copyline{display:flex;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.copyline b{font-weight:600;user-select:all;overflow-wrap:anywhere;min-width:0}
+
+/* ——— cont / studio ——— */
+.scrim{position:fixed;inset:0;z-index:70;background:rgba(2,8,6,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:grid;place-items:start end;
+  padding:calc(70px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+.menu{width:min(340px,100%);padding:18px;display:grid;gap:14px;background:rgba(13,36,27,.92)}
+.who{display:flex;gap:12px;align-items:center}
+.who .av{width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--pine-2);flex:0 0 auto;display:grid;place-items:center}
+.who .av img{width:100%;height:100%;object-fit:cover}
+.who b{display:block}
+.role{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.studio{position:fixed;inset:0;z-index:80;background:rgba(2,8,6,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);overflow-y:auto;
+  padding:calc(24px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.studio-card{max-width:760px;margin:0 auto;padding:24px;display:grid;gap:18px;background:rgba(10,30,22,.94)}
+.stabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:12px}
+.stabs .tab{font-size:11px}
+.drop{border:1.5px dashed var(--line-hi);border-radius:14px;padding:22px;text-align:center;cursor:pointer;color:var(--mist);transition:border-color .2s,background .2s}
+.drop:hover,.drop.over{border-color:var(--gold);background:var(--gold-soft);color:var(--frost)}
+.drop input{display:none}
+.msg{padding:14px 16px;border:1px solid var(--line);border-radius:12px;display:grid;gap:6px}
+.msg p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.status{font-size:13px;min-height:1.2em}
+.status.err{color:#ff9aa2}.status.good{color:#9be2bd}
+
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);z-index:90;opacity:0;pointer-events:none;
+  padding:12px 18px;border-radius:999px;background:var(--frost);color:var(--night);font-weight:600;box-shadow:0 20px 50px -10px rgba(0,0,0,.7);transition:all .35s;max-width:calc(100% - 32px)}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+footer{position:relative;z-index:3;max-width:1120px;margin:0 auto;padding-block:30px 40px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--dim);font-size:12px}
+
+/* intro cinematic */
+.intro{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:var(--night);pointer-events:none;animation:introOut .7s ease 1.25s forwards}
+.intro b{font-family:var(--f-display);font-weight:900;font-size:clamp(48px,12vw,140px);letter-spacing:.02em;
+  background:linear-gradient(90deg,transparent 0%,#fff 45%,var(--gold) 50%,#fff 55%,transparent 100%) -100% 0/200% 100% no-repeat,linear-gradient(#cfe9db,#2f7a57);
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 1.2s ease forwards,zoom 1.9s ease forwards}
+@keyframes shine{to{background-position:200% 0,0 0}}
+@keyframes zoom{from{transform:scale(.92);letter-spacing:.3em;opacity:0}40%{opacity:1}to{transform:scale(1);letter-spacing:.02em}}
+@keyframes introOut{to{opacity:0;visibility:hidden}}
+
+@media (max-width:860px){
+  .hero,.home-grid,.contact-grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}
+  .stats .stat:last-child{grid-column:1/-1}
+  .dock-in{grid-template-columns:auto minmax(0,1fr) auto}
+  .dock .prog{grid-column:1/-1;order:3}
+}
+@media (max-width:560px){
+  .tab{padding:8px 10px;font-size:10.5px;letter-spacing:.08em}
+  .brand .mark{font-size:16px}
+  .track{grid-template-columns:48px 1fr auto;gap:12px}
+  .track .cat,.track .dur{display:none}
+  .cover{width:48px;height:48px}
+  .vault-head{grid-template-columns:1fr}
+  .seal{width:92px;height:92px;justify-self:start}
+  .row2,.socials{grid-template-columns:1fr}
+  .track .del{right:64px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .intro{display:none}
+}
+</style>
+
+<div class="intro" aria-hidden="true"><b>BIOXIC</b></div>
+<div class="sky" aria-hidden="true"></div>
+<svg class="trees" aria-hidden="true" viewBox="0 0 1200 300" preserveAspectRatio="none" id="trees"></svg>
+<canvas id="snow" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="bar">
+    <button class="brand" id="brand" aria-label="BIOXIC — acasă"><span class="mark" id="brandMark">BIOXIC</span></button>
+    <nav class="tabs" aria-label="Meniu">
+      <button class="tab" data-go="piese">Piese</button>
+      <button class="tab" data-go="contact">Contact</button>
+    </nav>
+    <button class="acct" id="acctBtn" aria-label="Contul meu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#eaf2ed" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>
+    </button>
+  </div>
+  <div class="lights" id="lights" aria-hidden="true"></div>
+</header>
+
+<div class="wrap">
+<main id="main">
+
+  <!-- ACASĂ -->
+  <section class="view" id="v-home" data-view="home">
+    <div class="hero">
+      <div>
+        <div class="eyebrow">Ediția de iarnă · 2026</div>
+        <h1 class="wordmark" id="heroMark">BIOXIC<span class="snowcap" aria-hidden="true">BIOXIC</span></h1>
+        <img class="hero-logo" id="heroLogo" alt="BIOXIC" hidden>
+        <p class="lede">Manele, remixuri și mashup-uri. Piesele care <b>nu mai sunt pe YouTube</b> le găsești aici, în seif.</p>
+        <div class="cta-row">
+          <button class="btn gold" data-go="piese">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            Ascultă exclusivele
+          </button>
+          <button class="btn" data-go="contact">Colaborări &amp; booking</button>
+        </div>
+      </div>
+      <div class="countdown glass frost-edge" aria-live="polite">
+        <div class="eyebrow">Până la Crăciun</div>
+        <div class="cd-num"><strong id="cdDays">—</strong><span class="muted">zile</span></div>
+        <div class="cd-sub">
+          <div><b id="cdH">--</b><span>ore</span></div>
+          <div><b id="cdM">--</b><span>min</span></div>
+          <div><b id="cdS">--</b><span>sec</span></div>
+        </div>
+        <div class="note">Pregătesc ceva pentru sărbători. Primul care află e cine intră aici.</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat glass"><b>~50M</b><span>vizualizări în total</span></div>
+      <div class="stat glass"><b>5M</b><span>„Sună și mergem” · mashup TikTok</span></div>
+      <div class="stat glass"><b>3</b><span>meserii: artist, textier, video</span></div>
+    </div>
+    <div class="collabs" aria-label="Colaborări">
+      <span class="chip">Nicolae Guță</span><span class="chip">Nek Music</span><span class="chip">Șușanu</span><span class="chip">Lucheș</span><span class="chip">210 Production</span>
+    </div>
+
+    <div class="section">
+      <div class="home-grid">
+        <div style="display:grid;gap:14px">
+          <div class="section-head">
+            <div><div class="eyebrow">Live din studio</div><h2>Noutăți</h2></div>
+            <button class="btn sm" id="newPostBtn" hidden>+ Postare nouă</button>
+          </div>
+          <div class="feed" id="feed">
+            <div class="post glass empty"><h3>Încă nicio postare</h3><p class="muted" style="margin:0">Când BIOXIC postează ceva nou, apare aici pe loc, fără refresh.</p></div>
+          </div>
+        </div>
+        <div style="display:grid;gap:14px">
+          <div><div class="eyebrow">Ultima din seif</div><h2>Exclusiv</h2></div>
+          <div id="latestTrack">
+            <div class="glass empty"><h3>Seiful e gol deocamdată</h3><p class="muted" style="margin:0">Prima piesă exclusivă urcă curând.</p></div>
+          </div>
+          <div class="eyebrow" style="margin-top:8px">Mă găsești și aici</div>
+          <div class="socials">
+            <a class="social glass" href="https://www.youtube.com/@djbioxic" target="_blank" rel="noopener"><small>YouTube</small><b>@djbioxic</b></a>
+            <a class="social glass" href="https://www.tiktok.com/@bioxic.exe" target="_blank" rel="noopener"><small>TikTok</small><b>@bioxic.exe</b></a>
+            <a class="social glass" href="https://www.instagram.com/crss.exe_/" target="_blank" rel="noopener"><small>Instagram</small><b>@crss.exe_</b></a>
+            <a class="social glass" href="https://open.spotify.com/search/BIOXIC" target="_blank" rel="noopener"><small>Spotify</small><b>BIOXIC</b></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIESE -->
+  <section class="view" id="v-piese" data-view="piese" hidden>
+    <div class="vault-head">
+      <div>
+        <div class="eyebrow">Seiful BIOXIC</div>
+        <h1 class="vault-title">Piese care<br><em>nu sunt</em> pe YouTube.</h1>
+        <p class="muted" style="max-width:52ch;margin:14px 0 0">Mashup-uri scoase de pe platforme, remixuri de club și piese noi înainte să iasă oriunde altundeva. Le asculți doar aici.</p>
+      </div>
+      <div class="seal" aria-hidden="true"><span>EXCLUSIV<br>BIOXIC<br>★ 2026 ★</span></div>
+    </div>
+    <div class="vault-tools">
+      <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9db3a8" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Caută o piesă sau un artist" aria-label="Caută piese"></label>
+      <button class="btn sm" id="playAll">Ascultă tot</button>
+      <button class="btn sm gold" id="newTrackBtn" hidden>+ Urcă piesă</button>
+    </div>
+    <div class="tracks" id="tracks">
+      <div class="glass empty"><h3>Seiful e gol deocamdată</h3><p class="muted" style="margin:0">Prima piesă exclusivă urcă curând. Revino sau urmărește pe TikTok ca să afli primul.</p></div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="view" id="v-contact" data-view="contact" hidden>
+    <div class="eyebrow">Contact</div>
+    <h1 class="vault-title" style="font-size:clamp(36px,7vw,76px)">Hai să facem<br><em>un hit</em>.</h1>
+    <div class="contact-grid" style="margin-top:28px">
+      <div style="display:grid;gap:14px">
+        <div class="side-card glass">
+          <div class="eyebrow">Pentru ce mă poți chema</div>
+          <p style="margin:0">Colaborări pe piese, versuri la comandă, editare și producție video, design și branding pentru artiști, management.</p>
+        </div>
+        <div class="side-card glass">
+          <div class="eyebrow">Cel mai rapid răspuns</div>
+          <div class="copyline"><b>@crss.exe_</b><button class="btn sm" data-copy="@crss.exe_">Copiază</button></div>
+          <div class="copyline"><b>@bioxic.exe</b><button class="btn sm" data-copy="@bioxic.exe">Copiază</button></div>
+          <p class="note" style="margin:0">Instagram și TikTok, în mesaje private.</p>
+        </div>
+      </div>
+
+      <div>
+        <form class="letter glass frost-edge" id="contactForm" novalidate>
+          <div class="field"><label>Despre ce e vorba</label>
+            <div class="kinds" id="kinds">
+              <button type="button" class="kind" aria-pressed="true" data-k="Colaborare">Colaborare</button>
+              <button type="button" class="kind" aria-pressed="false" data-k="Booking">Booking</button>
+              <button type="button" class="kind" aria-pressed="false" data-k="Versuri">Versuri</button>
+              <button type="button" class="kind" aria-pressed="false" data-k="Video / design">Video / design</button>
+              <button type="button" class="kind" aria-pressed="false" data-k="Altceva">Altceva</button>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="cName">Numele tău</label><input class="input" id="cName" maxlength="80" placeholder="ex. Andrei Popescu" required></div>
+            <div class="field"><label for="cReach">Unde îți răspund</label><input class="input" id="cReach" maxlength="120" placeholder="Telefon, email sau @instagram" required></div>
+          </div>
+          <div class="field"><label for="cMsg">Mesajul</label><textarea class="input" id="cMsg" maxlength="2000" placeholder="Spune-mi ce ai în minte: piesa, data, orașul, bugetul." required></textarea></div>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <button class="btn gold" id="cSend" type="submit">Trimite mesajul</button>
+            <span class="status" id="cStatus" role="status"></span>
+          </div>
+          <p class="note" id="cHint" style="margin:0">Mesajul ajunge direct în căsuța lui BIOXIC de pe site.</p>
+        </form>
+        <div class="ok glass" id="contactOk" hidden>
+          <span class="stamp">TRIMIS</span>
+          <h3 style="font-size:22px">Am primit mesajul.</h3>
+          <p class="muted" style="margin:0">Îți răspund la contactul pe care l-ai lăsat. Dacă e urgent, scrie-mi și pe Instagram.</p>
+          <button class="btn sm" id="cAgain">Scrie alt mesaj</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<footer><span>© 2026 BIOXIC · Toate piesele din seif sunt exclusive site-ului.</span><span>Sărbători fericite ✦</span></footer>
+
+<!-- player -->
+<div class="dock" id="dock" aria-label="Player">
+  <div class="dock-in">
+    <div class="cover" id="dCover"><span class="ini">B</span></div>
+    <div class="tinfo"><b id="dTitle">—</b><span id="dFeat">BIOXIC</span></div>
+    <div class="prog"><span id="dCur">0:00</span><canvas id="viz" height="68"></canvas><span id="dDur">0:00</span></div>
+    <div class="ctrl">
+      <button class="ibtn" id="dPrev" aria-label="Piesa anterioară"><svg width="16" height="16" viewBox="0 0 24 24" fill="#eaf2ed"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="ibtn main" id="dPlay" aria-label="Pauză"><svg id="dPlayIco" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
+      <button class="ibtn" id="dNext" aria-label="Piesa următoare"><svg width="16" height="16" viewBox="0 0 24 24" fill="#eaf2ed"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+    </div>
+  </div>
+</div>
+<audio id="audio" preload="metadata" crossorigin="anonymous"></audio>
+
+<!-- meniu cont -->
+<div class="scrim" id="acctMenu" hidden>
+  <div class="menu glass" role="dialog" aria-label="Contul meu">
+    <div class="who"><div class="av" id="mAv"></div><div><b id="mName">Vizitator</b><span class="role" id="mRole">Vizitator</span></div></div>
+    <p class="note" id="mNote" style="margin:0">Ești conectat ca vizitator. Poți asculta tot ce e în seif.</p>
+    <button class="btn gold" id="openStudio" hidden>Deschide Studio</button>
+    <button class="btn sm" id="closeMenu">Închide</button>
+  </div>
+</div>
+
+<!-- studio (doar BIOXIC / editori) -->
+<div class="studio" id="studio" hidden>
+  <div class="studio-card glass" role="dialog" aria-label="Studio BIOXIC">
+    <div class="section-head"><div><div class="eyebrow">Doar pentru tine</div><h2>Studio</h2></div><button class="btn sm" id="closeStudio">Închide</button></div>
+    <div class="stabs">
+      <button class="tab" data-st="post" aria-current="page">Postare</button>
+      <button class="tab" data-st="track">Piesă nouă</button>
+      <button class="tab" data-st="inbox">Mesaje <span id="inboxCount"></span></button>
+      <button class="tab" data-st="logo">Logo</button>
+    </div>
+
+    <div data-sp="post" style="display:grid;gap:14px">
+      <div class="field"><label for="pTag">Etichetă</label>
+        <select class="input" id="pTag"><option>Anunț</option><option>Piesă nouă</option><option>Live</option><option>Concert</option><option>În studio</option></select></div>
+      <div class="field"><label for="pText">Ce vrei să anunți</label><textarea class="input" id="pText" maxlength="1500" placeholder="ex. Mâine la 20:00 urc în seif mashup-ul de Crăciun."></textarea></div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn gold" id="pSend">Publică postarea</button><span class="status" id="pStatus"></span></div>
+    </div>
+
+    <div data-sp="track" hidden style="display:grid;gap:14px">
+      <div class="row2">
+        <div class="field"><label for="tTitle">Titlul piesei</label><input class="input" id="tTitle" maxlength="100" placeholder="ex. Sună și mergem (Remix)"></div>
+        <div class="field"><label for="tFeat">Artiști / feat.</label><input class="input" id="tFeat" maxlength="140" placeholder="ex. BIOXIC x Nicolae Guță"></div>
+      </div>
+      <div class="field"><label for="tNote">Descriere scurtă (opțional)</label><input class="input" id="tNote" maxlength="200" placeholder="ex. Versiunea scoasă de pe YouTube"></div>
+      <label class="drop" id="tDrop"><input type="file" id="tFile" accept="audio/*,video/mp4,video/webm,.m4a,.mp3,.mp4,.webm,.wav"><b>Alege fișierul piesei</b><br><span class="note">.mp4, .m4a sau .webm merg sigur · maxim 20 MB</span></label>
+      <label class="drop" id="cDrop"><input type="file" id="tCover" accept="image/*"><b>Copertă (opțional)</b><br><span class="note">JPG sau PNG pătrat</span></label>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="tAnnounce" checked> Anunță automat în Noutăți</label>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn gold" id="tSend">Urcă în seif</button><span class="status" id="tStatus"></span></div>
+    </div>
+
+    <div data-sp="inbox" hidden style="display:grid;gap:10px" id="inboxList">
+      <p class="muted">Niciun mesaj încă.</p>
+    </div>
+
+    <div data-sp="logo" hidden style="display:grid;gap:14px">
+      <p class="muted" style="margin:0">Urcă logo-ul tău (PNG transparent sau SVG). Apare în header, pe prima pagină și în intro.</p>
+      <label class="drop"><input type="file" id="lFile" accept="image/png,image/svg+xml,image/webp,image/jpeg"><b>Alege logo-ul</b></label>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn sm" id="lReset">Revino la textul BIOXIC</button><span class="status" id="lStatus"></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = t => { if (!isFinite(t) || t < 0) t = 0; const m = Math.floor(t/60), s = Math.floor(t%60); return m + ':' + String(s).padStart(2,'0'); };
+let toastT; const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3200); };
+const ago = ms => { const d = (Date.now() - ms)/1000;
+  if (d < 60) return 'acum'; if (d < 3600) return 'acum ' + Math.floor(d/60) + ' min'; if (d < 86400) return 'acum ' + Math.floor(d/3600) + ' h';
+  return new Date(ms).toLocaleDateString('ro-RO', {day:'numeric', month:'short'}); };
+
+/* ——— brazi ——— */
+(() => {
+  const svg = $('#trees'); let p = '';
+  const layer = (n, hMin, hMax, col, op, seed) => {
+    let s = seed; const r = () => (s = (s*9301+49297)%233280)/233280;
+    let d = '';
+    for (let i = 0; i < n; i++) { const x = (i/(n-1))*1240 - 20 + r()*20, h = hMin + r()*(hMax-hMin), w = h*0.42;
+      d += `M${x-w},300 L${x-w*.55},${300-h*.35} L${x-w*.75},${300-h*.35} L${x-w*.35},${300-h*.65} L${x-w*.5},${300-h*.65} L${x},${300-h} L${x+w*.5},${300-h*.65} L${x+w*.35},${300-h*.65} L${x+w*.75},${300-h*.35} L${x+w*.55},${300-h*.35} L${x+w},300 Z `; }
+    p += `<path d="${d}" fill="${col}" opacity="${op}"/>`;
+  };
+  layer(26, 90, 170, '#0c2219', .9, 7); layer(18, 120, 230, '#081a13', 1, 31); layer(12, 150, 290, '#040e0a', 1, 77);
+  svg.innerHTML = p;
+})();
+
+/* ——— ninsoare ——— */
+(() => {
+  const c = $('#snow'), x = c.getContext('2d'); let W, H, flakes = [], dpr = Math.min(devicePixelRatio || 1, 2);
+  const size = () => { W = c.width = innerWidth*dpr; H = c.height = innerHeight*dpr; };
+  size(); addEventListener('resize', size);
+  const N = Math.min(160, Math.floor(innerWidth/7));
+  for (let i = 0; i < N; i++) { const z = Math.random(); flakes.push({x: Math.random()*W, y: Math.random()*H, z, r: (0.6 + z*2.4)*dpr, vy: (0.3 + z*1.2)*dpr, ph: Math.random()*6.28}); }
+  const draw = (t) => {
+    x.clearRect(0, 0, W, H);
+    for (const f of flakes) {
+      if (!reduce) { f.y += f.vy; f.x += Math.sin(t/1400 + f.ph)*0.35*dpr*(0.4+f.z); if (f.y > H + 5) { f.y = -5; f.x = Math.random()*W; } }
+      x.beginPath(); x.fillStyle = `rgba(255,255,255,${0.25 + f.z*0.6})`;
+      if (f.z > .85) { x.shadowColor = 'rgba(255,255,255,.8)'; x.shadowBlur = 6*dpr; } else x.shadowBlur = 0;
+      x.arc(f.x, f.y, f.r, 0, 6.283); x.fill();
+    }
+    if (!reduce) requestAnimationFrame(draw);
+  };
+  requestAnimationFrame(draw);
+})();
+
+/* ——— ghirlanda de beculețe ——— */
+const lights = () => {
+  const L = $('#lights'), w = L.clientWidth; if (!w) return;
+  const n = Math.max(10, Math.floor(w/46)), cols = ['#f3c46a','#d03a45','#7fd1a5','#bfe3ff','#f3c46a','#ff8a5c'];
+  const sags = 3, seg = w/sags; let path = '', html = '';
+  for (let k = 0; k < sags; k++) { const a = k*seg, b = a + seg; path += `${k ? '' : 'M0,2 '}Q${a+seg/2},22 ${b},2 `; }
+  html += `<svg viewBox="0 0 ${w} 26" preserveAspectRatio="none"><path d="${path}" stroke="#1d2b25" stroke-width="1.6" fill="none"/></svg>`;
+  for (let i = 0; i < n; i++) { const X = (i + .5)*(w/n), u = (X % seg)/seg, y = 2 + 20*2*u*(1-u)*0.98;
+    html += `<span class="bulb" style="left:${X}px;top:${y+1}px;--c:${cols[i%cols.length]};--d:${(1.1+((i*37)%17)/10).toFixed(2)}s;animation-delay:-${((i*53)%20)/10}s"></span>`; }
+  L.innerHTML = html;
+};
+lights(); addEventListener('resize', lights);
+
+/* ——— numărătoare Crăciun ——— */
+const tick = () => {
+  const now = new Date(); let xmas = new Date(now.getFullYear(), 11, 25);
+  if (now > new Date(now.getFullYear(), 11, 26)) xmas = new Date(now.getFullYear()+1, 11, 25);
+  let d = Math.max(0, xmas - now);
+  if (now >= xmas) { $('#cdDays').textContent = '0'; $('#cdH').textContent = $('#cdM').textContent = $('#cdS').textContent = '00'; $('.countdown .note').textContent = 'Crăciun fericit! 🎄'; return; }
+  $('#cdDays').textContent = Math.floor(d/864e5); d %= 864e5;
+  $('#cdH').textContent = String(Math.floor(d/36e5)).padStart(2,'0'); d %= 36e5;
+  $('#cdM').textContent = String(Math.floor(d/6e4)).padStart(2,'0'); d %= 6e4;
+  $('#cdS').textContent = String(Math.floor(d/1e3)).padStart(2,'0');
+};
+tick(); setInterval(tick, 1000);
+
+/* ——— navigare ——— */
+const show = v => {
+  if (!['home','piese','contact'].includes(v)) v = 'home';
+  $$('[data-view]').forEach(s => s.hidden = s.dataset.view !== v);
+  $$('nav.tabs .tab').forEach(t => t.dataset.go === v ? t.setAttribute('aria-current','page') : t.removeAttribute('aria-current'));
+  const el = $('#v-' + v); el.style.animation = 'none'; el.offsetHeight; el.style.animation = '';
+  scrollTo({top: 0, behavior: reduce ? 'auto' : 'smooth'});
+  try { history.replaceState(null, '', v === 'home' ? location.pathname : '#' + v); } catch (e) {}
+};
+document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g) { e.preventDefault(); show(g.dataset.go); } });
+$('#brand').onclick = () => show('home');
+show((location.hash || '').slice(1));
+
+/* copiere */
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-copy]'); if (!b) return;
+  try { await navigator.clipboard.writeText(b.dataset.copy); toast('Copiat: ' + b.dataset.copy); }
+  catch (err) { const r = document.createRange(); r.selectNodeContents(b.previousElementSibling); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Selectat. Apasă Ctrl+C'); }
+});
+
+/* ——— stare ——— */
+let db = null, assets = null, user = null, uid = null, canEdit = false;
+let tracks = [], posts = [], firstPosts = true, firstTracks = true, queue = [], cur = -1;
+
+/* ——— player ——— */
+const audio = $('#audio'); let actx, analyser, srcNode, freq;
+const ensureAudioGraph = () => {
+  if (actx || reduce) return;
+  try { actx = new (window.AudioContext || window.webkitAudioContext)(); srcNode = actx.createMediaElementSource(audio);
+    analyser = actx.createAnalyser(); analyser.fftSize = 256; freq = new Uint8Array(analyser.frequencyBinCount);
+    srcNode.connect(analyser); analyser.connect(actx.destination); } catch (e) { actx = null; analyser = null; }
+};
+const mediaUrl = t => '/_blob/' + t.mediaId;
+const coverHtml = t => t.coverId ? `<img src="/_blob/${esc(t.coverId)}" alt="">` : `<span class="ini">${esc((t.title||'B').trim()[0]||'B').toUpperCase()}</span>`;
+const playIdx = i => {
+  if (!queue[i]) return; cur = i; const t = queue[i];
+  ensureAudioGraph(); if (actx && actx.state === 'suspended') actx.resume();
+  audio.src = mediaUrl(t); audio.play().catch(() => toast('Nu am putut porni piesa. Încearcă din nou.'));
+  $('#dock').classList.add('on'); $('#dTitle').textContent = t.title; $('#dFeat').textContent = t.feat || 'BIOXIC'; $('#dCover').innerHTML = coverHtml(t);
+  renderTracks();
+};
+const playTrack = id => { queue = filtered(); const i = queue.findIndex(t => t.id === id); if (i < 0) return;
+  if (cur >= 0 && queue[cur] && queue[cur].id === id && audio.src) { audio.paused ? audio.play() : audio.pause(); return; }
+  playIdx(i); };
+const setPlayIcon = () => { $('#dPlayIco').innerHTML = audio.paused ? '<path d="M8 5v14l11-7z"/>' : '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>'; $('#dPlay').setAttribute('aria-label', audio.paused ? 'Pornește' : 'Pauză'); renderTracks(); };
+audio.addEventListener('play', setPlayIcon); audio.addEventListener('pause', setPlayIcon);
+audio.addEventListener('ended', () => { if (cur < queue.length - 1) playIdx(cur + 1); });
+audio.addEventListener('loadedmetadata', () => $('#dDur').textContent = fmt(audio.duration));
+audio.addEventListener('error', () => { if (audio.src) toast('Fișierul piesei nu se poate reda în acest browser.'); });
+$('#dPlay').onclick = () => audio.paused ? audio.play() : audio.pause();
+$('#dNext').onclick = () => playIdx(Math.min(queue.length - 1, cur + 1));
+$('#dPrev').onclick = () => audio.currentTime > 3 ? (audio.currentTime = 0) : playIdx(Math.max(0, cur - 1));
+$('#playAll').onclick = () => { queue = filtered(); if (queue.length) playIdx(0); else toast('Seiful e gol deocamdată.'); };
+
+/* vizualizator + bară de progres */
+const viz = $('#viz'), vx = viz.getContext('2d');
+viz.addEventListener('click', e => { const r = viz.getBoundingClientRect(); if (audio.duration) audio.currentTime = ((e.clientX - r.left)/r.width)*audio.duration; });
+const drawViz = () => {
+  const w = viz.clientWidth*2 || 600, h = 68; if (viz.width !== w) viz.width = w;
+  vx.clearRect(0, 0, w, h);
+  const bars = Math.floor(w/9), p = audio.duration ? audio.currentTime/audio.duration : 0;
+  if (analyser && !audio.paused) analyser.getByteFrequencyData(freq);
+  for (let i = 0; i < bars; i++) {
+    let v; if (analyser && freq) { v = freq[Math.floor((i/bars)*freq.length*0.75)]/255; } else { v = 0.25 + 0.2*Math.sin(i*0.7) + (audio.paused ? 0 : 0.25*Math.abs(Math.sin(performance.now()/300 + i))); }
+    const bh = Math.max(4, v*h*0.9), X = i*9;
+    vx.fillStyle = (i/bars) < p ? '#f3c46a' : 'rgba(234,242,237,.22)';
+    vx.beginPath(); vx.roundRect ? vx.roundRect(X, (h-bh)/2, 5, bh, 3) : vx.rect(X, (h-bh)/2, 5, bh); vx.fill();
+  }
+  $('#dCur').textContent = fmt(audio.currentTime);
+  requestAnimationFrame(drawViz);
+};
+requestAnimationFrame(drawViz);
+
+/* ——— randare piese ——— */
+const filtered = () => { const q = ($('#q').value || '').toLowerCase().trim();
+  return tracks.filter(t => !q || (t.title + ' ' + (t.feat||'') + ' ' + (t.note||'')).toLowerCase().includes(q)); };
+$('#q').addEventListener('input', () => renderTracks());
+const isNew = ms => Date.now() - ms < 7*864e5;
+function renderTracks() {
+  const box = $('#tracks'), list = filtered(), playingId = (cur >= 0 && queue[cur]) ? queue[cur].id : null;
+  if (!tracks.length) { box.innerHTML = `<div class="glass empty"><h3>Seiful e gol deocamdată</h3><p class="muted" style="margin:0">${canEdit ? 'Urcă prima piesă din butonul „+ Urcă piesă”.' : 'Prima piesă exclusivă urcă curând. Revino sau urmărește pe TikTok ca să afli primul.'}</p></div>`; }
+  else if (!list.length) { box.innerHTML = `<div class="glass empty"><h3>Nimic pentru „${esc($('#q').value)}”</h3><p class="muted" style="margin:0">Încearcă alt titlu sau alt artist.</p></div>`; }
+  else {
+    const total = tracks.length;
+    box.innerHTML = list.map(t => { const n = total - tracks.indexOf(t); const on = t.id === playingId; const live = on && !audio.paused;
+      return `<div class="track glass ${on ? 'playing' : ''}" data-id="${esc(t.id)}" role="button" tabindex="0" aria-label="Redă ${esc(t.title)}">
+        <span class="cat">EXCL.${String(n).padStart(2,'0')}</span>
+        <div class="cover">${coverHtml(t)}</div>
+        <div class="tinfo"><b>${esc(t.title)}${live ? '<span class="eq"><i></i><i></i><i></i></span>' : ''}</b><span>${esc(t.feat || 'BIOXIC')}${t.note ? ' · ' + esc(t.note) : ''}</span></div>
+        <span class="dur">${isNew(t.createdAt) ? '<span class="badge">NOU</span> ' : ''}${t.duration ? fmt(t.duration) : ''}</span>
+        <button class="play" aria-label="${live ? 'Pauză' : 'Redă'}">${live ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>' : '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'}</button>
+        ${canEdit ? `<button class="del" data-del-track="${esc(t.id)}">Șterge</button>` : ''}
+      </div>`; }).join('');
+  }
+  // ultima piesă pe home
+  const lt = $('#latestTrack');
+  if (tracks[0]) { const t = tracks[0];
+    lt.innerHTML = `<div class="track glass" data-id="${esc(t.id)}" role="button" tabindex="0" style="grid-template-columns:56px 1fr auto"><div class="cover">${coverHtml(t)}</div><div class="tinfo"><b>${esc(t.title)}</b><span>${esc(t.feat || 'BIOXIC')}</span></div><button class="play" aria-label="Redă"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>`;
+  } else lt.innerHTML = `<div class="glass empty"><h3>Seiful e gol deocamdată</h3><p class="muted" style="margin:0">Prima piesă exclusivă urcă curând.</p></div>`;
+}
+document.addEventListener('click', e => {
+  const d = e.target.closest('[data-del-track]'); if (d) { e.stopPropagation(); confirmDel(d, () => db.doc('tracks/' + d.dataset.delTrack).delete().then(() => toast('Piesă ștearsă'))); return; }
+  const t = e.target.closest('.track[data-id]'); if (t) playTrack(t.dataset.id);
+});
+document.addEventListener('keydown', e => { const t = e.target.closest && e.target.closest('.track[data-id]'); if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); playTrack(t.dataset.id); } });
+const confirmDel = (btn, fn) => { if (btn.dataset.arm) { fn().catch(() => toast('Nu s-a putut șterge.')); return; } btn.dataset.arm = 1; const o = btn.textContent; btn.textContent = 'Sigur?'; setTimeout(() => { delete btn.dataset.arm; btn.textContent = o; }, 2500); };
+
+/* ——— randare postări ——— */
+function renderPosts() {
+  const f = $('#feed');
+  if (!posts.length) { f.innerHTML = `<div class="post glass empty"><h3>Încă nicio postare</h3><p class="muted" style="margin:0">Când BIOXIC postează ceva nou, apare aici pe loc, fără refresh.</p></div>`; return; }
+  f.innerHTML = posts.slice(0, 12).map(p => `<article class="post glass">
+    <div class="post-meta">${Date.now() - p.createdAt < 48*36e5 ? '<span class="badge">NOU</span>' : ''}<span class="tagpill">${esc(p.tag || 'Anunț')}</span><span>${ago(p.createdAt)}</span></div>
+    <p>${esc(p.text)}</p>
+    ${p.trackId ? `<div><button class="btn sm gold" data-go="piese">Ascultă în seif</button></div>` : ''}
+    ${canEdit ? `<button class="del" data-del-post="${esc(p.id)}">Șterge</button>` : ''}
+  </article>`).join('');
+}
+document.addEventListener('click', e => { const d = e.target.closest('[data-del-post]'); if (d) confirmDel(d, () => db.doc('posts/' + d.dataset.delPost).delete().then(() => toast('Postare ștearsă'))); });
+setInterval(() => posts.length && renderPosts(), 60000);
+
+/* ——— logo ——— */
+const applyLogo = id => {
+  const hl = $('#heroLogo'), hm = $('#heroMark'), bm = $('#brandMark'), brand = $('#brand');
+  const old = brand.querySelector('img'); if (old) old.remove();
+  if (id) { hl.src = '/_blob/' + id; hl.hidden = false; hm.hidden = true; bm.hidden = true;
+    const im = document.createElement('img'); im.src = '/_blob/' + id; im.alt = ''; brand.prepend(im); }
+  else { hl.hidden = true; hm.hidden = false; bm.hidden = false; }
+};
+
+/* ——— contact ——— */
+let kind = 'Colaborare';
+$('#kinds').addEventListener('click', e => { const b = e.target.closest('.kind'); if (!b) return; kind = b.dataset.k; $$('.kind').forEach(k => k.setAttribute('aria-pressed', k === b ? 'true' : 'false')); });
+const cStatus = (m, c) => { const s = $('#cStatus'); s.textContent = m; s.className = 'status ' + (c || ''); };
+$('#contactForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = $('#cName').value.trim(), reach = $('#cReach').value.trim(), message = $('#cMsg').value.trim();
+  if (!name || !reach || message.length < 5) { cStatus('Completează numele, unde îți răspund și un mesaj de minim 5 caractere.', 'err'); return; }
+  if (!db || !uid) { cStatus('Pe acest link nu pot primi mesaje direct. Scrie-mi pe Instagram la @crss.exe_.', 'err'); return; }
+  $('#cSend').disabled = true; cStatus('Se trimite…');
+  try {
+    const ref = db.doc('inbox/' + uid); const snap = await ref.get();
+    const prev = snap.exists ? (snap.data().msgs || []) : [];
+    const msgs = [...prev, {name, reach, kind, message, at: Date.now()}].slice(-20);
+    await ref.set({msgs, updatedAt: Date.now(), from: uid});
+    $('#contactForm').hidden = true; $('#contactOk').hidden = false; cStatus('');
+    $('#cMsg').value = '';
+  } catch (err) {
+    cStatus(err && err.code === 'invalid_argument' ? 'Contul tău nu poate trimite mesaje aici. Scrie-mi pe Instagram la @crss.exe_.' : 'Nu s-a trimis. Verifică internetul și mai încearcă o dată.', 'err');
+  } finally { $('#cSend').disabled = false; }
+});
+$('#cAgain').onclick = () => { $('#contactOk').hidden = true; $('#contactForm').hidden = false; };
+
+/* ——— cont ——— */
+$('#acctBtn').onclick = () => $('#acctMenu').hidden = false;
+$('#closeMenu').onclick = () => $('#acctMenu').hidden = true;
+$('#acctMenu').addEventListener('click', e => { if (e.target.id === 'acctMenu') $('#acctMenu').hidden = true; });
+const openStudio = tab => { $('#acctMenu').hidden = true; $('#studio').hidden = false; stab(tab || 'post'); };
+$('#openStudio').onclick = () => openStudio();
+$('#newPostBtn').onclick = () => openStudio('post');
+$('#newTrackBtn').onclick = () => openStudio('track');
+$('#closeStudio').onclick = () => $('#studio').hidden = true;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('#studio').hidden = true; $('#acctMenu').hidden = true; } });
+const stab = k => { $$('[data-st]').forEach(b => b.dataset.st === k ? b.setAttribute('aria-current','page') : b.removeAttribute('aria-current')); $$('[data-sp]').forEach(p => p.hidden = p.dataset.sp !== k); };
+$$('[data-st]').forEach(b => b.onclick = () => stab(b.dataset.st));
+
+/* ——— studio: postare ——— */
+const st = (id, m, c) => { const s = $(id); s.textContent = m; s.className = 'status ' + (c || ''); };
+$('#pSend').onclick = async () => {
+  const text = $('#pText').value.trim(); if (!text) { st('#pStatus', 'Scrie ceva înainte să publici.', 'err'); return; }
+  $('#pSend').disabled = true; st('#pStatus', 'Se publică…');
+  try { await db.collection('posts').add({text, tag: $('#pTag').value, createdAt: Date.now()}); $('#pText').value = ''; st('#pStatus', 'Publicat. Apare live la toți.', 'good'); }
+  catch (e) { st('#pStatus', 'Nu s-a publicat. Mai încearcă o dată.', 'err'); }
+  finally { $('#pSend').disabled = false; }
+};
+
+/* ——— studio: upload piesă ——— */
+const pickName = (inp, drop) => inp.addEventListener('change', () => { const f = inp.files[0]; if (f) drop.querySelector('b').textContent = f.name; });
+pickName($('#tFile'), $('#tDrop')); pickName($('#tCover'), $('#cDrop'));
+const durationOf = file => new Promise(res => { const a = document.createElement('audio'); const u = URL.createObjectURL(file); a.preload = 'metadata';
+  a.onloadedmetadata = () => { res(isFinite(a.duration) ? a.duration : 0); URL.revokeObjectURL(u); }; a.onerror = () => { res(0); URL.revokeObjectURL(u); }; a.src = u; });
+const uploadMedia = async file => {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  const tries = [];
+  if (file.type) tries.push(file.type);
+  if (['m4a','mp4','aac'].includes(ext) || /mp4|aac/.test(file.type)) tries.push('video/mp4');
+  if (['webm','ogg','opus'].includes(ext) || /webm|ogg/.test(file.type)) tries.push('video/webm');
+  let lastErr;
+  for (const type of [...new Set(tries)]) { try { return await assets.upload(new Blob([file], {type}), {type}); } catch (e) { lastErr = e; if (e && e.code === 'store_unavailable') { try { return await assets.upload(new Blob([file], {type}), {type}); } catch (e2) { lastErr = e2; } } } }
+  throw lastErr || {code: 'unsupported_type'};
+};
+$('#tSend').onclick = async () => {
+  const title = $('#tTitle').value.trim(), file = $('#tFile').files[0], cover = $('#tCover').files[0];
+  if (!title) { st('#tStatus', 'Dă-i un titlu piesei.', 'err'); return; }
+  if (!file) { st('#tStatus', 'Alege fișierul piesei.', 'err'); return; }
+  if (file.size > 20*1024*1024) { st('#tStatus', 'Fișierul are peste 20 MB. Exportă-l mai mic (ex. .m4a 192 kbps).', 'err'); return; }
+  if (!assets) { st('#tStatus', 'Încărcarea fișierelor merge doar din contul tău de proprietar.', 'err'); return; }
+  $('#tSend').disabled = true; st('#tStatus', 'Se urcă piesa…');
+  try {
+    const duration = await durationOf(file);
+    const media = await uploadMedia(file);
+    let coverId = null; if (cover) { st('#tStatus', 'Se urcă coperta…'); coverId = (await assets.upload(cover)).id; }
+    const ref = await db.collection('tracks').add({title, feat: $('#tFeat').value.trim(), note: $('#tNote').value.trim(), mediaId: media.id, mediaType: media.contentType, coverId, duration, createdAt: Date.now()});
+    if ($('#tAnnounce').checked) await db.collection('posts').add({text: `Piesă nouă în seif: ${title}${$('#tFeat').value.trim() ? ' — ' + $('#tFeat').value.trim() : ''}. Doar aici, nu pe YouTube.`, tag: 'Piesă nouă', trackId: ref.id, createdAt: Date.now()});
+    ['#tTitle','#tFeat','#tNote'].forEach(s => $(s).value = ''); $('#tFile').value = ''; $('#tCover').value = '';
+    $('#tDrop b').textContent = 'Alege fișierul piesei'; $('#cDrop b').textContent = 'Copertă (opțional)';
+    st('#tStatus', 'Gata, piesa e în seif.', 'good');
+  } catch (e) {
+    const c = e && e.code;
+    st('#tStatus', c === 'unsupported_type' ? 'Formatul nu e acceptat. Exportă piesa ca .mp4 sau .m4a și încearcă din nou.' : c === 'too_large' ? 'Fișierul e prea mare (max 20 MB).' : c === 'quota_exceeded' ? 'Spațiul de stocare e plin. Șterge piese vechi.' : 'Nu s-a urcat. Mai încearcă o dată.', 'err');
+  } finally { $('#tSend').disabled = false; }
+};
+
+/* ——— studio: logo ——— */
+$('#lFile').addEventListener('change', async () => {
+  const f = $('#lFile').files[0]; if (!f) return;
+  if (!assets) { st('#lStatus', 'Doar proprietarul poate schimba logo-ul.', 'err'); return; }
+  st('#lStatus', 'Se urcă logo-ul…');
+  try { const a = await assets.upload(f); await db.doc('site/config').set({logoId: a.id}); st('#lStatus', 'Logo-ul e pus.', 'good'); }
+  catch (e) { st('#lStatus', 'Nu s-a urcat logo-ul. Încearcă PNG.', 'err'); }
+});
+$('#lReset').onclick = async () => { try { await db.doc('site/config').set({logoId: null}); st('#lStatus', 'Am revenit la textul BIOXIC.', 'good'); } catch (e) { st('#lStatus', 'Nu s-a salvat.', 'err'); } };
+
+/* ——— inbox ——— */
+const renderInbox = docs => {
+  const all = []; docs.forEach(d => (d.data().msgs || []).forEach(m => all.push({...m, doc: d.id})));
+  all.sort((a, b) => b.at - a.at);
+  $('#inboxCount').textContent = all.length ? '(' + all.length + ')' : '';
+  $('#inboxList').innerHTML = all.length ? all.map(m => `<div class="msg"><div class="post-meta"><span class="tagpill">${esc(m.kind)}</span><span>${ago(m.at)}</span></div>
+    <b>${esc(m.name)} · <span style="user-select:all">${esc(m.reach)}</span></b><p>${esc(m.message)}</p></div>`).join('') : '<p class="muted">Niciun mesaj încă.</p>';
+};
+
+/* ——— conectare la date ——— */
+(async () => {
+  if (!window.claude || !window.claude.use) return;
+  const [d, u, a] = await Promise.all([claude.use('db'), claude.use('user'), claude.use('assets')]);
+  db = d; user = u; assets = a;
+  if (user) {
+    try { canEdit = !!(await user.canEdit()); } catch (e) {}
+    try { uid = await user.id(); } catch (e) {}
+    try { const me = await user.me(); const ps = uid ? await user.profiles([uid]) : {}; const p = (uid && ps[uid]) || me || {};
+      const nm = p.name || 'Vizitator'; $('#mName').textContent = nm;
+      if (p.avatarUrl) { $('#mAv').innerHTML = `<img src="${esc(p.avatarUrl)}" alt="">`; $('#acctBtn').innerHTML = `<img src="${esc(p.avatarUrl)}" alt="">`; }
+      const owner = await user.isOwner();
+      $('#mRole').textContent = owner ? 'Proprietar' : canEdit ? 'Editor' : 'Fan';
+      $('#mNote').textContent = canEdit ? 'Din Studio postezi noutăți, urci piese în seif, citești mesajele și schimbi logo-ul.' : 'Asculți tot ce e în seif și poți trimite mesaj din Contact.';
+    } catch (e) {}
+  }
+  if (!uid) $('#cHint').textContent = 'Dacă formularul nu merge pe linkul tău, scrie-mi pe Instagram la @crss.exe_.';
+  if (canEdit) { $('#openStudio').hidden = false; $('#newPostBtn').hidden = false; $('#newTrackBtn').hidden = false; }
+  if (!db) return;
+  db.doc('site/config').onSnapshot(s => applyLogo(s.exists ? s.data().logoId : null), () => {});
+  db.collection('tracks').orderBy('createdAt', 'desc').limit(300).onSnapshot(s => {
+    const before = new Set(tracks.map(t => t.id));
+    tracks = s.docs.map(x => ({id: x.id, ...x.data()}));
+    if (!firstTracks && tracks.some(t => !before.has(t.id))) toast('Piesă nouă în seif 🎄');
+    firstTracks = false;
+    if (cur >= 0 && queue[cur]) { const id = queue[cur].id; queue = filtered(); cur = queue.findIndex(t => t.id === id); }
+    renderTracks();
+  }, () => {});
+  db.collection('posts').orderBy('createdAt', 'desc').limit(30).onSnapshot(s => {
+    const before = new Set(posts.map(p => p.id));
+    posts = s.docs.map(x => ({id: x.id, ...x.data()}));
+    if (!firstPosts && posts.some(p => !before.has(p.id))) { toast('Postare nouă de la BIOXIC'); if (!canEdit) $('#acctBtn').insertAdjacentHTML('beforeend', '<span class="dot"></span>'); }
+    firstPosts = false; renderPosts();
+  }, () => {});
+  if (canEdit) db.collection('inbox').orderBy('updatedAt', 'desc').limit(200).onSnapshot(s => {
+    const before = $('#inboxCount').textContent; renderInbox(s.docs);
+    if (before && before !== $('#inboxCount').textContent) toast('Mesaj nou în Contact');
+  }, () => {});
+})();
+})();
+</script>
+
+</body></html>

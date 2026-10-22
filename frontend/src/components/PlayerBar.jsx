@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Volume2, Share2, Download, Heart } from "lucide-react";
 import { usePlayer } from "@/context/PlayerContext";
 import { mediaUrl } from "@/lib/api";
@@ -13,6 +13,34 @@ function fmt(sec) {
 
 export default function PlayerBar() {
   const { current, playing, progress, duration, volume, shuffle, repeat, toggle, next, prev, seek, setVolume, setShuffle, setRepeat } = usePlayer();
+  const canvasRef = useRef(null);
+  const rafRef = useRef(null);
+
+  // vizualizator canvas — bare aurii animate
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !current) return;
+    const ctx = canvas.getContext("2d");
+    const bars = 56;
+    const draw = (t) => {
+      const w = canvas.width = canvas.offsetWidth * 2;
+      const h = canvas.height = canvas.offsetHeight * 2;
+      ctx.clearRect(0, 0, w, h);
+      const pct = duration ? progress / duration : 0;
+      for (let i = 0; i < bars; i++) {
+        const x = (i / bars) * w;
+        const amp = playing ? 0.25 + Math.abs(Math.sin(t / 300 + i * 0.7)) * 0.75 : 0.15;
+        const bh = h * amp;
+        const played = i / bars <= pct;
+        ctx.fillStyle = played ? "#f3c46a" : "rgba(234,242,237,0.18)";
+        ctx.fillRect(x, (h - bh) / 2, (w / bars) * 0.55, bh);
+      }
+      rafRef.current = requestAnimationFrame(draw);
+    };
+    rafRef.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [current, playing, progress, duration]);
+
   if (!current) return null;
 
   const share = () => {
@@ -20,55 +48,46 @@ export default function PlayerBar() {
     navigator.clipboard?.writeText(url).then(() => toast.success("Link copiat!", { description: url })).catch(() => {});
   };
 
-  const pct = duration ? (progress / duration) * 100 : 0;
-
   return (
-    <div data-testid="player-bar" className="fixed bottom-0 inset-x-0 z-50 backdrop-blur-2xl bg-[#050805]/90 border-t border-white/10">
-      {/* linie glow deasupra */}
-      <div className="absolute -top-px inset-x-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(57,255,20,0.6), transparent)" }} />
-      {/* bară progres */}
-      <div
-        data-testid="player-progress"
-        className="h-1.5 bg-white/10 cursor-pointer group relative"
-        onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          seek(((e.clientX - rect.left) / rect.width) * duration);
-        }}
-      >
-        <div className="h-full bg-[#39FF14] relative transition-[width] duration-200" style={{ width: `${pct}%`, boxShadow: "0 0 12px rgba(57,255,20,0.9)" }}>
-          <span className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#39FF14] rounded-full opacity-0 group-hover:opacity-100 transition-opacity" style={{ boxShadow: "0 0 10px rgba(57,255,20,1)" }} />
-        </div>
-      </div>
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center gap-3 sm:gap-4">
-        <img src={mediaUrl(current.cover_url) || "/placeholder.svg"} alt={current.title} className="w-11 h-11 object-cover rounded-sm border border-white/10" data-testid="player-cover" />
-        <div className="min-w-0 flex-1 sm:flex-none sm:w-48">
+    <div data-testid="player-bar" className="fixed bottom-0 inset-x-0 z-50 border-t border-[rgba(234,242,237,0.11)] backdrop-blur-xl"
+      style={{ background: "linear-gradient(180deg, rgba(6,17,13,.6), rgba(6,17,13,.95))" }}>
+      <div className="max-w-[1120px] mx-auto px-3 sm:px-4 py-2.5 grid grid-cols-[auto_minmax(0,1fr)_auto] md:grid-cols-[auto_minmax(0,1fr)_minmax(0,2fr)_auto] gap-3 sm:gap-4 items-center">
+        <img src={mediaUrl(current.cover_url) || "/logo-alt.png"} alt={current.title} className="w-11 h-11 object-cover rounded-xl border border-white/10" data-testid="player-cover" />
+        <div className="min-w-0">
           <p data-testid="player-track-title" className="text-sm font-semibold truncate">{current.title}</p>
-          <p className="text-[11px] text-[#39FF14] uppercase tracking-widest truncate">{current.artist}</p>
+          <p className="text-[11px] text-[#f3c46a] uppercase tracking-widest truncate">{current.artist}</p>
         </div>
-        {/* vizualizator */}
-        <div className="hidden sm:flex items-end gap-[3px] h-6 w-14" data-testid="player-visualizer">
-          {[0.5, 0.9, 0.6, 1, 0.7, 0.4].map((d, i) => (
-            <span key={i} className={`w-1 bg-[#39FF14] ${playing ? "eq-bar" : ""}`} style={{ height: "100%", animationDelay: `${i * 0.12}s`, animationDuration: `${0.6 + d * 0.5}s`, transform: playing ? undefined : "scaleY(0.2)", transformOrigin: "bottom" }} />
-          ))}
+        <div className="hidden md:grid grid-cols-[auto_1fr_auto] gap-2.5 items-center font-mono-x text-[11px] text-[#9db3a8]">
+          <span data-testid="player-time" className="tabular-nums">{fmt(progress)}</span>
+          <canvas
+            ref={canvasRef}
+            data-testid="player-progress"
+            className="w-full h-9 cursor-pointer"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              seek(((e.clientX - rect.left) / rect.width) * duration);
+            }}
+          />
+          <span className="tabular-nums">{fmt(duration)}</span>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <button data-testid="player-shuffle" onClick={() => setShuffle(!shuffle)} className={`hidden sm:block p-2 transition-colors ${shuffle ? "text-[#39FF14]" : "text-zinc-500 hover:text-white"}`} aria-label="Shuffle"><Shuffle size={16} /></button>
-          <button data-testid="player-prev" onClick={prev} className="p-2 text-zinc-300 hover:text-[#39FF14] transition-colors" aria-label="Anterior"><SkipBack size={18} /></button>
-          <button data-testid="player-play-pause" onClick={toggle} className="p-2.5 bg-[#39FF14] text-black rounded-sm hover:bg-[#00C853] transition-colors" aria-label={playing ? "Pauză" : "Redă"}>
-            {playing ? <Pause size={18} fill="black" /> : <Play size={18} fill="black" />}
+        <div className="flex items-center gap-1.5">
+          <button data-testid="player-shuffle" onClick={() => setShuffle(!shuffle)} className={`hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center transition-colors ${shuffle ? "text-[#f3c46a] border-[#f3c46a]/50" : "text-zinc-500 hover:text-white"}`} aria-label="Shuffle"><Shuffle size={15} /></button>
+          <button data-testid="player-prev" onClick={prev} className="hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-300 hover:text-[#f3c46a] transition-colors" aria-label="Anterior"><SkipBack size={16} /></button>
+          <button data-testid="player-play-pause" onClick={toggle}
+            className="grid w-11 h-11 rounded-full place-items-center transition-transform hover:scale-105"
+            style={{ background: "linear-gradient(180deg,#f8d68e,#f3c46a)", color: "#1d1406", boxShadow: "0 8px 30px -8px rgba(243,196,106,.6)" }}
+            aria-label={playing ? "Pauză" : "Redă"}>
+            {playing ? <Pause size={18} fill="#1d1406" /> : <Play size={18} fill="#1d1406" />}
           </button>
-          <button data-testid="player-next" onClick={next} className="p-2 text-zinc-300 hover:text-[#39FF14] transition-colors" aria-label="Următor"><SkipForward size={18} /></button>
-          <button data-testid="player-repeat" onClick={() => setRepeat(!repeat)} className={`hidden sm:block p-2 transition-colors ${repeat ? "text-[#39FF14]" : "text-zinc-500 hover:text-white"}`} aria-label="Repetă"><Repeat size={16} /></button>
-        </div>
-        <span data-testid="player-time" className="hidden md:block text-[11px] text-zinc-500 tabular-nums w-20 text-center">{fmt(progress)} / {fmt(duration)}</span>
-        <div className="hidden md:flex items-center gap-2 w-28">
-          <Volume2 size={15} className="text-zinc-500" />
-          <input data-testid="player-volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(e) => setVolume(parseFloat(e.target.value))} className="w-full h-1 accent-[#39FF14]" aria-label="Volum" />
-        </div>
-        <div className="flex items-center gap-1 ml-auto sm:ml-0">
-          <button data-testid="player-share" onClick={share} className="p-2 text-zinc-400 hover:text-[#39FF14] transition-colors" aria-label="Distribuie"><Share2 size={16} /></button>
+          <button data-testid="player-next" onClick={next} className="grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-300 hover:text-[#f3c46a] transition-colors" aria-label="Următor"><SkipForward size={16} /></button>
+          <button data-testid="player-repeat" onClick={() => setRepeat(!repeat)} className={`hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center transition-colors ${repeat ? "text-[#f3c46a] border-[#f3c46a]/50" : "text-zinc-500 hover:text-white"}`} aria-label="Repetă"><Repeat size={15} /></button>
+          <div className="hidden lg:flex items-center gap-2 w-24 ml-1">
+            <Volume2 size={14} className="text-zinc-500" />
+            <input data-testid="player-volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(e) => setVolume(parseFloat(e.target.value))} className="w-full h-1 accent-[#f3c46a]" aria-label="Volum" />
+          </div>
+          <button data-testid="player-share" onClick={share} className="hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-400 hover:text-[#f3c46a] transition-colors" aria-label="Distribuie"><Share2 size={15} /></button>
           {current.download_enabled && (
-            <a data-testid="player-download" href={mediaUrl(`/api/tracks/${current.id}/download`)} className="p-2 text-zinc-400 hover:text-[#39FF14] transition-colors" aria-label="Descarcă"><Download size={16} /></a>
+            <a data-testid="player-download" href={mediaUrl(`/api/tracks/${current.id}/download`)} className="hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-400 hover:text-[#f3c46a] transition-colors" aria-label="Descarcă"><Download size={15} /></a>
           )}
         </div>
       </div>

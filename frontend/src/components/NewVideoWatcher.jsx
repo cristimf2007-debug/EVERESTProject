@@ -41,19 +41,19 @@ export default function NewVideoWatcher() {
           className="fixed top-20 left-1/2 -translate-x-1/2 z-[90] w-[92vw] max-w-lg"
           data-testid="new-video-banner"
         >
-          <div className="glass rounded-sm overflow-hidden box-glow-strong border-[#39FF14]/50">
+          <div className="glass rounded-sm overflow-hidden box-glow-strong border-[#f3c46a]/50">
             <div className="relative h-36 sm:h-44">
               <img src={newVideo.thumbnail} alt={newVideo.title} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050805] via-transparent to-transparent" />
-              <span className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1.5 bg-[#39FF14] text-black text-[10px] font-black uppercase tracking-widest">
+              <div className="absolute inset-0 bg-gradient-to-t from-[#06110d] via-transparent to-transparent" />
+              <span className="absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1.5 bg-[#f3c46a] text-black text-[10px] font-black uppercase tracking-widest">
                 <Sparkles size={12} /> Lansare nouă
               </span>
-              <button data-testid="new-video-close" onClick={() => setNewVideo(null)} className="absolute top-3 right-3 p-1.5 bg-black/60 text-white hover:text-[#39FF14]" aria-label="Închide"><X size={15} /></button>
+              <button data-testid="new-video-close" onClick={() => setNewVideo(null)} className="absolute top-3 right-3 p-1.5 bg-black/60 text-white hover:text-[#f3c46a]" aria-label="Închide"><X size={15} /></button>
             </div>
             <div className="p-4 flex items-center gap-4">
               <p className="flex-1 text-sm font-semibold line-clamp-2">{newVideo.title}</p>
               <a data-testid="new-video-watch" href={`https://www.youtube.com/watch?v=${newVideo.id}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-5 py-3 bg-[#39FF14] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#00C853] transition-colors shrink-0">
+                className="flex items-center gap-2 px-5 py-3 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors shrink-0">
                 <Play size={13} fill="black" /> Vezi
               </a>
             </div>

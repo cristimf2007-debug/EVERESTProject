@@ -31,9 +31,9 @@ function VideoCard({ v, onOpen, tid, compact }) {
       <div className="relative aspect-video overflow-hidden">
         <img src={v.thumbnail} alt={v.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <span className="p-3 bg-[#39FF14] rounded-sm"><Play size={18} fill="black" className="text-black" /></span>
+          <span className="p-3 bg-[#f3c46a] rounded-sm"><Play size={18} fill="black" className="text-black" /></span>
         </div>
-        <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 text-[#39FF14] text-[9px] uppercase tracking-widest border border-[#39FF14]/30">
+        <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 text-[#f3c46a] text-[9px] uppercase tracking-widest border border-[#f3c46a]/30">
           {CAT_LABEL[catOf(v)]}
         </span>
         {v.channel === "Everest Manele" && (
@@ -41,7 +41,7 @@ function VideoCard({ v, onOpen, tid, compact }) {
         )}
       </div>
       <div className="p-3">
-        <p className="text-xs font-semibold line-clamp-2 group-hover:text-[#39FF14] transition-colors">{v.title}</p>
+        <p className="text-xs font-semibold line-clamp-2 group-hover:text-[#f3c46a] transition-colors">{v.title}</p>
         <p className="text-[10px] text-zinc-500 mt-1.5">{new Date(v.published).toLocaleDateString("ro-RO")} · {v.channel}</p>
       </div>
     </button>
@@ -57,8 +57,8 @@ function Carousel({ title, videos, onOpen, tidPrefix }) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-display font-bold text-lg sm:text-xl uppercase tracking-tight">{title} <span className="text-zinc-600 text-sm">({videos.length})</span></h2>
         <div className="flex gap-2">
-          <button data-testid={`${tidPrefix}-prev`} onClick={() => scroll(-1)} className="p-2 border border-white/15 text-zinc-400 hover:border-[#39FF14] hover:text-[#39FF14] transition-colors" aria-label="Înapoi"><ChevronLeft size={16} /></button>
-          <button data-testid={`${tidPrefix}-next`} onClick={() => scroll(1)} className="p-2 border border-white/15 text-zinc-400 hover:border-[#39FF14] hover:text-[#39FF14] transition-colors" aria-label="Înainte"><ChevronRight size={16} /></button>
+          <button data-testid={`${tidPrefix}-prev`} onClick={() => scroll(-1)} className="p-2 border border-white/15 text-zinc-400 hover:border-[#f3c46a] hover:text-[#f3c46a] transition-colors" aria-label="Înapoi"><ChevronLeft size={16} /></button>
+          <button data-testid={`${tidPrefix}-next`} onClick={() => scroll(1)} className="p-2 border border-white/15 text-zinc-400 hover:border-[#f3c46a] hover:text-[#f3c46a] transition-colors" aria-label="Înainte"><ChevronRight size={16} /></button>
         </div>
       </div>
       <div ref={ref} className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory" style={{ scrollbarWidth: "none" }} data-testid={`${tidPrefix}-carousel`}>
@@ -89,16 +89,16 @@ export default function Videoclipuri() {
 
   return (
     <div data-testid="videoclipuri-page" className="max-w-7xl mx-auto px-6 py-14">
-      <p className="text-[#00C853] text-xs uppercase tracking-[0.4em] mb-3">YouTube · BIOXIC + Everest Manele</p>
+      <p className="text-[#8cc7a8] text-xs uppercase tracking-[0.4em] mb-3">YouTube · BIOXIC + Everest Manele</p>
       <h1 className="font-display font-black text-4xl sm:text-6xl uppercase tracking-tighter mb-8">
-        Videoclipuri<span className="text-[#39FF14]">.</span>
+        Videoclipuri<span className="text-[#f3c46a]">.</span>
       </h1>
 
       <div className="flex flex-wrap items-center gap-3 mb-10">
         <div className="flex flex-wrap gap-2" data-testid="video-cats">
           {CATS.map((c) => (
             <button key={c.key} data-testid={`cat-${c.key}`} onClick={() => setCat(c.key)}
-              className={`px-4 py-2 text-xs uppercase tracking-widest border transition-colors ${cat === c.key ? "bg-[#39FF14] text-black border-[#39FF14] font-bold" : "border-white/15 text-zinc-400 hover:border-[#39FF14]/50 hover:text-white"}`}>
+              className={`px-4 py-2 text-xs uppercase tracking-widest border transition-colors ${cat === c.key ? "bg-[#f3c46a] text-black border-[#f3c46a] font-bold" : "border-white/15 text-zinc-400 hover:border-[#f3c46a]/50 hover:text-white"}`}>
               {c.label}
             </button>
           ))}
@@ -106,7 +106,7 @@ export default function Videoclipuri() {
         <div className="relative ml-auto w-full sm:w-64">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
           <input data-testid="video-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Caută (Guță, Maxim...)"
-            className="w-full bg-black/40 border border-white/10 pl-10 pr-3 py-2.5 text-sm focus:border-[#39FF14] outline-none" />
+            className="w-full bg-black/40 border border-white/10 pl-10 pr-3 py-2.5 text-sm focus:border-[#f3c46a] outline-none" />
         </div>
       </div>
 
@@ -147,7 +147,7 @@ export default function Videoclipuri() {
       </section>
 
       <Dialog open={!!active} onOpenChange={() => setActive(null)}>
-        <DialogContent className="max-w-4xl bg-[#050805] border-[#39FF14]/30 p-0 overflow-hidden" data-testid="video-lightbox">
+        <DialogContent className="max-w-4xl bg-[#06110d] border-[#f3c46a]/30 p-0 overflow-hidden" data-testid="video-lightbox">
           {active && (
             <div>
               <div className="aspect-video">
