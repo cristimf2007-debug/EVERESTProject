@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { PlayerProvider } from "@/context/PlayerContext";
 import { FanProvider, useFan } from "@/context/FanContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import api from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -12,8 +13,7 @@ import PlayerBar from "@/components/PlayerBar";
 import Snowfall from "@/components/Snowfall";
 import Trees from "@/components/Trees";
 import WinterIntro from "@/components/WinterIntro";
-import NewVideoWatcher from "@/components/NewVideoWatcher";
-import Home from "@/pages/Home";
+import NewVideoWatcher from "@/components/NewVideoWatcher";import Home from "@/pages/Home";
 import Muzica from "@/pages/Muzica";
 import Live from "@/pages/Live";
 import Videoclipuri from "@/pages/Videoclipuri";
@@ -109,21 +109,32 @@ function AppRoutes() {
   );
 }
 
+function Atmosphere() {
+  const { theme } = useTheme();
+  if (theme !== "iarna") return null;
+  return (
+    <>
+      <Trees />
+      <Snowfall />
+      <WinterIntro />
+    </>
+  );
+}
+
 function App() {
   useEasterEgg();
 
   return (
-    <div className="App min-h-screen bg-[#06110d] text-white">
+    <div className="App min-h-screen text-white" style={{ background: "var(--night)" }}>
       <BrowserRouter>
+        <ThemeProvider>
         <FanProvider>
         <PlayerProvider>
           <VisitTracker />
           <div className="sky-bg" />
-          <Trees />
-          <Snowfall />
+          <Atmosphere />
           <div className="grain-overlay" />
           <div id="infection-overlay" className="fixed inset-0 z-[98] pointer-events-none" />
-          <WinterIntro />
           <NewVideoWatcher />
           <Navbar />
           <main className="relative z-10">
@@ -131,9 +142,10 @@ function App() {
           </main>
           <Footer />
           <PlayerBar />
-          <Toaster theme="dark" position="top-center" toastOptions={{ style: { background: "#0a120a", border: "1px solid rgba(243,196,106,0.3)", color: "#fff" } }} />
+          <Toaster theme="dark" position="top-center" toastOptions={{ style: { background: "var(--pine)", border: "1px solid rgba(var(--accent-rgb),0.3)", color: "var(--frost)" } }} />
         </PlayerProvider>
         </FanProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </div>
   );

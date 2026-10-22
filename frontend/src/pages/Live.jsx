@@ -24,13 +24,13 @@ function Countdown({ target }) {
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
   }, [target]);
-  return <span data-testid="live-countdown" className="font-display text-[#f3c46a] text-glow tabular-nums">{left}</span>;
+  return <span data-testid="live-countdown" className="font-display text-[var(--accent)] text-glow tabular-nums">{left}</span>;
 }
 
 function Avatar({ name, picture, size = 22 }) {
-  if (picture) return <img src={picture} alt={name} className="rounded-full border border-[#f3c46a]/50 object-cover" style={{ width: size, height: size }} />;
+  if (picture) return <img src={picture} alt={name} className="rounded-full border border-[var(--accent)]/50 object-cover" style={{ width: size, height: size }} />;
   return (
-    <span className="rounded-full bg-[#f3c46a]/15 border border-[#f3c46a]/40 flex items-center justify-center text-[#f3c46a] font-bold" style={{ width: size, height: size, fontSize: size * 0.45 }}>
+    <span className="rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/40 flex items-center justify-center text-[var(--accent)] font-bold" style={{ width: size, height: size, fontSize: size * 0.45 }}>
       {(name || "F")[0].toUpperCase()}
     </span>
   );
@@ -139,15 +139,15 @@ export default function Live() {
     <div data-testid="live-page" className="max-w-7xl mx-auto px-4 sm:px-6 py-14">
       <div className="flex flex-wrap items-center gap-4 mb-8">
         <h1 className="font-display font-black text-4xl sm:text-6xl uppercase tracking-tighter">
-          Live<span className="text-[#f3c46a]">.</span>
+          Live<span className="text-[var(--accent)]">.</span>
         </h1>
         {status?.is_live && (
-          <span data-testid="live-now-badge" className="flex items-center gap-2 px-4 py-2 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase">
+          <span data-testid="live-now-badge" className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-black font-display font-bold text-xs tracking-widest uppercase">
             <span className="w-2 h-2 rounded-full bg-black live-dot" /> Live acum
           </span>
         )}
         <button data-testid="live-follow-button" onClick={toggleFollow}
-          className={`ml-auto flex items-center gap-2 px-5 py-2.5 font-display font-bold text-xs tracking-widest uppercase transition-colors ${follow.following ? "bg-[#f3c46a]/15 text-[#f3c46a] border border-[#f3c46a]/50" : "bg-[#f3c46a] text-black hover:bg-[#8cc7a8]"}`}>
+          className={`ml-auto flex items-center gap-2 px-5 py-2.5 font-display font-bold text-xs tracking-widest uppercase transition-colors ${follow.following ? "bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/50" : "bg-[var(--accent)] text-black hover:bg-[var(--accent2)]"}`}>
           {follow.following ? <UserCheck size={14} /> : <UserPlus size={14} />}
           {follow.following ? "Urmărit" : "Follow"} · {follow.followers}
         </button>
@@ -161,8 +161,8 @@ export default function Live() {
                 <iframe src={embedSrc} title="BIOXIC Live" className="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen data-testid="live-embed" />
               </div>
             ) : (
-              <div className="aspect-video flex flex-col items-center justify-center bg-[#06110d] p-8 text-center">
-                <Radio size={48} className="text-[#f3c46a]/40 mb-6" />
+              <div className="aspect-video flex flex-col items-center justify-center bg-[var(--night)] p-8 text-center">
+                <Radio size={48} className="text-[var(--accent)]/40 mb-6" />
                 <p className="font-display font-bold text-xl sm:text-2xl uppercase text-zinc-300" data-testid="offline-message">Momentan offline</p>
                 {nextShow ? (
                   <p className="mt-4 text-sm text-zinc-500">
@@ -178,7 +178,7 @@ export default function Live() {
                 const Icon = REACTION_ICONS[r.emoji] || Heart;
                 return (
                   <span key={r.id} className="absolute bottom-4 float-reaction" style={{ left: `${r.x}%` }}>
-                    <Icon size={26} className="text-[#f3c46a]" fill={r.emoji === "heart" ? "#f3c46a" : "none"} style={{ filter: "drop-shadow(0 0 8px rgba(243,196,106,0.8))" }} />
+                    <Icon size={26} className="text-[var(--accent)]" fill={r.emoji === "heart" ? "var(--accent)" : "none"} style={{ filter: "drop-shadow(0 0 8px rgba(var(--accent-rgb),0.8))" }} />
                   </span>
                 );
               })}
@@ -189,7 +189,7 @@ export default function Live() {
           <div className="flex flex-wrap items-center gap-4 mt-4">
             <div className="flex items-center gap-3" data-testid="viewers-panel">
               <span className="flex items-center gap-2 text-xs text-zinc-500 uppercase tracking-widest">
-                <Users size={14} className="text-[#f3c46a]" />
+                <Users size={14} className="text-[var(--accent)]" />
                 <span data-testid="viewer-count" className="text-white font-bold">{viewers}</span> spectatori
               </span>
               {viewersList.length > 0 && (
@@ -205,14 +205,14 @@ export default function Live() {
             </div>
             <div className="flex items-center gap-2 ml-auto">
               <button data-testid="tap-like-button" onClick={() => send({ type: "tap" })}
-                className="flex items-center gap-2 px-5 py-3 bg-[#f3c46a]/10 border border-[#f3c46a]/50 rounded-sm text-[#f3c46a] hover:bg-[#f3c46a]/20 active:scale-90 transition-all"
+                className="flex items-center gap-2 px-5 py-3 bg-[var(--accent)]/10 border border-[var(--accent)]/50 rounded-sm text-[var(--accent)] hover:bg-[var(--accent)]/20 active:scale-90 transition-all"
                 aria-label="Tap like">
-                <Hand size={17} /> <Heart size={14} fill="#f3c46a" /> <span className="text-xs font-bold" data-testid="tap-count">{likes}</span>
+                <Hand size={17} /> <Heart size={14} fill="var(--accent)" /> <span className="text-xs font-bold" data-testid="tap-count">{likes}</span>
               </button>
               <div className="flex gap-2" data-testid="reaction-buttons">
                 {[["fire", Flame], ["crown", Crown]].map(([key, Icon]) => (
                   <button key={key} data-testid={`reaction-${key}`} onClick={() => send({ type: "reaction", emoji: key })}
-                    className="p-3 glass rounded-sm text-[#f3c46a] hover:bg-[#f3c46a]/20 hover:scale-110 transition-all" aria-label={`Reacție ${key}`}>
+                    className="p-3 glass rounded-sm text-[var(--accent)] hover:bg-[var(--accent)]/20 hover:scale-110 transition-all" aria-label={`Reacție ${key}`}>
                     <Icon size={17} />
                   </button>
                 ))}
@@ -224,40 +224,40 @@ export default function Live() {
           <div className="grid sm:grid-cols-2 gap-4 mt-6">
             <div className="glass rounded-sm p-5" data-testid="donate-box">
               <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2 mb-3">
-                <CreditCard size={15} className="text-[#f3c46a]" /> Susține live-ul
+                <CreditCard size={15} className="text-[var(--accent)]" /> Susține live-ul
               </h3>
               <p className="text-xs text-zinc-500 mb-4">Fiecare donație înseamnă o piesă nouă.</p>
               <a href="https://www.paypal.com/[LINK_PAYPAL]" target="_blank" rel="noopener noreferrer" data-testid="donate-paypal"
-                className="block text-center w-full px-4 py-2.5 mb-3 border border-[#f3c46a]/50 text-[#f3c46a] text-xs font-bold uppercase tracking-widest hover:bg-[#f3c46a] hover:text-black transition-colors">
+                className="block text-center w-full px-4 py-2.5 mb-3 border border-[var(--accent)]/50 text-[var(--accent)] text-xs font-bold uppercase tracking-widest hover:bg-[var(--accent)] hover:text-black transition-colors">
                 Donează PayPal
               </a>
               <div className="text-[11px] text-zinc-400 space-y-1.5">
                 <p className="uppercase tracking-widest text-zinc-600">Transfer UK — C Maxim</p>
                 <div className="flex justify-between items-center">Sort: <span className="font-mono text-white">20-25-98</span>
-                  <button data-testid="donate-copy-sort" onClick={() => copy("20-25-98")} className="p-1 text-zinc-500 hover:text-[#f3c46a]"><Copy size={12} /></button></div>
+                  <button data-testid="donate-copy-sort" onClick={() => copy("20-25-98")} className="p-1 text-zinc-500 hover:text-[var(--accent)]"><Copy size={12} /></button></div>
                 <div className="flex justify-between items-center">Cont: <span className="font-mono text-white">73583767</span>
-                  <button data-testid="donate-copy-acc" onClick={() => copy("73583767")} className="p-1 text-zinc-500 hover:text-[#f3c46a]"><Copy size={12} /></button></div>
+                  <button data-testid="donate-copy-acc" onClick={() => copy("73583767")} className="p-1 text-zinc-500 hover:text-[var(--accent)]"><Copy size={12} /></button></div>
               </div>
             </div>
             <div className="glass rounded-sm p-5" data-testid="song-request-box">
-              <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2 mb-3"><Music size={15} className="text-[#f3c46a]" /> Cere o piesă</h3>
+              <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2 mb-3"><Music size={15} className="text-[var(--accent)]" /> Cere o piesă</h3>
               <div className="flex gap-2">
                 <input data-testid="song-request-input" value={reqSong} onChange={(e) => setReqSong(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendRequest()} placeholder="Ce piesă vrei să aud?"
-                  className="flex-1 bg-black/40 border border-white/10 px-3 py-2.5 text-sm focus:border-[#f3c46a] outline-none" />
-                <button data-testid="song-request-send" onClick={sendRequest} className="px-4 py-2.5 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors">Trimite</button>
+                  className="flex-1 bg-black/40 border border-white/10 px-3 py-2.5 text-sm focus:border-[var(--accent)] outline-none" />
+                <button data-testid="song-request-send" onClick={sendRequest} className="px-4 py-2.5 bg-[var(--accent)] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[var(--accent2)] transition-colors">Trimite</button>
               </div>
             </div>
           </div>
 
           {schedule.length > 0 && (
             <div className="glass rounded-sm p-6 mt-6" data-testid="live-schedule">
-              <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2 mb-4"><CalendarClock size={16} className="text-[#f3c46a]" /> Program live-uri</h3>
+              <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2 mb-4"><CalendarClock size={16} className="text-[var(--accent)]" /> Program live-uri</h3>
               <div className="space-y-3">
                 {schedule.map((s) => (
                   <div key={s.id} className="flex items-center justify-between border-b border-white/5 pb-3">
                     <span className="text-sm">{s.title}</span>
-                    <span className="text-xs text-[#f3c46a] tabular-nums">{new Date(s.date).toLocaleString("ro-RO")}</span>
+                    <span className="text-xs text-[var(--accent)] tabular-nums">{new Date(s.date).toLocaleString("ro-RO")}</span>
                   </div>
                 ))}
               </div>
@@ -269,7 +269,7 @@ export default function Live() {
         <div className="glass rounded-sm flex flex-col h-[560px]" data-testid="live-chat">
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
             <span className="font-display font-bold text-sm uppercase tracking-widest">Chat live</span>
-            <span className={`w-2 h-2 rounded-full ${connected ? "bg-[#f3c46a]" : "bg-red-500"}`} title={connected ? "Conectat" : "Deconectat"} />
+            <span className={`w-2 h-2 rounded-full ${connected ? "bg-[var(--accent)]" : "bg-red-500"}`} title={connected ? "Conectat" : "Deconectat"} />
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3" data-testid="chat-messages">
             {messages.length === 0 && <p className="text-xs text-zinc-600 text-center mt-8">Niciun mesaj încă. Spune salut!</p>}
@@ -285,7 +285,7 @@ export default function Live() {
                   <span className="shrink-0 mt-0.5"><Avatar name={m.name} picture="" size={22} /></span>
                 )}
                 <div className="min-w-0">
-                  <span className="text-[#f3c46a] font-semibold text-xs uppercase tracking-wide">{m.name}</span>
+                  <span className="text-[var(--accent)] font-semibold text-xs uppercase tracking-wide">{m.name}</span>
                   <p className="text-zinc-300 break-words">{m.text}</p>
                 </div>
               </div>
@@ -295,14 +295,14 @@ export default function Live() {
           <div className="p-4 border-t border-white/10 space-y-2">
             {!fan && (
               <input data-testid="chat-name-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Numele tău"
-                className="w-full bg-black/40 border border-white/10 px-3 py-2 text-xs focus:border-[#f3c46a] outline-none" />
+                className="w-full bg-black/40 border border-white/10 px-3 py-2 text-xs focus:border-[var(--accent)] outline-none" />
             )}
-            {fan && <p className="text-[11px] text-zinc-500 flex items-center gap-2"><Avatar name={fan.name} picture={fan.picture} size={18} /> Scrii ca <span className="text-[#f3c46a] font-semibold">{fan.name}</span></p>}
+            {fan && <p className="text-[11px] text-zinc-500 flex items-center gap-2"><Avatar name={fan.name} picture={fan.picture} size={18} /> Scrii ca <span className="text-[var(--accent)] font-semibold">{fan.name}</span></p>}
             <div className="flex gap-2">
               <input data-testid="chat-input" value={input} onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder="Scrie în chat..."
-                className="flex-1 bg-black/40 border border-white/10 px-3 py-2 text-sm focus:border-[#f3c46a] outline-none" />
-              <button data-testid="chat-send" onClick={sendMessage} className="p-2.5 bg-[#f3c46a] text-black hover:bg-[#8cc7a8] transition-colors" aria-label="Trimite mesaj"><Send size={16} /></button>
+                className="flex-1 bg-black/40 border border-white/10 px-3 py-2 text-sm focus:border-[var(--accent)] outline-none" />
+              <button data-testid="chat-send" onClick={sendMessage} className="p-2.5 bg-[var(--accent)] text-black hover:bg-[var(--accent2)] transition-colors" aria-label="Trimite mesaj"><Send size={16} /></button>
             </div>
           </div>
         </div>

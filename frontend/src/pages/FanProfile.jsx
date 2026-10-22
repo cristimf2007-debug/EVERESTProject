@@ -26,18 +26,18 @@ export default function FanProfile() {
         {profile.banner ? (
           <img src={mediaUrl(profile.banner)} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full" style={{ background: "linear-gradient(135deg, rgba(243,196,106,0.15) 0%, #06110d 60%)" }} />
+          <div className="w-full h-full" style={{ background: "linear-gradient(135deg, rgba(var(--accent-rgb),0.15) 0%, var(--night) 60%)" }} />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#06110d] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--night)] to-transparent" />
       </div>
 
       {/* HEADER PROFIL */}
       <div className="flex flex-wrap items-end gap-5 -mt-12 relative z-10 px-4">
         {profile.picture ? (
-          <img src={mediaUrl(profile.picture)} alt={profile.name} className="w-24 h-24 rounded-full border-4 border-[#06110d] object-cover box-glow" data-testid="profile-avatar" />
+          <img src={mediaUrl(profile.picture)} alt={profile.name} className="w-24 h-24 rounded-full border-4 border-[var(--night)] object-cover box-glow" data-testid="profile-avatar" />
         ) : (
-          <span className="w-24 h-24 rounded-full border-4 border-[#06110d] bg-[#f3c46a]/15 flex items-center justify-center" data-testid="profile-avatar">
-            <UserIcon size={36} className="text-[#f3c46a]" />
+          <span className="w-24 h-24 rounded-full border-4 border-[var(--night)] bg-[var(--accent)]/15 flex items-center justify-center" data-testid="profile-avatar">
+            <UserIcon size={36} className="text-[var(--accent)]" />
           </span>
         )}
         <div className="flex-1 min-w-0 pb-1">
@@ -53,14 +53,14 @@ export default function FanProfile() {
       {/* FAVORITE */}
       <section className="mt-10">
         <h2 className="font-display font-bold text-lg uppercase tracking-widest mb-5 flex items-center gap-2">
-          <Heart size={16} className="text-[#f3c46a]" fill="#f3c46a" /> Piese favorite
+          <Heart size={16} className="text-[var(--accent)]" fill="var(--accent)" /> Piese favorite
         </h2>
         {profile.favorites.length === 0 && <p className="text-zinc-500 text-sm">Nicio piesă favorită publică încă.</p>}
         <div className="space-y-2">
           {profile.favorites.map((t) => (
             <Link key={t.id} to={`/muzica?track=${t.id}`} data-testid={`profile-fav-${t.id}`}
-              className="glass rounded-sm px-4 py-3 flex items-center gap-4 hover:border-[#f3c46a]/40 transition-colors">
-              {t.cover_url ? <img src={mediaUrl(t.cover_url)} alt="" className="w-10 h-10 object-cover rounded-sm" /> : <Music size={16} className="text-[#f3c46a]" />}
+              className="glass rounded-sm px-4 py-3 flex items-center gap-4 hover:border-[var(--accent)]/40 transition-colors">
+              {t.cover_url ? <img src={mediaUrl(t.cover_url)} alt="" className="w-10 h-10 object-cover rounded-sm" /> : <Music size={16} className="text-[var(--accent)]" />}
               <span className="flex-1 text-sm font-semibold truncate">{t.title}</span>
               <span className="text-[10px] text-zinc-500 uppercase tracking-widest">{t.genre}</span>
             </Link>

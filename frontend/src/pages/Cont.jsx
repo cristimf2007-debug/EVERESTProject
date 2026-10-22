@@ -5,7 +5,7 @@ import api, { formatApiError, mediaUrl } from "@/lib/api";
 import { useFan } from "@/context/FanContext";
 import { toast } from "sonner";
 
-const inputCls = "w-full bg-black/40 border border-white/10 px-4 py-3 text-sm focus:border-[#f3c46a] focus:ring-1 focus:ring-[#f3c46a] outline-none transition-colors";
+const inputCls = "w-full bg-black/40 border border-white/10 px-4 py-3 text-sm focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] outline-none transition-colors";
 
 function GoogleButton() {
   const start = () => {
@@ -97,14 +97,14 @@ export default function Cont() {
           <div className="flex items-center gap-5">
             <label data-testid="avatar-upload-label" className="cursor-pointer group relative shrink-0" title="Schimbă poza de profil">
               {fan.picture ? (
-                <img src={mediaUrl(fan.picture)} alt={fan.name} className="w-16 h-16 rounded-full border-2 border-[#f3c46a] object-cover" data-testid="fan-avatar" />
+                <img src={mediaUrl(fan.picture)} alt={fan.name} className="w-16 h-16 rounded-full border-2 border-[var(--accent)] object-cover" data-testid="fan-avatar" />
               ) : (
-                <span className="w-16 h-16 rounded-full bg-[#f3c46a]/15 border-2 border-[#f3c46a] flex items-center justify-center" data-testid="fan-avatar">
-                  <UserIcon size={26} className="text-[#f3c46a]" />
+                <span className="w-16 h-16 rounded-full bg-[var(--accent)]/15 border-2 border-[var(--accent)] flex items-center justify-center" data-testid="fan-avatar">
+                  <UserIcon size={26} className="text-[var(--accent)]" />
                 </span>
               )}
               <span className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Camera size={18} className="text-[#f3c46a]" />
+                <Camera size={18} className="text-[var(--accent)]" />
               </span>
               <input data-testid="avatar-upload-input" type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={uploadAvatar} />
             </label>
@@ -118,11 +118,11 @@ export default function Cont() {
           </div>
           <div className="grid grid-cols-2 gap-3 mt-6">
             <div className="bg-black/30 border border-white/5 p-4 flex items-center gap-3">
-              <Bell size={16} className="text-[#f3c46a] shrink-0" />
+              <Bell size={16} className="text-[var(--accent)] shrink-0" />
               <p className="text-xs text-zinc-400">Primești notificări la fiecare piesă nouă și live</p>
             </div>
             <div className="bg-black/30 border border-white/5 p-4 flex items-center gap-3">
-              <ShieldCheck size={16} className="text-[#f3c46a] shrink-0" />
+              <ShieldCheck size={16} className="text-[var(--accent)] shrink-0" />
               <p className="text-xs text-zinc-400">Cont verificat, fără spam</p>
             </div>
           </div>
@@ -130,28 +130,28 @@ export default function Cont() {
 
         {/* EDITEAZĂ PROFILUL */}
         <div className="glass rounded-sm p-6 mb-8" data-testid="profile-edit">
-          <h2 className="font-display font-bold text-sm uppercase tracking-widest mb-4 flex items-center gap-2"><Camera size={15} className="text-[#f3c46a]" /> Profilul tău public</h2>
+          <h2 className="font-display font-bold text-sm uppercase tracking-widest mb-4 flex items-center gap-2"><Camera size={15} className="text-[var(--accent)]" /> Profilul tău public</h2>
           <div className="grid sm:grid-cols-2 gap-3 mb-3">
             <input data-testid="profile-name-input" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} placeholder="Nume afișat" className={inputCls} />
-            <label className="flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-white/15 text-xs text-zinc-400 uppercase tracking-widest cursor-pointer hover:border-[#f3c46a]/50 hover:text-[#f3c46a] transition-colors" data-testid="banner-upload-label">
+            <label className="flex items-center justify-center gap-2 px-4 py-3 border border-dashed border-white/15 text-xs text-zinc-400 uppercase tracking-widest cursor-pointer hover:border-[var(--accent)]/50 hover:text-[var(--accent)] transition-colors" data-testid="banner-upload-label">
               <ImagePlus size={14} /> {fan.banner ? "Schimbă bannerul" : "Adaugă banner"}
               <input type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={uploadBanner} />
             </label>
           </div>
           <textarea data-testid="profile-bio-input" rows={2} value={edit.bio} onChange={(e) => setEdit({ ...edit, bio: e.target.value })} placeholder="Bio scurt (ce asculți, de unde ești...)" className={`${inputCls} mb-3`} />
-          <button data-testid="profile-save" onClick={saveProfile} className="px-6 py-2.5 bg-[#f3c46a] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors">Salvează profilul</button>
+          <button data-testid="profile-save" onClick={saveProfile} className="px-6 py-2.5 bg-[var(--accent)] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[var(--accent2)] transition-colors">Salvează profilul</button>
         </div>
 
         <h2 className="font-display font-bold text-lg uppercase tracking-widest mb-5 flex items-center gap-2">
-          <Heart size={17} className="text-[#f3c46a]" fill="#f3c46a" /> Piesele tale favorite
+          <Heart size={17} className="text-[var(--accent)]" fill="var(--accent)" /> Piesele tale favorite
         </h2>
         {favorites.length === 0 && (
-          <p className="text-zinc-500 text-sm" data-testid="no-favorites">Nicio piesă favorită încă. Apasă pe inimioară la orice piesă din <a href="/muzica" className="text-[#f3c46a] underline">Muzică</a>.</p>
+          <p className="text-zinc-500 text-sm" data-testid="no-favorites">Nicio piesă favorită încă. Apasă pe inimioară la orice piesă din <a href="/muzica" className="text-[var(--accent)] underline">Muzică</a>.</p>
         )}
         <div className="space-y-3">
           {favorites.map((t) => (
-            <a key={t.id} href={`/muzica?track=${t.id}`} data-testid={`favorite-${t.id}`} className="glass rounded-sm p-4 flex items-center gap-4 hover:border-[#f3c46a]/40 transition-colors">
-              {t.cover_url ? <img src={mediaUrl(t.cover_url)} alt="" className="w-11 h-11 object-cover rounded-sm" /> : <Music size={18} className="text-[#f3c46a]" />}
+            <a key={t.id} href={`/muzica?track=${t.id}`} data-testid={`favorite-${t.id}`} className="glass rounded-sm p-4 flex items-center gap-4 hover:border-[var(--accent)]/40 transition-colors">
+              {t.cover_url ? <img src={mediaUrl(t.cover_url)} alt="" className="w-11 h-11 object-cover rounded-sm" /> : <Music size={18} className="text-[var(--accent)]" />}
               <span className="flex-1 text-sm font-semibold truncate">{t.title}</span>
               <span className="text-[11px] text-zinc-500 uppercase">{t.genre}</span>
             </a>
@@ -180,7 +180,7 @@ export default function Cont() {
         <div className="grid grid-cols-2 gap-1 p-1 bg-black/40 border border-white/10 mb-6" data-testid="auth-mode-tabs">
           {[["login", "Autentificare"], ["register", "Cont nou"]].map(([k, label]) => (
             <button key={k} data-testid={`auth-mode-${k}`} onClick={() => setMode(k)}
-              className={`py-2.5 text-xs uppercase tracking-widest transition-colors ${mode === k ? "bg-[#f3c46a] text-black font-bold" : "text-zinc-400 hover:text-white"}`}>
+              className={`py-2.5 text-xs uppercase tracking-widest transition-colors ${mode === k ? "bg-[var(--accent)] text-black font-bold" : "text-zinc-400 hover:text-white"}`}>
               {label}
             </button>
           ))}
@@ -193,13 +193,13 @@ export default function Cont() {
           <input data-testid="fan-email-input" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" className={inputCls} />
           <input data-testid="fan-password-input" type="password" required minLength={6} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Parolă (min. 6 caractere)" className={inputCls} />
           <button data-testid="fan-auth-submit" disabled={busy}
-            className="w-full py-3.5 bg-[#f3c46a] text-black font-display font-bold text-sm tracking-widest uppercase hover:bg-[#8cc7a8] transition-colors disabled:opacity-50">
+            className="w-full py-3.5 bg-[var(--accent)] text-black font-display font-bold text-sm tracking-widest uppercase hover:bg-[var(--accent2)] transition-colors disabled:opacity-50">
             {busy ? "Se procesează..." : mode === "login" ? "Intră în cont" : "Creează contul"}
           </button>
         </form>
 
         <p className="text-[11px] text-zinc-600 text-center mt-6 leading-relaxed">
-          <ShieldCheck size={11} className="inline mr-1 text-[#8cc7a8]" />
+          <ShieldCheck size={11} className="inline mr-1 text-[var(--accent2)]" />
           Datele tale sunt în siguranță. Nu trimitem spam — doar piese noi și anunțuri de live.
         </p>
       </motion.div>

@@ -6,8 +6,8 @@ import DiscordButton from "@/components/DiscordButton";
 
 const KINDS = ["Colaborare", "Booking", "Versuri", "Video / design", "Altceva"];
 
-const inputCls = "w-full rounded-xl border border-[rgba(234,242,237,0.22)] bg-black/30 px-3.5 py-3 text-sm outline-none transition-all focus:border-[#f3c46a] focus:shadow-[0_0_0_3px_rgba(243,196,106,0.16)]";
-const labelCls = "font-mono-x text-[11px] tracking-[0.14em] uppercase text-[#9db3a8] block mb-1.5";
+const inputCls = "w-full rounded-xl border border-[rgba(234,242,237,0.22)] bg-black/30 px-3.5 py-3 text-sm outline-none transition-all focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_rgba(var(--accent-rgb),0.16)]";
+const labelCls = "font-mono-x text-[11px] tracking-[0.14em] uppercase text-[var(--mist)] block mb-1.5";
 
 export default function Contact() {
   const [kind, setKind] = useState("Colaborare");
@@ -34,14 +34,14 @@ export default function Contact() {
     <div data-testid="contact-page" className="max-w-[1120px] mx-auto px-4 py-10">
       <div className="eyebrow">Contact</div>
       <h1 className="font-display font-black text-[clamp(36px,7vw,76px)] leading-[0.95] tracking-tight" data-testid="contact-title">
-        Hai să facem<br /><em className="not-italic text-[#f3c46a]">un hit</em>.
+        Hai să facem<br /><em className="not-italic text-[var(--accent)]">un hit</em>.
       </h1>
 
       <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-5 items-start mt-7">
         <div className="grid gap-3.5">
           <div className="glass p-6 grid gap-2">
             <div className="eyebrow">Pentru ce mă poți chema</div>
-            <p className="text-sm text-[#9db3a8]">Colaborări pe piese, versuri la comandă, editare și producție video, design și branding pentru artiști, management.</p>
+            <p className="text-sm text-[var(--mist)]">Colaborări pe piese, versuri la comandă, editare și producție video, design și branding pentru artiști, management.</p>
           </div>
           <div className="glass p-6 grid gap-3">
             <div className="eyebrow">Cel mai rapid răspuns</div>
@@ -53,7 +53,7 @@ export default function Contact() {
                 </button>
               </div>
             ))}
-            <p className="text-[13px] text-[#9db3a8]">Instagram, TikTok sau WhatsApp, în mesaje private.</p>
+            <p className="text-[13px] text-[var(--mist)]">Instagram, TikTok sau WhatsApp, în mesaje private.</p>
           </div>
           <DiscordButton tid="contact-discord" compact />
         </div>
@@ -67,7 +67,7 @@ export default function Contact() {
                   {KINDS.map((k) => (
                     <button type="button" key={k} data-testid={`kind-${k.toLowerCase().replace(/[^a-z]/g, "")}`}
                       onClick={() => setKind(k)}
-                      className={`chip-x transition-colors ${kind === k ? "!bg-[#eaf2ed] !text-[#06110d] !border-transparent font-semibold" : "hover:border-[#f3c46a]/50"}`}>
+                      className={`chip-x transition-colors ${kind === k ? "!bg-[var(--frost)] !text-[var(--night)] !border-transparent font-semibold" : "hover:border-[var(--accent)]/50"}`}>
                       {k}
                     </button>
                   ))}
@@ -92,13 +92,13 @@ export default function Contact() {
                   {sending ? "Se trimite..." : "Trimite mesajul"}
                 </button>
               </div>
-              <p className="text-[13px] text-[#9db3a8]">Mesajul ajunge direct în căsuța lui BIOXIC de pe site.</p>
+              <p className="text-[13px] text-[var(--mist)]">Mesajul ajunge direct în căsuța lui BIOXIC de pe site.</p>
             </form>
           ) : (
             <div className="glass p-7 grid gap-2.5 place-items-start" data-testid="contact-ok">
-              <span className="font-display font-black text-[13px] tracking-[0.14em] text-[#f3c46a] border-2 border-[#f3c46a] rounded-xl px-3 py-1.5 -rotate-3">TRIMIS</span>
+              <span className="font-display font-black text-[13px] tracking-[0.14em] text-[var(--accent)] border-2 border-[var(--accent)] rounded-xl px-3 py-1.5 -rotate-3">TRIMIS</span>
               <h3 className="font-display font-bold text-[22px]">Am primit mesajul.</h3>
-              <p className="text-[#9db3a8] text-sm">Îți răspund la contactul pe care l-ai lăsat. Dacă e urgent, scrie-mi și pe Instagram.</p>
+              <p className="text-[var(--mist)] text-sm">Îți răspund la contactul pe care l-ai lăsat. Dacă e urgent, scrie-mi și pe Instagram.</p>
               <button data-testid="contact-again" onClick={() => { setSent(false); setForm({ name: "", reach: "", message: "" }); }} className="btn-x !py-2 !px-4 text-[13px] mt-2">Scrie alt mesaj</button>
             </div>
           )}

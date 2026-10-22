@@ -14,6 +14,11 @@ React (CRA/craco) + FastAPI + MongoDB (motor). Uploaduri → Emergent Object Sto
 - Linkuri: YouTube @djbioxic (UC2gQmatVSAB3nzqeDmYY3gw), TikTok @bioxic.exe, Instagram @crss.exe_, Spotify artist 4tlelg9L2y1OFOVpUkIiAK, Discord https://discord.gg/PJ5A45SkRs, WhatsApp +44 7400 998964.
 - Ecranul de intrare cu tranziție GSAP a fost ELIMINAT la cererea utilizatorului (22.10) — site-ul intră direct pe Home.
 
+## Implementat (22.10.2026, iter 4 — TEME: Iarnă / Ianuarie)
+- Toate culorile hardcodate au devenit variabile CSS (--accent, --night, --frost, --mist, --berry etc.).
+- Temă „Ianuarie" (stil glass-navigation din referința Webflow): navbar plutitor tip pill de sticlă (blur 26px, glow albastru-violet), fundal navy #05070f cu blobs cyan/violet, panouri glass albe, accent #5ec8ff, player dock plutitor, wordmark de gheață; fără ninsoare/brazi/ghirlandă/intro; countdown „Până la Anul Nou"; footer „No risks, no hits.".
+- Switch din Admin → Conținut → „Temă site" (Iarnă · Crăciun / Ianuarie · Glass), salvat în site_content.theme, aplicat global prin html[data-theme]. Activ acum: ianuarie.
+
 ## Implementat (22.10.2026, iter 3 — REDESIGN „Noapte de iarnă")
 - Temă vizuală nouă peste TOT site-ul (din /app/design/direction.html furnizat de user): noapte de brad (#06110d), auriu lumânare #f3c46a (accent principal), cranberry #d03a45 (badge NOU/ANUNȚ/live), text #eaf2ed/#9db3a8.
 - Fonturi: Unbounded (titluri/wordmark), Onest (text), JetBrains Mono (etichete/durate).

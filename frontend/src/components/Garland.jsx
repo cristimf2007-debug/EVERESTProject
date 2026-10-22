@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-const COLORS = ["#f3c46a", "#d03a45", "#7fd1a5", "#bfe3ff", "#f3c46a", "#ff8a5c"];
+const COLORS = ["var(--accent)", "var(--berry)", "#7fd1a5", "#bfe3ff", "var(--accent)", "#ff8a5c"];
 
 // Ghirlandă de beculețe atârnată curbat sub header; fiecare bec sclipește în ritmul lui
 export default function Garland() {

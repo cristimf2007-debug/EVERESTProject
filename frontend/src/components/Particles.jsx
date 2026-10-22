@@ -32,7 +32,7 @@ export default function Particles({ density = 40 }) {
         if (d.y < 0) d.y = h; if (d.y > h) d.y = 0;
         ctx.beginPath();
         ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(243,196,106,${d.o})`;
+        ctx.fillStyle = `rgba(var(--accent-rgb),${d.o})`;
         ctx.fill();
       }
       raf = requestAnimationFrame(tick);

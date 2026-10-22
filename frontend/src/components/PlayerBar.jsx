@@ -32,7 +32,8 @@ export default function PlayerBar() {
         const amp = playing ? 0.25 + Math.abs(Math.sin(t / 300 + i * 0.7)) * 0.75 : 0.15;
         const bh = h * amp;
         const played = i / bars <= pct;
-        ctx.fillStyle = played ? "#f3c46a" : "rgba(234,242,237,0.18)";
+        const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#f3c46a";
+        ctx.fillStyle = played ? accent : "rgba(234,242,237,0.18)";
         ctx.fillRect(x, (h - bh) / 2, (w / bars) * 0.55, bh);
       }
       rafRef.current = requestAnimationFrame(draw);
@@ -55,9 +56,9 @@ export default function PlayerBar() {
         <img src={mediaUrl(current.cover_url) || "/logo-alt.png"} alt={current.title} className="w-11 h-11 object-cover rounded-xl border border-white/10" data-testid="player-cover" />
         <div className="min-w-0">
           <p data-testid="player-track-title" className="text-sm font-semibold truncate">{current.title}</p>
-          <p className="text-[11px] text-[#f3c46a] uppercase tracking-widest truncate">{current.artist}</p>
+          <p className="text-[11px] text-[var(--accent)] uppercase tracking-widest truncate">{current.artist}</p>
         </div>
-        <div className="hidden md:grid grid-cols-[auto_1fr_auto] gap-2.5 items-center font-mono-x text-[11px] text-[#9db3a8]">
+        <div className="hidden md:grid grid-cols-[auto_1fr_auto] gap-2.5 items-center font-mono-x text-[11px] text-[var(--mist)]">
           <span data-testid="player-time" className="tabular-nums">{fmt(progress)}</span>
           <canvas
             ref={canvasRef}
@@ -71,23 +72,23 @@ export default function PlayerBar() {
           <span className="tabular-nums">{fmt(duration)}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <button data-testid="player-shuffle" onClick={() => setShuffle(!shuffle)} className={`hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center transition-colors ${shuffle ? "text-[#f3c46a] border-[#f3c46a]/50" : "text-zinc-500 hover:text-white"}`} aria-label="Shuffle"><Shuffle size={15} /></button>
-          <button data-testid="player-prev" onClick={prev} className="hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-300 hover:text-[#f3c46a] transition-colors" aria-label="Anterior"><SkipBack size={16} /></button>
+          <button data-testid="player-shuffle" onClick={() => setShuffle(!shuffle)} className={`hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center transition-colors ${shuffle ? "text-[var(--accent)] border-[var(--accent)]/50" : "text-zinc-500 hover:text-white"}`} aria-label="Shuffle"><Shuffle size={15} /></button>
+          <button data-testid="player-prev" onClick={prev} className="hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-300 hover:text-[var(--accent)] transition-colors" aria-label="Anterior"><SkipBack size={16} /></button>
           <button data-testid="player-play-pause" onClick={toggle}
             className="grid w-11 h-11 rounded-full place-items-center transition-transform hover:scale-105"
-            style={{ background: "linear-gradient(180deg,#f8d68e,#f3c46a)", color: "#1d1406", boxShadow: "0 8px 30px -8px rgba(243,196,106,.6)" }}
+            style={{ background: "linear-gradient(180deg,var(--accent-hi),var(--accent))", color: "var(--on-accent)", boxShadow: "0 8px 30px -8px rgba(var(--accent-rgb),.6)" }}
             aria-label={playing ? "Pauză" : "Redă"}>
-            {playing ? <Pause size={18} fill="#1d1406" /> : <Play size={18} fill="#1d1406" />}
+            {playing ? <Pause size={18} fill="var(--on-accent)" /> : <Play size={18} fill="var(--on-accent)" />}
           </button>
-          <button data-testid="player-next" onClick={next} className="grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-300 hover:text-[#f3c46a] transition-colors" aria-label="Următor"><SkipForward size={16} /></button>
-          <button data-testid="player-repeat" onClick={() => setRepeat(!repeat)} className={`hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center transition-colors ${repeat ? "text-[#f3c46a] border-[#f3c46a]/50" : "text-zinc-500 hover:text-white"}`} aria-label="Repetă"><Repeat size={15} /></button>
+          <button data-testid="player-next" onClick={next} className="grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-300 hover:text-[var(--accent)] transition-colors" aria-label="Următor"><SkipForward size={16} /></button>
+          <button data-testid="player-repeat" onClick={() => setRepeat(!repeat)} className={`hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center transition-colors ${repeat ? "text-[var(--accent)] border-[var(--accent)]/50" : "text-zinc-500 hover:text-white"}`} aria-label="Repetă"><Repeat size={15} /></button>
           <div className="hidden lg:flex items-center gap-2 w-24 ml-1">
             <Volume2 size={14} className="text-zinc-500" />
-            <input data-testid="player-volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(e) => setVolume(parseFloat(e.target.value))} className="w-full h-1 accent-[#f3c46a]" aria-label="Volum" />
+            <input data-testid="player-volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(e) => setVolume(parseFloat(e.target.value))} className="w-full h-1 accent-[var(--accent)]" aria-label="Volum" />
           </div>
-          <button data-testid="player-share" onClick={share} className="hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-400 hover:text-[#f3c46a] transition-colors" aria-label="Distribuie"><Share2 size={15} /></button>
+          <button data-testid="player-share" onClick={share} className="hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-400 hover:text-[var(--accent)] transition-colors" aria-label="Distribuie"><Share2 size={15} /></button>
           {current.download_enabled && (
-            <a data-testid="player-download" href={mediaUrl(`/api/tracks/${current.id}/download`)} className="hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-400 hover:text-[#f3c46a] transition-colors" aria-label="Descarcă"><Download size={15} /></a>
+            <a data-testid="player-download" href={mediaUrl(`/api/tracks/${current.id}/download`)} className="hidden sm:grid w-9 h-9 rounded-full border border-white/10 place-items-center text-zinc-400 hover:text-[var(--accent)] transition-colors" aria-label="Descarcă"><Download size={15} /></a>
           )}
         </div>
       </div>
