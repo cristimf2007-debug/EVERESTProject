@@ -9,13 +9,34 @@ const REACTION_META = {
   crown: { icon: Crown, color: "var(--accent)", fill: false },
 };
 
-// Chat live sub radio — realtime prin WebSocket
+const NAME_COLORS = ["var(--accent)", "#8cc7a8", "#bfe3ff", "#f0a4c0", "#ffd28c", "#a8e6cf", "#e3b8ff"];
+const nameColor = (name) => {
+  let h = 0;
+  for (let i = 0; i < (name || "").length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return NAME_COLORS[h % NAME_COLORS.length];
+};
+
+function Avatar({ picture, name, size = 28 }) {
+  if (picture) {
+    return <img src={mediaUrl(picture)} alt={name} className="rounded-full object-cover shrink-0 ring-1 ring-[var(--line-hi)]" style={{ width: size, height: size }} />;
+  }
+  return (
+    <span
+      className="grid rounded-full place-items-center font-black shrink-0 text-[var(--on-accent)]"
+      style={{ width: size, height: size, fontSize: size * 0.38, background: "linear-gradient(180deg, var(--accent-hi), var(--accent))" }}
+    >
+      {(name || "F")[0].toUpperCase()}
+    </span>
+  );
+}
+
+// Chat live — stil streaming: bule cu avatar, nume colorate, reacții plutitoare
 export default function LiveChat() {
   const { me, setLoginOpen } = useFan();
   const [messages, setMessages] = useState([]);
   const [viewers, setViewers] = useState(0);
   const [likes, setLikes] = useState(0);
-  const [floats, setFloats] = useState([]); // {id, emoji}
+  const [floats, setFloats] = useState([]);
   const [name, setName] = useState(() => localStorage.getItem("bioxic_name") || "");
   const [nameSet, setNameSet] = useState(() => !!localStorage.getItem("bioxic_name"));
   const [text, setText] = useState("");
@@ -30,18 +51,17 @@ export default function LiveChat() {
     let ping;
     const seen = new Set();
     const push = (msg) => {
-      if (msg.id && seen.has(msg.id)) return; // niciodată dubluri
+      if (msg.id && seen.has(msg.id)) return;
       if (msg.id) { seen.add(msg.id); if (seen.size > 400) seen.clear(); }
       setMessages((ms) => [...ms.slice(-80), msg]);
     };
     const connect = () => {
       if (stopped) return;
-      if (ws && (ws.readyState === 0 || ws.readyState === 1)) return; // o singură conexiune
+      if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
       ws = new WebSocket(WS_URL);
       wsRef.current = ws;
       ws.onopen = () => {
         setConnected(true);
-        // keepalive — conexiunea să nu moară în taburi inactive
         ping = setInterval(() => {
           if (ws.readyState === 1) ws.send(JSON.stringify({ type: "ping" }));
         }, 25000);
@@ -83,17 +103,12 @@ export default function LiveChat() {
     e?.preventDefault();
     const t = text.trim();
     if (!t || !wsRef.current || wsRef.current.readyState !== 1) return;
-    wsRef.current.send(JSON.stringify({ type: "message", name: name || "Fan", text: t }));
+    wsRef.current.send(JSON.stringify({ type: "message", name: me?.name || name || "Fan", text: t }));
     setText("");
   };
 
-  const tapHeart = () => {
-    if (wsRef.current?.readyState === 1) wsRef.current.send(JSON.stringify({ type: "tap" }));
-  };
-
-  const react = (emoji) => {
-    if (wsRef.current?.readyState === 1) wsRef.current.send(JSON.stringify({ type: "reaction", emoji }));
-  };
+  const tapHeart = () => { if (wsRef.current?.readyState === 1) wsRef.current.send(JSON.stringify({ type: "tap" })); };
+  const react = (emoji) => { if (wsRef.current?.readyState === 1) wsRef.current.send(JSON.stringify({ type: "reaction", emoji })); };
 
   const saveName = (e) => {
     e.preventDefault();
@@ -105,9 +120,17 @@ export default function LiveChat() {
   };
 
   return (
-    <section className="glass rounded-2xl overflow-hidden relative" data-testid="chat-container">
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line)]">
-        <h3 className="font-display text-sm font-bold uppercase tracking-widest">Chat live</h3>
+    <section
+      className="rounded-3xl overflow-hidden relative border border-[var(--line-hi)]"
+      style={{ background: "linear-gradient(180deg, rgba(13,36,27,.85), rgba(6,17,13,.92))", backdropFilter: "blur(20px)", boxShadow: "0 24px 60px -24px rgba(0,0,0,.8)" }}
+      data-testid="chat-container"
+    >
+      {/* header */}
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line)] bg-black/25">
+        <div className="flex items-center gap-2.5">
+          <span className="w-2 h-2 rounded-full bg-[var(--berry)] live-dot" />
+          <h3 className="font-display text-sm font-extrabold uppercase tracking-[0.2em]">Chat live</h3>
+        </div>
         <div className="flex items-center gap-4 text-[11px] font-mono-x text-[var(--mist)]">
           <span data-testid="chat-viewers" className="flex items-center gap-1.5"><Users size={12} /> {viewers}</span>
           <span data-testid="chat-likes" className="flex items-center gap-1.5 text-[var(--berry)]"><Heart size={12} fill="currentColor" /> {likes}</span>
@@ -115,27 +138,33 @@ export default function LiveChat() {
         </div>
       </div>
 
-      <div ref={listRef} className="chat-scroll h-72 overflow-y-auto px-5 py-4 space-y-2.5 relative" data-testid="chat-messages">
+      {/* mesaje */}
+      <div ref={listRef} className="chat-scroll h-80 overflow-y-auto px-4 py-4 space-y-1 relative" data-testid="chat-messages">
         {messages.length === 0 && (
-          <p className="text-sm text-[var(--dim)] text-center pt-20">Fii primul care spune ceva pe chat.</p>
+          <div className="text-center pt-24">
+            <p className="font-display text-sm font-bold uppercase tracking-widest text-[var(--mist)]">Liniște pe frecvență</p>
+            <p className="text-xs text-[var(--dim)] mt-1.5">Fii primul care spune ceva.</p>
+          </div>
         )}
         {messages.map((m) =>
           m.type === "sys" ? (
-            <p key={m.id} className="chat-msg text-[11px] font-mono-x text-[var(--dim)] italic">{m.text}</p>
+            <p key={m.id} className="chat-msg text-center py-1">
+              <span className="text-[10px] font-mono-x text-[var(--dim)] bg-black/25 rounded-full px-3 py-1">{m.text}</span>
+            </p>
           ) : (
-            <div key={m.id} className="chat-msg flex items-start gap-2.5 text-sm" data-testid={`chat-message-${m.id}`}>
-              {m.picture ? (
-                <img src={mediaUrl(m.picture)} alt={m.name} className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5" />
-              ) : (
-                <span className="grid w-7 h-7 rounded-full place-items-center text-[10px] font-black shrink-0 mt-0.5 text-[var(--on-accent)]" style={{ background: "linear-gradient(180deg, var(--accent-hi), var(--accent))" }}>
-                  {(m.name || "F")[0].toUpperCase()}
-                </span>
-              )}
-              <p className="min-w-0">
-                <span className="font-semibold text-[var(--accent)]">{m.name}</span>
-                <span className="text-[var(--dim)]"> · </span>
-                <span className="text-[var(--frost)]/90 break-words">{m.text}</span>
-              </p>
+            <div key={m.id} className="chat-msg group flex items-start gap-2.5 rounded-xl px-2 py-1.5 hover:bg-white/[0.04] transition-colors" data-testid={`chat-message-${m.id}`}>
+              <Avatar picture={m.picture} name={m.name} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[12px] font-bold" style={{ color: nameColor(m.name) }}>{m.name}</span>
+                  {m.ts && (
+                    <span className="text-[9px] font-mono-x text-[var(--dim)] opacity-0 group-hover:opacity-100 transition-opacity">
+                      {new Date(m.ts).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-[var(--frost)]/90 break-words leading-snug mt-0.5">{m.text}</p>
+              </div>
             </div>
           )
         )}
@@ -157,37 +186,35 @@ export default function LiveChat() {
         </div>
       </div>
 
-      {/* bara de reacții */}
-      <div className="flex items-center gap-2 px-3.5 pt-3" data-testid="chat-reactions">
-        <span className="text-[10px] font-mono-x uppercase tracking-widest text-[var(--dim)] mr-1">Reacționează:</span>
-        <button type="button" data-testid="chat-heart-button" onClick={tapHeart} className="btn-ghost grid w-9 h-9 rounded-full place-items-center" aria-label="Inimă">
+      {/* reacții */}
+      <div className="flex items-center gap-2 px-4 py-2.5 border-t border-[var(--line)] bg-black/15" data-testid="chat-reactions">
+        <span className="text-[9px] font-mono-x uppercase tracking-[0.25em] text-[var(--dim)] mr-auto">Dă-i drumul</span>
+        <button type="button" data-testid="chat-heart-button" onClick={tapHeart} aria-label="Inimă"
+          className="grid w-9 h-9 rounded-full place-items-center border border-[rgba(var(--berry-rgb),.35)] bg-[rgba(var(--berry-rgb),.08)] hover:scale-110 transition-transform">
           <Heart size={15} className="text-[var(--berry)]" fill="currentColor" />
         </button>
-        <button type="button" data-testid="chat-fire-button" onClick={() => react("fire")} className="btn-ghost grid w-9 h-9 rounded-full place-items-center" aria-label="Foc">
+        <button type="button" data-testid="chat-fire-button" onClick={() => react("fire")} aria-label="Foc"
+          className="grid w-9 h-9 rounded-full place-items-center border border-[rgba(255,138,60,.35)] bg-[rgba(255,138,60,.08)] hover:scale-110 transition-transform">
           <Flame size={15} className="text-[#ff8a3c]" />
         </button>
-        <button type="button" data-testid="chat-crown-button" onClick={() => react("crown")} className="btn-ghost grid w-9 h-9 rounded-full place-items-center" aria-label="Coroană">
+        <button type="button" data-testid="chat-crown-button" onClick={() => react("crown")} aria-label="Coroană"
+          className="grid w-9 h-9 rounded-full place-items-center border border-[rgba(var(--accent-rgb),.35)] bg-[rgba(var(--accent-rgb),.08)] hover:scale-110 transition-transform">
           <Crown size={15} className="text-[var(--accent)]" />
         </button>
       </div>
 
-      <div className="border-t border-[var(--line)] p-3.5">
+      {/* input */}
+      <div className="border-t border-[var(--line)] p-3.5 bg-black/25">
         {me ? (
           <form onSubmit={send} className="flex items-center gap-2.5">
-            {me.picture ? (
-              <img src={mediaUrl(me.picture)} alt={me.name} className="w-9 h-9 rounded-full object-cover shrink-0" data-testid="chat-my-avatar" />
-            ) : (
-              <span className="grid w-9 h-9 rounded-full place-items-center text-xs font-black shrink-0 text-[var(--on-accent)]" style={{ background: "linear-gradient(180deg, var(--accent-hi), var(--accent))" }} data-testid="chat-my-avatar">
-                {(me.name || "F")[0].toUpperCase()}
-              </span>
-            )}
+            <span data-testid="chat-my-avatar"><Avatar picture={me.picture} name={me.name} size={34} /></span>
             <input
               data-testid="chat-text-input"
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={`Scrie ca ${me.name}…`}
               maxLength={300}
-              className="flex-1 rounded-full bg-black/30 border border-[var(--line)] px-4 py-2.5 text-sm outline-none focus:border-[rgba(var(--accent-rgb),.5)] transition-colors"
+              className="flex-1 rounded-full bg-black/40 border border-[var(--line)] px-4 py-2.5 text-sm outline-none focus:border-[rgba(var(--accent-rgb),.5)] transition-colors"
             />
             <button data-testid="chat-send-button" className="btn-x gold !p-2.5 rounded-full shrink-0" aria-label="Trimite">
               <Send size={16} />
@@ -202,7 +229,7 @@ export default function LiveChat() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Numele tău de fan…"
                 maxLength={24}
-                className="flex-1 rounded-full bg-black/30 border border-[var(--line)] px-4 py-2.5 text-sm outline-none focus:border-[rgba(var(--accent-rgb),.5)] transition-colors"
+                className="flex-1 rounded-full bg-black/40 border border-[var(--line)] px-4 py-2.5 text-sm outline-none focus:border-[rgba(var(--accent-rgb),.5)] transition-colors"
               />
               <button data-testid="chat-name-save" className="btn-x gold !py-2.5 !px-5 text-xs font-bold uppercase tracking-widest">Intră</button>
             </div>
@@ -219,7 +246,7 @@ export default function LiveChat() {
               onChange={(e) => setText(e.target.value)}
               placeholder={`Scrie ca ${name}…`}
               maxLength={300}
-              className="flex-1 rounded-full bg-black/30 border border-[var(--line)] px-4 py-2.5 text-sm outline-none focus:border-[rgba(var(--accent-rgb),.5)] transition-colors"
+              className="flex-1 rounded-full bg-black/40 border border-[var(--line)] px-4 py-2.5 text-sm outline-none focus:border-[rgba(var(--accent-rgb),.5)] transition-colors"
             />
             <button data-testid="chat-send-button" className="btn-x gold !p-2.5 rounded-full shrink-0" aria-label="Trimite">
               <Send size={16} />

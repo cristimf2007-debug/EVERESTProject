@@ -1,5 +1,5 @@
 import React from "react";
-import { Play, Pause, Volume2, ListMusic, Users } from "lucide-react";
+import { Play, Pause, Volume2, ListMusic, Users, Square, Loader2, TriangleAlert } from "lucide-react";
 import { useRadio } from "@/context/RadioContext";
 import { mediaUrl } from "@/lib/api";
 import Equalizer from "@/components/Equalizer";
@@ -14,7 +14,7 @@ function fmt(sec) {
 }
 
 export default function Live() {
-  const { liveInfo, current, playing, mode, progress, duration, volume, listeners, toggle, setVolume } = useRadio();
+  const { liveInfo, current, mode, status, playing, progress, duration, volume, listeners, toggle, stop, setVolume } = useRadio();
 
   const track = liveInfo?.track;
   const next = liveInfo?.next;
@@ -100,16 +100,28 @@ export default function Live() {
                     </p>
                   )}
 
-                  <div className="flex flex-wrap items-center gap-4 mt-5">
+                  <div className="flex flex-wrap items-center gap-3 mt-5">
                     <button
                       data-testid="radio-play-button"
                       onClick={toggle}
-                      className="btn-live flex items-center gap-2.5 rounded-full px-7 py-3.5 text-xs font-black uppercase tracking-[0.15em]"
+                      disabled={status === "loading"}
+                      className="btn-live flex items-center gap-2.5 rounded-full px-7 py-3.5 text-xs font-black uppercase tracking-[0.15em] disabled:opacity-60"
                     >
-                      {playing ? <Pause size={16} fill="#fff" /> : <Play size={16} fill="#fff" className="ml-0.5" />}
-                      {playing ? "Pauză" : "Ascultă live"}
+                      {status === "loading" ? <Loader2 size={16} className="animate-spin" />
+                        : playing ? <Pause size={16} fill="#fff" />
+                        : <Play size={16} fill="#fff" className="ml-0.5" />}
+                      {status === "loading" ? "Se încarcă…" : playing ? "Pauză" : status === "stopped" ? "Ascultă live" : "Ascultă live"}
                     </button>
-                    <div className="flex items-center gap-2.5 w-36">
+                    <button
+                      data-testid="radio-stop-button"
+                      onClick={stop}
+                      disabled={status === "idle" || status === "stopped"}
+                      aria-label="Stop"
+                      className="btn-ghost grid w-12 h-12 rounded-full place-items-center disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      <Square size={15} fill="currentColor" />
+                    </button>
+                    <div className="flex items-center gap-2.5 w-32">
                       <Volume2 size={15} className="text-[var(--dim)] shrink-0" />
                       <input
                         data-testid="radio-volume"
@@ -124,6 +136,11 @@ export default function Live() {
                       />
                     </div>
                   </div>
+                  {status === "error" && (
+                    <p className="flex items-center gap-2 text-xs text-[var(--berry)] mt-3" data-testid="radio-error">
+                      <TriangleAlert size={13} /> Conexiunea a picat — apasă din nou Ascultă live.
+                    </p>
+                  )}
                   <p className="text-[10px] font-mono-x text-[var(--dim)] mt-4 uppercase tracking-widest">
                     Sincronizat cu toți ascultătorii · fără întreruperi
                   </p>

@@ -3,26 +3,44 @@ import api, { mediaUrl, getSid } from "@/lib/api";
 
 const RadioContext = createContext(null);
 const DRIFT = 6; // secunde — toleranță de sincronizare cu radioul
-const SEEK_COOLDOWN = 15000; // după o corecție, nu mai corecta o perioadă (evită re-buffering în lanț)
+const SEEK_COOLDOWN = 15000; // după o corecție de drift, pauză de corecții (evită re-buffering în lanț)
 
+// UN SINGUR controller audio pentru tot site-ul: radio live + redare on-demand
 export function RadioProvider({ children }) {
   const audioRef = useRef(null);
   const pendingSeekRef = useRef(null);
   const lastSeekRef = useRef(0);
   const modeRef = useRef("live");
-  const playingRef = useRef(false);
+  const statusRef = useRef("idle");
+
   const [mode, setModeState] = useState("live"); // "live" | "track"
+  const [status, setStatusState] = useState("idle"); // idle | loading | playing | paused | stopped | error
   const [liveInfo, setLiveInfo] = useState(null);
   const [current, setCurrent] = useState(null);
-  const [playing, setPlayingState] = useState(false);
+  const [queue, setQueue] = useState([]); // piesele pentru redare on-demand (ordinea din /piese)
+  const [trackIdx, setTrackIdx] = useState(-1);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(0.85);
+  const [volume, setVolumeState] = useState(0.85);
+  const [muted, setMuted] = useState(false);
   const [listeners, setListeners] = useState(0);
 
-  const setPlaying = (v) => { playingRef.current = v; setPlayingState(v); };
+  const setStatus = (s) => { statusRef.current = s; setStatusState(s); };
   const setMode = (m) => { modeRef.current = m; setModeState(m); };
+  const playing = status === "playing";
 
+  // Încarcă o sursă NOUĂ o singură dată (niciodată la re-render)
+  const loadSrc = (track, position = 0) => {
+    const audio = audioRef.current;
+    if (!audio || !track) return;
+    pendingSeekRef.current = position;
+    audio.setAttribute("data-src", mediaUrl(track.audio_url));
+    audio.src = mediaUrl(track.audio_url);
+    audio.load();
+    setStatus("loading");
+  };
+
+  // Sincronizare cu radioul: la 12s. NU reîncarcă sursa dacă e aceeași piesă.
   const syncLive = useCallback(async () => {
     try {
       const r = await api.get("/radio/now");
@@ -36,19 +54,23 @@ export function RadioProvider({ children }) {
       if (!audio) return;
       const src = mediaUrl(data.track.audio_url);
       if (audio.getAttribute("data-src") !== src) {
-        audio.setAttribute("data-src", src);
-        pendingSeekRef.current = data.position;
-        audio.src = src;
-        audio.load();
+        // piesă nouă la radio — schimbă sursa o singură dată
+        loadSrc(data.track, data.position);
+        if (statusRef.current === "playing") audio.play().catch(() => setStatus("error"));
+      } else if (audio.ended && (statusRef.current === "playing" || statusRef.current === "loading")) {
+        // piesa live s-a terminat natural → serverul a trecut mai departe; ne aliniem fără cooldown
+        lastSeekRef.current = Date.now();
+        try { audio.currentTime = data.position; } catch { /* încă se încarcă */ }
+        audio.play().catch(() => {});
       } else if (
         Math.abs(audio.currentTime - data.position) > DRIFT &&
-        !audio.seeking && audio.readyState >= 3 &&
+        !audio.seeking && audio.readyState >= 3 && !audio.ended &&
         Date.now() - lastSeekRef.current > SEEK_COOLDOWN
       ) {
+        // derivă mare → o singură corecție, apoi liniște
         lastSeekRef.current = Date.now();
         audio.currentTime = data.position;
       }
-      if (playingRef.current && audio.paused) audio.play().catch(() => setPlaying(false));
     } catch { /* reîncearcă la ciclul următor */ }
   }, []);
 
@@ -58,6 +80,11 @@ export function RadioProvider({ children }) {
     return () => clearInterval(t);
   }, [syncLive]);
 
+  // coada pentru redare on-demand
+  useEffect(() => {
+    api.get("/tracks").then((r) => setQueue(r.data || [])).catch(() => {});
+  }, []);
+
   useEffect(() => {
     const beat = () => api.post("/radio/heartbeat", { sid: getSid() })
       .then((r) => setListeners(r.data.listeners)).catch(() => {});
@@ -66,73 +93,155 @@ export function RadioProvider({ children }) {
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => { if (audioRef.current) audioRef.current.volume = volume; }, [volume]);
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+      audioRef.current.muted = muted;
+    }
+  }, [volume, muted]);
 
-  const toggle = useCallback(() => {
+  // ---------- TRANSPORT ----------
+
+  const play = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !current) return;
-    if (playingRef.current) {
-      audio.pause();
-      setPlaying(false);
+    if (modeRef.current === "live") {
+      setStatus("loading");
+      // revenire după stop/pauză → ne realiniem la secunda live, apoi pornim
+      syncLive().then(() => {
+        const a = audioRef.current;
+        if (!a) return;
+        setStatus("playing");
+        a.play().catch(() => setStatus("error"));
+      });
     } else {
-      setPlaying(true);
-      if (modeRef.current === "live") syncLive();
-      else audio.play().catch(() => setPlaying(false));
+      setStatus("playing");
+      audio.play().catch(() => setStatus("error"));
     }
   }, [current, syncLive]);
 
-  const playTrack = useCallback((t) => {
+  const pause = useCallback(() => {
+    audioRef.current?.pause();
+    setStatus("paused");
+  }, []);
+
+  const stop = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    audio.pause();
+    if (modeRef.current === "track") {
+      try { audio.currentTime = 0; } catch { /* media încă se încarcă */ }
+    }
+    setProgress(0);
+    setStatus("stopped");
+  }, []);
+
+  const toggle = useCallback(() => {
+    if (statusRef.current === "playing") pause();
+    else play();
+  }, [pause, play]);
+
+  const playTrack = useCallback((t, list) => {
+    const q = list || queue;
     setMode("track");
     setCurrent(t);
-    pendingSeekRef.current = 0;
-    const src = mediaUrl(t.audio_url);
-    audio.setAttribute("data-src", src);
-    audio.src = src;
-    audio.load();
-    setPlaying(true);
-    audio.play().catch(() => setPlaying(false));
+    setTrackIdx(q.findIndex((x) => x.id === t.id));
+    loadSrc(t, 0);
+    setStatus("playing");
+    audioRef.current?.play().catch(() => {});
     api.post(`/tracks/${t.id}/play`).catch(() => {});
-  }, []);
+  }, [queue]);
+
+  const next = useCallback(() => {
+    if (modeRef.current !== "track" || trackIdx < 0) return;
+    const nxt = queue[trackIdx + 1];
+    if (nxt) {
+      playTrack(nxt);
+    } else {
+      // sfârșit de listă → revine la radio, NU reia aceeași piesă la infinit
+      backToLiveRef.current?.();
+    }
+  }, [queue, trackIdx, playTrack]);
+
+  const prev = useCallback(() => {
+    if (modeRef.current !== "track" || trackIdx < 0) return;
+    const audio = audioRef.current;
+    // comportament standard: >3s în piesă → înapoi la începutul piesei; altfel → piesa precedentă
+    if (audio && audio.currentTime > 3) {
+      audio.currentTime = 0;
+      setProgress(0);
+      return;
+    }
+    const prv = queue[trackIdx - 1];
+    if (prv) playTrack(prv);
+    else if (audio) { audio.currentTime = 0; setProgress(0); }
+  }, [queue, trackIdx, playTrack]);
 
   const backToLive = useCallback(() => {
     setMode("live");
+    setTrackIdx(-1);
     syncLive().then(() => {
       const audio = audioRef.current;
-      if (audio) { setPlaying(true); audio.play().catch(() => setPlaying(false)); }
+      if (audio) {
+        setStatus("playing");
+        audio.play().catch(() => setStatus("error"));
+      }
     });
   }, [syncLive]);
+  const backToLiveRef = useRef(backToLive);
+  backToLiveRef.current = backToLive;
 
   const seek = useCallback((sec) => {
+    // seek liber doar în redarea on-demand; live-ul e condus de server
     if (modeRef.current !== "live" && audioRef.current) {
       audioRef.current.currentTime = sec;
       setProgress(sec);
     }
   }, []);
 
+  const setVolume = useCallback((v) => {
+    setVolumeState(v);
+    if (v > 0) setMuted(false);
+  }, []);
+
+  const toggleMute = useCallback(() => setMuted((m) => !m), []);
+
+  // ---------- EVENIMENTE AUDIO (legate o singură dată, pe elementul persistent) ----------
+
   const onLoaded = () => {
     const audio = audioRef.current;
     if (!audio) return;
     if (pendingSeekRef.current != null) {
-      try { audio.currentTime = pendingSeekRef.current; } catch { /* fișier încă se încarcă */ }
+      try { audio.currentTime = pendingSeekRef.current; } catch { /* încă se încarcă */ }
       pendingSeekRef.current = null;
     }
     setDuration(audio.duration || 0);
+    if (statusRef.current === "loading" || statusRef.current === "playing") {
+      setStatus("playing");
+      audio.play().catch(() => {});
+    }
   };
   const onTime = () => { if (audioRef.current) setProgress(audioRef.current.currentTime); };
   const onEnded = () => {
-    if (modeRef.current === "track") backToLive();
-    else syncLive();
+    if (modeRef.current === "track") next();
+    else syncLive(); // live: serverul a trecut la următoarea; syncLive realiniază
   };
+  const onError = () => setStatus("error");
 
   return (
     <RadioContext.Provider value={{
-      mode, liveInfo, current, playing, progress, duration, volume, listeners,
-      toggle, playTrack, backToLive, seek, setVolume, syncLive,
+      mode, status, playing, liveInfo, current, queue, trackIdx, progress, duration, volume, muted, listeners,
+      play, pause, stop, toggle, next, prev, seek, setVolume, toggleMute, playTrack, backToLive, syncLive,
     }}>
       {children}
-      <audio ref={audioRef} onLoadedMetadata={onLoaded} onTimeUpdate={onTime} onEnded={onEnded} data-testid="radio-audio" />
+      <audio
+        ref={audioRef}
+        onLoadedMetadata={onLoaded}
+        onTimeUpdate={onTime}
+        onEnded={onEnded}
+        onError={onError}
+        data-testid="radio-audio"
+      />
     </RadioContext.Provider>
   );
 }
