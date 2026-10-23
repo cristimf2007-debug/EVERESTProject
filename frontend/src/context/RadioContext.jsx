@@ -290,6 +290,8 @@ export function RadioProvider({ children }) {
         onTimeUpdate={onTime}
         onEnded={onEnded}
         onError={onError}
+        controlsList="nodownload noplaybackrate"
+        disablePictureInPicture
         data-testid="radio-audio"
       />
     </RadioContext.Provider>

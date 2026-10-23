@@ -41,7 +41,6 @@ export default function Admin() {
     setBusy(true);
     try {
       const r = await api.post("/auth/login", { email, password });
-      localStorage.setItem("bioxic_token", r.data.token);
       setMe(r.data.user);
       loadTracks();
       loadChat();
@@ -57,7 +56,6 @@ export default function Admin() {
 
   const logout = async () => {
     await api.post("/auth/logout").catch(() => {});
-    localStorage.removeItem("bioxic_token");
     setMe(false);
   };
 

@@ -4,6 +4,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, UploadFile, File, Form, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
@@ -81,7 +82,7 @@ def verify_password(p: str, h: str) -> bool:
 
 def create_token(user_id: str, email: str) -> str:
     payload = {"sub": user_id, "email": email, "type": "access",
-               "exp": datetime.now(timezone.utc) + timedelta(hours=12)}
+               "exp": datetime.now(timezone.utc) + timedelta(hours=24)}
     return jwt.encode(payload, os.environ["JWT_SECRET"], algorithm=JWT_ALGORITHM)
 
 async def get_current_admin(request: Request) -> dict:
@@ -128,7 +129,7 @@ async def login(input: LoginInput, request: Request, response: Response):
         raise HTTPException(401, "Email sau parolă greșită")
     await db.login_attempts.delete_one({"identifier": identifier})
     token = create_token(user["_id"], email)
-    response.set_cookie("access_token", token, httponly=True, secure=True, samesite="none", max_age=43200, path="/")
+    response.set_cookie("access_token", token, httponly=True, secure=True, samesite="strict", max_age=86400, path="/")
     return {"token": token, "user": {"email": email, "role": user.get("role", "admin")}}
 
 @api_router.get("/auth/me")
@@ -418,7 +419,7 @@ async def fan_register(f: FanRegister, response: Response):
                                "password_hash": hash_password(f.password), "role": "fan",
                                "created_at": datetime.now(timezone.utc).isoformat()})
     token = create_fan_token(user_id, email)
-    response.set_cookie("fan_token", token, httponly=True, secure=True, samesite="none", max_age=604800, path="/")
+    response.set_cookie("fan_token", token, httponly=True, secure=True, samesite="lax", max_age=604800, path="/")
     return {"token": token, "user": fan_out({"user_id": user_id, "email": email, "name": name})}
 
 @api_router.post("/fans/login")
@@ -428,7 +429,7 @@ async def fan_login(f: FanLogin, response: Response):
     if not user or not user.get("password_hash") or not verify_password(f.password, user["password_hash"]):
         raise HTTPException(401, "Email sau parolă greșită")
     token = create_fan_token(user["user_id"], email)
-    response.set_cookie("fan_token", token, httponly=True, secure=True, samesite="none", max_age=604800, path="/")
+    response.set_cookie("fan_token", token, httponly=True, secure=True, samesite="lax", max_age=604800, path="/")
     return {"token": token, "user": fan_out(user)}
 
 @api_router.get("/fans/me")
@@ -474,7 +475,7 @@ async def google_session(input: GoogleSessionInput, response: Response):
                                        "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
                                        "created_at": datetime.now(timezone.utc)})
     response.set_cookie("session_token", data["session_token"], httponly=True, secure=True,
-                        samesite="none", max_age=604800, path="/")
+                        samesite="lax", max_age=604800, path="/")
     user = await db.users.find_one({"user_id": user_id})
     return {"user": fan_out(user)}
 
@@ -1334,6 +1335,9 @@ class WSManager:
 ws_manager = WSManager()
 REACTIONS = {"fire", "heart", "crown"}
 
+# filtru de cuvinte pentru chat (extinde lista după nevoie)
+CHAT_BAD_WORDS = {"muie", "pula", "pizda", "coaie", "fut", "futu-ti", "cacat", "curva", "sugei"}
+
 @app.websocket("/api/ws/chat")
 async def chat_ws(ws: WebSocket):
     fan = await resolve_fan_cookies(ws.cookies)
@@ -1348,27 +1352,55 @@ async def chat_ws(ws: WebSocket):
         await ws.send_text(json.dumps({"type": "like_count", "total": live_doc.get("likes", 0)}))
         while True:
             raw = await ws.receive_text()
+            if len(raw) > 2048:  # limită de payload — anti abuz
+                continue
             try:
                 data = json.loads(raw)
             except Exception:
                 continue
+            if not isinstance(data, dict):
+                continue
+            now_ts = time.time()
             if data.get("type") == "message":
-                name = info["name"] if info.get("user_id") else str(data.get("name", "Fan"))[:40].strip() or "Fan"
+                # rate limit: 1 mesaj / 2s, max 20 / minut per conexiune
+                if now_ts - info.get("last_msg", 0) < 2:
+                    await ws.send_text(json.dumps({"type": "error", "detail": "Prea repede — max 1 mesaj la 2 secunde"}))
+                    continue
+                info["msg_times"] = [t for t in info.get("msg_times", []) if now_ts - t < 60]
+                if len(info["msg_times"]) >= 20:
+                    await ws.send_text(json.dumps({"type": "error", "detail": "Limită atinsă — max 20 mesaje/minut"}))
+                    continue
+                name = info["name"] if info.get("user_id") else str(data.get("name", "Fan"))[:24].strip() or "Fan"
                 banned = await db.banned_names.find_one({"name": name.lower()})
                 if banned:
                     await ws.send_text(json.dumps({"type": "error", "detail": "Ești blocat pe chat"}))
                     continue
-                text = str(data.get("text", ""))[:300].strip()
+                text = str(data.get("text", ""))[:200].strip()
+                # fără HTML/scripturi — păstrăm doar text curat
+                text = re.sub(r"<[^>]*>", "", text)
+                for bad in CHAT_BAD_WORDS:
+                    text = re.sub(rf"(?i)\b{re.escape(bad)}\b", "***", text)
                 if not text:
                     continue
+                info["last_msg"] = now_ts
+                info.setdefault("msg_times", []).append(now_ts)
                 msg = {"type": "message", "id": str(uuid.uuid4()), "name": name, "picture": info.get("picture", ""),
                        "user_id": info.get("user_id"), "text": text,
                        "ts": datetime.now(timezone.utc).isoformat()}
                 await db.chat.insert_one({k: v for k, v in msg.items() if k != "type"})
                 await ws_manager.broadcast(msg)
             elif data.get("type") == "reaction" and data.get("emoji") in REACTIONS:
+                # max 5 reacții / secundă per conexiune
+                info["react_times"] = [t for t in info.get("react_times", []) if now_ts - t < 1]
+                if len(info["react_times"]) >= 5:
+                    continue
+                info.setdefault("react_times", []).append(now_ts)
                 await ws_manager.broadcast({"type": "reaction", "id": str(uuid.uuid4()), "emoji": data["emoji"]})
             elif data.get("type") == "tap":
+                info["react_times"] = [t for t in info.get("react_times", []) if now_ts - t < 1]
+                if len(info["react_times"]) >= 5:
+                    continue
+                info.setdefault("react_times", []).append(now_ts)
                 r = await db.live.find_one_and_update({"key": "status"}, {"$inc": {"likes": 1}}, return_document=True)
                 total = (r or {}).get("likes", 1)
                 await ws_manager.broadcast({"type": "reaction", "id": str(uuid.uuid4()), "emoji": "heart"})
@@ -1562,12 +1594,51 @@ async def startup():
 
 app.include_router(api_router)
 
+# ---------- SECURITATE: headere HTTP + rate limit global API ----------
+
+_RATE: dict = {}  # ip -> [timestamps]
+RATE_LIMIT = 120  # cereri / minut / IP
+RATE_WINDOW = 60
+
+@app.middleware("http")
+async def security_headers_and_rate_limit(request: Request, call_next):
+    # rate limit global (fără /files — streamingul audio face multe cereri Range)
+    if request.url.path.startswith("/api/") and not request.url.path.startswith("/api/files/"):
+        ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
+        now_ts = time.time()
+        hits = [t for t in _RATE.get(ip, []) if now_ts - t < RATE_WINDOW]
+        if len(hits) >= RATE_LIMIT:
+            return JSONResponse({"detail": "Prea multe cereri. Reîncearcă într-un minut."}, status_code=429)
+        hits.append(now_ts)
+        _RATE[ip] = hits
+        if len(_RATE) > 5000:
+            _RATE.clear()
+    resp = await call_next(request)
+    resp.headers["X-Frame-Options"] = "DENY"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    resp.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    resp.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    resp.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: blob: https:; "
+        "media-src 'self' blob:; "
+        "connect-src 'self' ws: wss:; "
+        "object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
+    )
+    return resp
+
+# CORS strict: doar domeniul site-ului (nu *)
+_cors = os.environ.get('CORS_ORIGINS', '')
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[o.strip() for o in _cors.split(',') if o.strip()] or ["http://localhost:3000"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 @app.on_event("shutdown")

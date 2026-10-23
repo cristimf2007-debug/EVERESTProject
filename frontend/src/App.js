@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, lazy, Suspense } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { Toaster, toast } from "sonner";
@@ -14,7 +14,9 @@ import Live from "@/pages/Live";
 import Piese from "@/pages/Piese";
 import Pareri from "@/pages/Pareri";
 import Despre from "@/pages/Despre";
-import Admin from "@/pages/Admin";
+
+// Adminul se încarcă leneș — codul de administrare NU intră în bundle-ul public
+const Admin = lazy(() => import("@/pages/Admin"));
 
 // Procesează returul din Google OAuth (#session_id=...)
 function AuthCallback() {
@@ -62,7 +64,11 @@ function Shell() {
           <Route path="/piese" element={<Piese />} />
           <Route path="/pareri" element={<Pareri />} />
           <Route path="/despre" element={<Despre />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin" element={
+            <Suspense fallback={<div className="min-h-[60vh] grid place-items-center"><p className="font-mono-x text-xs uppercase tracking-widest text-[var(--mist)] animate-pulse">Se încarcă…</p></div>}>
+              <Admin />
+            </Suspense>
+          } />
           <Route path="*" element={<Live />} />
         </Routes>
       </main>
@@ -72,6 +78,10 @@ function Shell() {
 }
 
 function App() {
+  useEffect(() => {
+    console.log("%c© BIOXIC 2026 — conținut protejat.%c Furatul nu te face artist.",
+      "color:#E8731A;font-weight:bold;font-size:14px", "color:#8A8275;font-size:11px");
+  }, []);
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)", color: "var(--text)" }}>
       <BrowserRouter>

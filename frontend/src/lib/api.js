@@ -4,12 +4,7 @@ export const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 export const WS_URL = `${process.env.REACT_APP_BACKEND_URL.replace(/^http/, "ws")}/api/ws/chat`;
 
 const api = axios.create({ baseURL: API, withCredentials: true });
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("bioxic_token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+// Autentificarea admin se face exclusiv prin cookie httpOnly — fără token în localStorage.
 
 export function formatApiError(e) {
   const detail = e?.response?.data?.detail;
