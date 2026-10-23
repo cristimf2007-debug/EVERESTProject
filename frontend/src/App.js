@@ -79,6 +79,7 @@ function App() {
           <RadioProvider>
             <div className="sky-bg" />
             <Ambience />
+            <div className="vignette" />
             <div className="grain-overlay" />
             <span className="limited-vertical hidden lg:block" aria-hidden="true">LIMITED&nbsp;2026&nbsp;·&nbsp;LIMITED&nbsp;2026</span>
             <HalloweenIntro />

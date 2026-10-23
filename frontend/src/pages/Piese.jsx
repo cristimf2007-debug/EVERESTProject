@@ -12,45 +12,55 @@ function fmt(sec) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function TrackRow({ t, i }) {
+function TrackCard({ t }) {
   const { current, mode, playing, playTrack, toggle } = useRadio();
   const isCurrent = current?.id === t.id;
-  const isPlayingThis = isCurrent && playing;
-  // dacă piesa e cea de pe radio, clickul intră în modul piesă (seek activ), nu doar pauză
-  const onClick = () => (isCurrent && mode === "track" ? toggle() : playTrack(t));
+  const inTrackMode = isCurrent && mode === "track";
+  const isPlayingThis = inTrackMode && playing;
+  const onClick = () => (inTrackMode ? toggle() : playTrack(t));
   return (
     <article
       data-testid={`track-card-${t.id}`}
-      className={`track-card glass rounded-2xl p-3.5 sm:p-4 flex items-center gap-4 cursor-pointer ${isCurrent && mode === "track" ? "!border-[rgba(var(--accent-rgb),.5)]" : ""}`}
+      className="group cursor-pointer"
       onClick={onClick}
     >
-      <span className={`font-display text-xl sm:text-2xl font-black w-9 text-right shrink-0 ${isCurrent ? "text-[var(--accent)]" : "text-[var(--dim)]"}`}>
-        {String(i + 1).padStart(2, "0")}
-      </span>
-      <div className="relative shrink-0">
+      <div
+        className={`relative aspect-square rounded-2xl overflow-hidden border transition-all duration-300 ${
+          inTrackMode ? "border-[rgba(var(--accent-rgb),.55)]" : "border-[var(--line)]"
+        } group-hover:-translate-y-1.5 group-hover:border-[rgba(var(--accent-rgb),.5)] group-hover:shadow-[0_18px_50px_-14px_rgba(var(--accent-rgb),.5)]`}
+      >
         <img
           src={mediaUrl(t.cover_url) || "/logo-alt.png"}
           alt={t.title}
-          className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-[var(--line)]"
+          className="w-full h-full object-cover"
           loading="lazy"
         />
-        <span className={`absolute inset-0 grid place-items-center rounded-xl transition-opacity ${isCurrent ? "opacity-100 bg-black/45" : "opacity-0 hover:opacity-100 bg-black/45"}`}>
-          {isPlayingThis ? <Pause size={20} fill="#fff" className="text-white" /> : <Play size={20} fill="#fff" className="text-white ml-0.5" />}
+        <span className={`absolute inset-0 grid place-items-center transition-opacity duration-300 ${inTrackMode ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`} style={{ background: "rgba(10,8,7,.5)" }}>
+          <span className="grid w-14 h-14 rounded-full place-items-center" style={{ background: "var(--site-accent)", color: "var(--site-accent-ink)", boxShadow: "0 0 26px rgba(232,115,26,.55)" }}>
+            {isPlayingThis ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" className="ml-1" />}
+          </span>
         </span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="font-bold text-sm sm:text-base leading-snug truncate">{t.title}</h3>
-        <p className="text-[10px] sm:text-[11px] font-mono-x uppercase tracking-widest text-[var(--mist)] mt-1">
-          {t.artist || "BIOXIC"} · {t.plays || 0} redări{t.duration ? ` · ${fmt(t.duration)}` : ""}
-        </p>
-        {isCurrent && (
-          <span className="inline-flex items-center gap-2 mt-1.5" data-testid={`track-playing-badge-${t.id}`}>
-            <Equalizer playing={isPlayingThis} bars={4} className="h-3" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">{isPlayingThis ? "Se redă" : "Pauză"}</span>
+        {t.duration && (
+          <span className="absolute bottom-2.5 right-2.5 rounded-md px-2 py-0.5 text-[10px] font-mono-x bg-black/70 text-[var(--frost)]">
+            {fmt(t.duration)}
+          </span>
+        )}
+        {inTrackMode && (
+          <span className="absolute top-2.5 left-2.5 flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1" data-testid={`track-playing-badge-${t.id}`}>
+            <Equalizer playing={isPlayingThis} bars={3} className="h-2.5" />
+            <span className="text-[9px] font-mono-x uppercase tracking-widest text-[var(--accent)]">{isPlayingThis ? "Se redă" : "Pauză"}</span>
           </span>
         )}
       </div>
-      <ShareButton track={t} testid={`track-share-${t.id}`} className="shrink-0" />
+      <div className="flex items-start justify-between gap-2 mt-3 px-0.5">
+        <div className="min-w-0">
+          <h3 className="font-bold text-sm leading-snug truncate">{t.title}</h3>
+          <p className="text-[10px] font-mono-x uppercase tracking-[0.14em] text-[var(--mist)] mt-1">
+            {t.artist || "BIOXIC"} · {t.plays || 0} redări
+          </p>
+        </div>
+        <ShareButton track={t} testid={`track-share-${t.id}`} className="shrink-0 -mt-1" />
+      </div>
     </article>
   );
 }
@@ -136,9 +146,9 @@ export default function Piese() {
               {name}
               <span className="text-[10px] font-mono-x text-[var(--dim)] tracking-widest">{list.length} {list.length === 1 ? "piesă" : "piese"}</span>
             </h3>
-            <div className="grid gap-3 mt-4">
-              {list.map((t, i) => (
-                <TrackRow key={t.id} t={t} i={i} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 mt-4">
+              {list.map((t) => (
+                <TrackCard key={t.id} t={t} />
               ))}
             </div>
           </section>

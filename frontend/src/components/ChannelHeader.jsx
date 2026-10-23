@@ -255,9 +255,9 @@ export default function ChannelHeader() {
           </div>
         </div>
 
-        {/* taburi — pilule de sticlă, stilul clasic BIOXIC */}
-        <nav className="mt-7 flex justify-start sm:justify-center overflow-x-auto pb-1 max-w-full" aria-label="Canal">
-          <div className="glass rounded-full p-1 sm:p-1.5 flex items-center gap-0.5 sm:gap-1 shrink-0 mx-auto">
+        {/* taburi — underline portocaliu cu glow, stil drop limitat */}
+        <nav className="mt-6 border-b border-[var(--line)] overflow-x-auto max-w-full" aria-label="Canal">
+          <div className="flex items-center min-w-max sm:min-w-0 sm:justify-center">
             {TABS.map((t) => {
               const active = location.pathname === t.to;
               const Icon = t.icon;
@@ -266,19 +266,17 @@ export default function ChannelHeader() {
                   key={t.to}
                   to={t.to}
                   data-testid={`tab-${t.tid}`}
-                  className={`flex items-center gap-1.5 sm:gap-2 rounded-full px-3 sm:px-6 py-2 sm:py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-[0.12em] sm:tracking-[0.15em] whitespace-nowrap transition-all duration-300 ${
-                    active
-                      ? "text-[var(--on-accent)] shadow-[0_6px_24px_-6px_rgba(var(--accent-rgb),.7)]"
-                      : "text-[var(--mist)] hover:text-[var(--frost)] hover:bg-white/5"
-                  }`}
-                  style={active ? { background: "linear-gradient(180deg, var(--accent-hi), var(--accent))" } : {}}
+                  className={`tab-link ${active ? "active" : ""}`}
                 >
-                  <Icon size={14} />
+                  <Icon size={13} />
                   {t.label}
-                  {t.tid === "live" && <span className={`w-1.5 h-1.5 rounded-full live-dot ${active ? "bg-[#7a1420]" : "bg-[var(--berry)]"}`} />}
+                  {t.tid === "live" && <span className="w-1.5 h-1.5 rounded-full live-dot" style={{ background: "var(--site-live)" }} />}
                 </Link>
               );
             })}
+            <Link to="/admin" data-testid="tab-admin" className={`tab-link ${location.pathname.startsWith("/admin") ? "active" : ""}`}>
+              Admin
+            </Link>
           </div>
         </nav>
       </div>

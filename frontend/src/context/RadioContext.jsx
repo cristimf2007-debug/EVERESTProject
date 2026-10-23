@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState, useCallb
 import api, { mediaUrl, getSid } from "@/lib/api";
 
 const RadioContext = createContext(null);
-const DRIFT = 6; // secunde — toleranță de sincronizare cu radioul
+const DRIFT = 3; // secunde — prag de corecție (din brief)
 const SEEK_COOLDOWN = 15000; // după o corecție de drift, pauză de corecții (evită re-buffering în lanț)
 
 // link-urile audio sunt semnate și expiră (anti-furt); cerem link proaspăt la fiecare piesă
@@ -24,6 +24,8 @@ export function RadioProvider({ children }) {
   const statusRef = useRef("idle");
   const currentRef = useRef(null);
   const resignRef = useRef(0);
+  const offsetRef = useRef(0);        // diferența de ceas server − client (ms)
+  const lastPosRef = useRef(null);    // { position, at } — ultima poziție cunoscută de la server
 
   const [mode, setModeState] = useState("live"); // "live" | "track"
   const [status, setStatusState] = useState("idle"); // idle | loading | playing | paused | stopped | error
@@ -55,6 +57,13 @@ export function RadioProvider({ children }) {
     });
   };
 
+  // poziția așteptată calculată LOCAL între poll-uri (cu offset de ceas), fără cereri în plus
+  const expectedPosition = () => {
+    const lp = lastPosRef.current;
+    if (!lp) return null;
+    return lp.position + (Date.now() - lp.at) / 1000;
+  };
+
   // Sincronizare cu radioul: la 12s. NU reîncarcă sursa dacă e aceeași piesă.
   const syncLive = useCallback(async () => {
     try {
@@ -62,6 +71,13 @@ export function RadioProvider({ children }) {
       const data = r.data;
       setLiveInfo(data);
       if (typeof data.listeners === "number") setListeners(data.listeners);
+      // offset de ceas: serverNow − clientNow
+      if (data.server_time) {
+        offsetRef.current = new Date(data.server_time).getTime() - Date.now();
+      }
+      if (typeof data.position === "number") {
+        lastPosRef.current = { position: data.position, at: Date.now() };
+      }
       if (modeRef.current !== "live") return;
       if (!data.track) { setCurrent(null); return; }
       setCurrent(data.track);
@@ -77,14 +93,18 @@ export function RadioProvider({ children }) {
         lastSeekRef.current = Date.now();
         try { audio.currentTime = data.position; } catch { /* încă se încarcă */ }
         audio.play().catch(() => {});
-      } else if (
-        Math.abs(audio.currentTime - data.position) > DRIFT &&
-        !audio.seeking && audio.readyState >= 3 && !audio.ended &&
-        Date.now() - lastSeekRef.current > SEEK_COOLDOWN
-      ) {
-        // derivă mare → o singură corecție, apoi liniște
-        lastSeekRef.current = Date.now();
-        audio.currentTime = data.position;
+      } else {
+        // drift calculat pe poziția așteptată LOCALĂ (nu forțăm seek la fiecare poll)
+        const expected = expectedPosition();
+        if (
+          expected != null &&
+          Math.abs(audio.currentTime - expected) > DRIFT &&
+          !audio.seeking && audio.readyState >= 3 && !audio.ended &&
+          Date.now() - lastSeekRef.current > SEEK_COOLDOWN
+        ) {
+          lastSeekRef.current = Date.now();
+          audio.currentTime = expected;
+        }
       }
     } catch { /* reîncearcă la ciclul următor */ }
   }, []);
@@ -261,6 +281,7 @@ export function RadioProvider({ children }) {
     <RadioContext.Provider value={{
       mode, status, playing, liveInfo, current, queue, trackIdx, progress, duration, volume, muted, listeners,
       play, pause, stop, toggle, next, prev, seek, setVolume, toggleMute, playTrack, backToLive, syncLive,
+      audioRef, expectedPosition,
     }}>
       {children}
       <audio

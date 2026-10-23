@@ -1,26 +1,37 @@
-@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* BIOXIC — HALLOWEEN LIMITED 2026 · dark cinematic · burnt pumpkin & blood */
 :root {
-  --night: #0A0907;
-  --pine: #120F0C;
-  --frost: #EDE6D6;
-  --mist: #8A8275;
+  /* paleta oficială din brief */
+  --site-bg: #0A0807;
+  --site-panel: rgba(21, 16, 13, 0.72);
+  --site-panel-2: #1D1611;
+  --site-line: #33261C;
+  --site-fg: #EDE6D6;
+  --site-muted: #8A8275;
+  --site-accent: #E8731A;
+  --site-accent-ink: #1A0D04;
+  --site-live: #C21D1D;
+
+  --night: var(--site-bg);
+  --pine: var(--site-panel-2);
+  --frost: var(--site-fg);
+  --mist: var(--site-muted);
   --dim: #5d5648;
-  --accent: #E8731A;
+  --accent: var(--site-accent);
   --accent-rgb: 232, 115, 26;
   --accent-hi: #F59042;
   --accent2: #c9b48a;
-  --on-accent: #1a0e04;
-  --berry: #8B0E0E;
-  --berry-rgb: 139, 14, 14;
+  --on-accent: var(--site-accent-ink);
+  --berry: var(--site-live);
+  --berry-rgb: 194, 29, 29;
   --ice: #d8cfc0;
-  --glass-bg: rgba(18, 15, 12, 0.7);
-  --glass-hi: rgba(26, 21, 16, 0.78);
-  --line: #2A2118;
+  --glass-bg: var(--site-panel);
+  --glass-hi: rgba(29, 22, 17, 0.78);
+  --line: var(--site-line);
   --line-hi: rgba(232, 115, 26, 0.35);
 
   --bg: var(--night);
@@ -39,13 +50,13 @@
 body {
   background: var(--night);
   color: var(--frost);
-  font-family: 'Onest', sans-serif;
+  font-family: 'Manrope', sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-h1, h2, h3, .font-display { font-family: 'Unbounded', sans-serif; }
-.font-mono-x { font-family: 'JetBrains Mono', monospace; }
+h1, h2, h3, .font-display { font-family: 'Dela Gothic One', 'Unbounded', sans-serif; }
+.font-mono-x { font-family: 'JetBrains Mono', monospace; letter-spacing: 0.16em; }
 
 ::selection { background: rgba(var(--accent-rgb), 0.35); color: #fff; }
 
@@ -85,6 +96,34 @@ h1, h2, h3, .font-display { font-family: 'Unbounded', sans-serif; }
   position: fixed; inset: 0; z-index: 70; pointer-events: none; opacity: 0.05;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
+}
+
+/* vignette grea pe margini */
+.vignette {
+  position: fixed; inset: 0; z-index: 60; pointer-events: none;
+  box-shadow: inset 0 0 180px 40px rgba(5, 4, 3, 0.9);
+}
+
+/* underline portocaliu cu glow pentru tabul activ */
+.tab-link {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--mist); white-space: nowrap;
+  transition: color 0.25s ease-out;
+}
+.tab-link:hover { color: var(--frost); }
+.tab-link::after {
+  content: ""; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 2px;
+  background: transparent; border-radius: 2px;
+  transition: background-color 0.25s ease-out, box-shadow 0.25s ease-out;
+}
+.tab-link.active { color: var(--frost); }
+.tab-link.active::after {
+  background: var(--accent);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.8), 0 2px 20px rgba(var(--accent-rgb), 0.4);
 }
 
 /* vinyl */

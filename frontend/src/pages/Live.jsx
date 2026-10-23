@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useCallback, useRef } from "react";
 import { Play, Pause, Volume2, ListMusic, Users, Square, Loader2, TriangleAlert } from "lucide-react";
 import { useRadio } from "@/context/RadioContext";
 import { mediaUrl } from "@/lib/api";
 import Equalizer from "@/components/Equalizer";
 import LiveChat from "@/components/LiveChat";
 import ShareButton from "@/components/ShareButton";
+import LiveWave from "@/components/LiveWave";
 
 function fmt(sec) {
   if (!sec || !isFinite(sec)) return "0:00";
@@ -20,7 +21,15 @@ export default function Live() {
   const next = liveInfo?.next;
   const queue = liveInfo?.queue || [];
   const onAir = mode === "live" && current;
-  const pct = duration ? Math.min(100, (progress / duration) * 100) : 0;
+  const haloRef = useRef(null);
+
+  // halo portocaliu care pulsează pe bas — mutare directă în DOM, fără re-render
+  const onLevel = useCallback((level) => {
+    const el = haloRef.current;
+    if (!el) return;
+    el.style.opacity = String(0.35 + level * 0.65);
+    el.style.transform = `scale(${1 + level * 0.12})`;
+  }, []);
 
   return (
     <div data-testid="live-page" className="relative">
@@ -38,6 +47,13 @@ export default function Live() {
             <div className="grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-10 lg:gap-14 items-center">
               {/* cover tip vinyl — rim portocaliu + pânză de păianjen */}
               <div className="relative mx-auto w-64 sm:w-80 lg:w-full max-w-sm">
+                {/* halo care pulsează pe audio */}
+                <div
+                  ref={haloRef}
+                  aria-hidden="true"
+                  className="absolute -inset-10 rounded-full pointer-events-none transition-none"
+                  style={{ background: "radial-gradient(circle, rgba(232,115,26,.32), transparent 65%)", opacity: 0.35 }}
+                />
                 {/* pânză de păianjen — SVG real, desenat în cod, nu imagine */}
                 <svg
                   aria-hidden="true"
@@ -107,12 +123,9 @@ export default function Live() {
                   <p data-testid="now-playing-title" className="font-display text-xl sm:text-2xl font-bold uppercase mt-1.5 leading-tight">{track.title}</p>
                   <p className="text-[11px] font-mono-x uppercase tracking-widest text-[var(--mist)] mt-1">{track.artist || "BIOXIC"}</p>
 
-                  <div className="h-1.5 w-full bg-black/40 rounded-full mt-4 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-[width] duration-500"
-                      style={{ width: onAir ? `${pct}%` : "0%", background: "linear-gradient(90deg, var(--berry), var(--accent))" }}
-                      data-testid="live-progress"
-                    />
+                  {/* waveform audio-reactiv — portocaliu pe partea cântată */}
+                  <div className="mt-4" data-testid="live-progress">
+                    <LiveWave onLevel={onLevel} />
                   </div>
                   <div className="flex justify-between text-[11px] font-mono-x text-[var(--dim)] mt-1.5">
                     <span data-testid="live-position">{onAir ? fmt(progress) : "--:--"}</span>

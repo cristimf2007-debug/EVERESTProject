@@ -53,7 +53,7 @@ export default function LiveChat() {
     const push = (msg) => {
       if (msg.id && seen.has(msg.id)) return;
       if (msg.id) { seen.add(msg.id); if (seen.size > 400) seen.clear(); }
-      setMessages((ms) => [...ms.slice(-80), msg]);
+      setMessages((ms) => [...ms.slice(-60), msg]);
     };
     const connect = () => {
       if (stopped) return;

@@ -797,7 +797,7 @@ async def media_sign(u: str):
     return {"url": sign_file_url(u)}
 
 @api_router.get("/files/{path:path}")
-async def serve_file(path: str, exp: str = "", sig: str = ""):
+async def serve_file(path: str, request: Request, exp: str = "", sig: str = ""):
     rec = await db.files.find_one({"storage_path": path, "is_deleted": False})
     if not rec:
         raise HTTPException(404, "Fișier inexistent")
@@ -809,8 +809,31 @@ async def serve_file(path: str, exp: str = "", sig: str = ""):
         data, ct = await asyncio.to_thread(get_object, path)
     except Exception:
         raise HTTPException(404, "Fișier indisponibil")
-    return Response(content=data, media_type=rec.get("content_type") or ct,
-                    headers={"Cache-Control": "private, no-store" if "/uploads/audio/" in path else "public, max-age=86400"})
+    media_type = rec.get("content_type") or ct
+    total = len(data)
+    is_audio = "/uploads/audio/" in path
+    base_headers = {"Accept-Ranges": "bytes",
+                    "Cache-Control": "private, no-store" if is_audio else "public, max-age=86400"}
+    # HTTP Range — OBLIGATORIU pentru audio: fără 206, seek-ul resetează stream-ul
+    range_h = request.headers.get("range")
+    if range_h and range_h.startswith("bytes="):
+        try:
+            rng = range_h[6:].split(",")[0].strip()
+            start_s, end_s = rng.split("-", 1)
+            start = int(start_s) if start_s else 0
+            end = int(end_s) if end_s else total - 1
+            start = max(0, min(start, total - 1))
+            end = max(start, min(end, total - 1))
+            chunk = data[start:end + 1]
+            return Response(content=chunk, status_code=206, media_type=media_type, headers={
+                **base_headers,
+                "Content-Range": f"bytes {start}-{end}/{total}",
+                "Content-Length": str(len(chunk)),
+            })
+        except (ValueError, IndexError):
+            pass
+    return Response(content=data, media_type=media_type,
+                    headers={**base_headers, "Content-Length": str(total)})
 
 ALLOWED_AUDIO = {".mp3", ".wav", ".ogg", ".m4a"}
 ALLOWED_IMG = {".jpg", ".jpeg", ".png", ".webp"}
