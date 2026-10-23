@@ -12,6 +12,7 @@ import ChannelHeader from "@/components/ChannelHeader";
 import PlayerBar from "@/components/PlayerBar";
 import Live from "@/pages/Live";
 import Piese from "@/pages/Piese";
+import Videoclipuri from "@/pages/Videoclipuri";
 import Pareri from "@/pages/Pareri";
 import Despre from "@/pages/Despre";
 import NotFound from "@/pages/NotFound";
@@ -63,6 +64,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<Live />} />
           <Route path="/piese" element={<Piese />} />
+          <Route path="/clipuri" element={<Videoclipuri />} />
           <Route path="/pareri" element={<Pareri />} />
           <Route path="/despre" element={<Despre />} />
           <Route path="/admin" element={

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Radio, Disc3, Info, BadgeCheck, MessageSquareQuote, LogIn, LogOut } from "lucide-react";
+import { Radio, Disc3, Info, BadgeCheck, MessageSquareQuote, LogIn, LogOut, Clapperboard } from "lucide-react";
 import { toast } from "sonner";
 import api, { getSid, mediaUrl } from "@/lib/api";
 import { useRadio } from "@/context/RadioContext";
@@ -39,6 +39,7 @@ function playThunder() {
 const TABS = [
   { to: "/", label: "Live 24/7", tid: "live", icon: Radio },
   { to: "/piese", label: "Piese", tid: "piese", icon: Disc3 },
+  { to: "/clipuri", label: "Clipuri", tid: "clipuri", icon: Clapperboard },
   { to: "/pareri", label: "Păreri", tid: "pareri", icon: MessageSquareQuote },
   { to: "/despre", label: "Despre", tid: "despre", icon: Info },
 ];
