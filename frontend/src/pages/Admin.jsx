@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { UploadCloud, Trash2, SkipForward, LogOut, Music2, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, Trash2, SkipForward, LogOut, Music2, Image as ImageIcon, Ban, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import api, { mediaUrl, formatApiError } from "@/lib/api";
 
@@ -12,19 +12,22 @@ export default function Admin() {
 
   const [tracks, setTracks] = useState([]);
   const [title, setTitle] = useState("");
+  const [playlist, setPlaylist] = useState("");
   const [audioFile, setAudioFile] = useState(null);
   const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState("");
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [chatMsgs, setChatMsgs] = useState([]);
   const audioInputRef = useRef(null);
   const coverInputRef = useRef(null);
 
   const loadTracks = () => api.get("/tracks").then((r) => setTracks(r.data || [])).catch(() => {});
+  const loadChat = () => api.get("/admin/chat").then((r) => setChatMsgs(r.data || [])).catch(() => {});
 
   useEffect(() => {
     api.get("/auth/me")
-      .then((r) => { setMe(r.data); loadTracks(); })
+      .then((r) => { setMe(r.data); loadTracks(); loadChat(); })
       .catch(() => setMe(false));
   }, []);
 
@@ -36,6 +39,7 @@ export default function Admin() {
       localStorage.setItem("bioxic_token", r.data.token);
       setMe(r.data.user);
       loadTracks();
+      loadChat();
       toast.success("Salut, boss!");
     } catch (err) {
       toast.error(formatApiError(err));
@@ -56,6 +60,7 @@ export default function Admin() {
     if (!audioFile) return toast.error("Alege fișierul audio (MP3/WAV).");
     const fd = new FormData();
     fd.append("title", title.trim());
+    fd.append("playlist", playlist.trim());
     fd.append("audio", audioFile);
     if (coverFile) fd.append("cover", coverFile);
     setUploading(true);
@@ -67,6 +72,7 @@ export default function Admin() {
       });
       toast.success("Piesa a intrat în rotația radioului 24/7!", { description: title });
       setTitle("");
+      setPlaylist("");
       setAudioFile(null);
       setCoverFile(null);
       setCoverPreview("");
@@ -89,6 +95,31 @@ export default function Admin() {
     } catch (err) {
       toast.error(formatApiError(err));
     }
+  };
+
+  const delMsg = async (m) => {
+    try {
+      await api.delete(`/admin/chat/${m.id}`);
+      setChatMsgs((ms) => ms.filter((x) => x.id !== m.id));
+      toast.success("Mesaj șters.");
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  const banName = async (m) => {
+    if (!window.confirm(`Blochezi numele „${m.name}" și îi ștergi toate mesajele?`)) return;
+    try {
+      await api.post("/admin/chat/ban", { name: m.name });
+      setChatMsgs((ms) => ms.filter((x) => x.name !== m.name));
+      toast.success(`„${m.name}" a fost blocat pe chat.`);
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  const setTrackPlaylist = async (t, pl) => {
+    try {
+      await api.patch(`/admin/tracks/${t.id}`, { playlist: pl });
+      setTracks((ts) => ts.map((x) => (x.id === t.id ? { ...x, playlist: pl } : x)));
+      toast.success(pl ? `„${t.title}" mutată în playlistul „${pl}".` : `„${t.title}" scoasă din playlist.`);
+    } catch (err) { toast.error(formatApiError(err)); }
   };
 
   const skip = async () => {
@@ -164,6 +195,13 @@ export default function Admin() {
           placeholder="Titlul piesei (ex: Ce bunaciune #02)"
           className="w-full rounded-xl bg-[var(--bg2)] border border-[var(--border)] px-4 py-3.5 text-sm outline-none focus:border-[var(--border-hi)] transition-colors"
         />
+        <input
+          data-testid="admin-playlist-input"
+          value={playlist}
+          onChange={(e) => setPlaylist(e.target.value)}
+          placeholder="Playlist (opțional — ex: Seif Exclusives, Club Remixes)"
+          className="w-full rounded-xl bg-[var(--bg2)] border border-[var(--border)] px-4 py-3.5 text-sm outline-none focus:border-[var(--border-hi)] transition-colors mt-3"
+        />
 
         <div className="grid sm:grid-cols-2 gap-4 mt-4">
           <label className="btn-ghost rounded-xl p-5 flex items-center gap-3 cursor-pointer text-sm" data-testid="admin-audio-drop">
@@ -230,12 +268,19 @@ export default function Admin() {
       <h2 className="font-display text-2xl font-extrabold uppercase tracking-tight mt-10">Piese urcate ({tracks.length})</h2>
       <div className="grid gap-2 mt-5" data-testid="admin-track-list">
         {tracks.map((t) => (
-          <div key={t.id} className="glass rounded-xl px-4 py-3 flex items-center gap-4">
+          <div key={t.id} className="glass rounded-xl px-4 py-3 flex items-center gap-4 flex-wrap">
             <img src={mediaUrl(t.cover_url) || "/logo-alt.png"} alt="" className="w-10 h-10 rounded-lg object-cover" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold truncate">{t.title}</p>
               <p className="text-[10px] font-mono-x uppercase tracking-widest text-[var(--muted)]">{t.plays || 0} redări</p>
             </div>
+            <input
+              data-testid={`admin-track-playlist-${t.id}`}
+              defaultValue={t.playlist || ""}
+              placeholder="Playlist…"
+              onBlur={(e) => { if (e.target.value.trim() !== (t.playlist || "")) setTrackPlaylist(t, e.target.value.trim()); }}
+              className="w-36 rounded-lg bg-[var(--bg2)] border border-[var(--border)] px-3 py-2 text-xs outline-none focus:border-[var(--border-hi)] transition-colors"
+            />
             <button onClick={() => del(t)} className="btn-ghost rounded-full w-9 h-9 grid place-items-center hover:!text-[var(--live)]" aria-label={`Șterge ${t.title}`} data-testid={`admin-track-delete-${t.id}`}>
               <Trash2 size={15} />
             </button>
@@ -243,6 +288,32 @@ export default function Admin() {
         ))}
         {tracks.length === 0 && (
           <p className="text-sm text-[var(--muted)] py-6 text-center">Nicio piesă încă — urcă prima piesă mai sus.</p>
+        )}
+      </div>
+
+      {/* moderare chat */}
+      <div className="flex items-center justify-between mt-12">
+        <h2 className="font-display text-2xl font-extrabold uppercase tracking-tight">Moderare chat</h2>
+        <button onClick={loadChat} className="btn-ghost rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" data-testid="admin-chat-refresh">
+          <RefreshCw size={13} /> Reîmprospătează
+        </button>
+      </div>
+      <div className="grid gap-2 mt-5" data-testid="admin-chat-list">
+        {chatMsgs.map((m) => (
+          <div key={m.id} className="glass rounded-xl px-4 py-3 flex items-center gap-3" data-testid={`admin-chat-msg-${m.id}`}>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm truncate"><span className="font-semibold text-[var(--amber)]">{m.name}</span> <span className="text-[var(--muted)]">· {m.text}</span></p>
+            </div>
+            <button onClick={() => banName(m)} className="btn-ghost rounded-full w-9 h-9 grid place-items-center hover:!text-[var(--amber)]" aria-label={`Blochează ${m.name}`} data-testid={`admin-chat-ban-${m.id}`}>
+              <Ban size={14} />
+            </button>
+            <button onClick={() => delMsg(m)} className="btn-ghost rounded-full w-9 h-9 grid place-items-center hover:!text-[var(--live)]" aria-label={`Șterge mesajul`} data-testid={`admin-chat-delete-${m.id}`}>
+              <Trash2 size={14} />
+            </button>
+          </div>
+        ))}
+        {chatMsgs.length === 0 && (
+          <p className="text-sm text-[var(--muted)] py-6 text-center">Niciun mesaj pe chat momentan.</p>
         )}
       </div>
     </div>

@@ -1,13 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Send, Users, Heart } from "lucide-react";
+import { Send, Users, Heart, Flame, Crown } from "lucide-react";
 import { WS_URL } from "@/lib/api";
+
+const REACTION_META = {
+  heart: { icon: Heart, color: "var(--berry)", fill: true },
+  fire: { icon: Flame, color: "#ff8a3c", fill: false },
+  crown: { icon: Crown, color: "var(--accent)", fill: false },
+};
 
 // Chat live sub radio — realtime prin WebSocket
 export default function LiveChat() {
   const [messages, setMessages] = useState([]);
   const [viewers, setViewers] = useState(0);
   const [likes, setLikes] = useState(0);
-  const [hearts, setHearts] = useState([]);
+  const [floats, setFloats] = useState([]); // {id, emoji}
   const [name, setName] = useState(() => localStorage.getItem("bioxic_name") || "");
   const [nameSet, setNameSet] = useState(() => !!localStorage.getItem("bioxic_name"));
   const [text, setText] = useState("");
@@ -38,10 +44,10 @@ export default function LiveChat() {
         else if (data.type === "join") setMessages((ms) => [...ms.slice(-80), { id: data.id, type: "sys", text: `${data.name} a intrat pe chat` }]);
         else if (data.type === "leave") setMessages((ms) => [...ms.slice(-80), { id: data.id, type: "sys", text: `${data.name} a ieșit` }]);
         else if (data.type === "delete") setMessages((ms) => ms.filter((m) => m.id !== data.id));
-        else if (data.type === "reaction" && data.emoji === "heart") {
+        else if (data.type === "reaction" && REACTION_META[data.emoji]) {
           const id = data.id;
-          setHearts((h) => [...h.slice(-14), id]);
-          setTimeout(() => setHearts((h) => h.filter((x) => x !== id)), 2300);
+          setFloats((h) => [...h.slice(-14), { id, emoji: data.emoji }]);
+          setTimeout(() => setFloats((h) => h.filter((x) => x.id !== id)), 2300);
         }
       };
     };
@@ -64,6 +70,10 @@ export default function LiveChat() {
 
   const tapHeart = () => {
     if (wsRef.current?.readyState === 1) wsRef.current.send(JSON.stringify({ type: "tap" }));
+  };
+
+  const react = (emoji) => {
+    if (wsRef.current?.readyState === 1) wsRef.current.send(JSON.stringify({ type: "reaction", emoji }));
   };
 
   const saveName = (e) => {
@@ -101,12 +111,36 @@ export default function LiveChat() {
             </div>
           )
         )}
-        {/* inimi plutitoare */}
+        {/* reacții plutitoare */}
         <div className="absolute right-4 bottom-2 pointer-events-none">
-          {hearts.map((id) => (
-            <Heart key={id} size={18} fill="var(--berry)" className="heart-float text-[var(--berry)] absolute" style={{ right: Math.random() * 40 }} />
-          ))}
+          {floats.map((f) => {
+            const meta = REACTION_META[f.emoji];
+            const Icon = meta.icon;
+            return (
+              <Icon
+                key={f.id}
+                size={18}
+                fill={meta.fill ? meta.color : "none"}
+                className="heart-float absolute"
+                style={{ right: Math.random() * 44, color: meta.color }}
+              />
+            );
+          })}
         </div>
+      </div>
+
+      {/* bara de reacții */}
+      <div className="flex items-center gap-2 px-3.5 pt-3" data-testid="chat-reactions">
+        <span className="text-[10px] font-mono-x uppercase tracking-widest text-[var(--dim)] mr-1">Reacționează:</span>
+        <button type="button" data-testid="chat-heart-button" onClick={tapHeart} className="btn-ghost grid w-9 h-9 rounded-full place-items-center" aria-label="Inimă">
+          <Heart size={15} className="text-[var(--berry)]" fill="currentColor" />
+        </button>
+        <button type="button" data-testid="chat-fire-button" onClick={() => react("fire")} className="btn-ghost grid w-9 h-9 rounded-full place-items-center" aria-label="Foc">
+          <Flame size={15} className="text-[#ff8a3c]" />
+        </button>
+        <button type="button" data-testid="chat-crown-button" onClick={() => react("crown")} className="btn-ghost grid w-9 h-9 rounded-full place-items-center" aria-label="Coroană">
+          <Crown size={15} className="text-[var(--accent)]" />
+        </button>
       </div>
 
       <div className="border-t border-[var(--line)] p-3.5">
@@ -132,15 +166,6 @@ export default function LiveChat() {
               maxLength={300}
               className="flex-1 rounded-full bg-black/30 border border-[var(--line)] px-4 py-2.5 text-sm outline-none focus:border-[rgba(var(--accent-rgb),.5)] transition-colors"
             />
-            <button
-              type="button"
-              data-testid="chat-heart-button"
-              onClick={tapHeart}
-              className="btn-ghost grid w-10 h-10 rounded-full place-items-center shrink-0"
-              aria-label="Trimite inimă"
-            >
-              <Heart size={15} className="text-[var(--berry)]" />
-            </button>
             <button data-testid="chat-send-button" className="btn-x gold !p-2.5 rounded-full shrink-0" aria-label="Trimite">
               <Send size={16} />
             </button>

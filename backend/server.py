@@ -806,7 +806,7 @@ async def save_upload(file: UploadFile, sub: str, allowed: set) -> str:
 async def create_track(
     title: str = Form(...), genre: str = Form("remix"), tags: str = Form(""),
     lyrics: str = Form(""), download_enabled: bool = Form(False),
-    cover_url: str = Form(""),
+    cover_url: str = Form(""), playlist: str = Form(""),
     audio: Optional[UploadFile] = File(None), cover: Optional[UploadFile] = File(None),
     admin=Depends(get_current_admin)):
     if not audio:
@@ -828,6 +828,7 @@ async def create_track(
     track = {"id": str(uuid.uuid4()), "title": title, "artist": "BIOXIC", "genre": genre,
              "tags": [t.strip() for t in tags.split(",") if t.strip()], "lyrics": lyrics,
              "audio_url": audio_url, "cover_url": final_cover, "duration": duration,
+             "playlist": playlist.strip(),
              "download_enabled": download_enabled, "plays": 0, "likes": 0,
              "created_at": datetime.now(timezone.utc).isoformat()}
     await db.tracks.insert_one(track)
@@ -845,7 +846,7 @@ async def update_track(track_id: str, request: Request, admin=Depends(get_curren
     data = await request.json()
     allowed = {k: v for k, v in data.items() if k in {"title", "artist", "genre", "tags", "lyrics", "download_enabled",
                                                       "cover_url", "story", "links", "stats", "badges", "timeline",
-                                                      "featured", "nr", "slug", "published"}}
+                                                      "featured", "nr", "slug", "published", "playlist"}}
     if not allowed:
         raise HTTPException(400, "Nimic de actualizat")
     await db.tracks.update_one({"id": track_id}, {"$set": allowed})

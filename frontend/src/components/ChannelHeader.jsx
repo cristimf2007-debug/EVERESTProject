@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import api, { getSid } from "@/lib/api";
 import { useRadio } from "@/context/RadioContext";
 import Equalizer from "@/components/Equalizer";
+import LogoModal from "@/components/LogoModal";
 
 const TABS = [
   { to: "/", label: "Live 24/7", tid: "live", icon: Radio },
@@ -17,6 +18,7 @@ export default function ChannelHeader() {
   const { playing, mode } = useRadio();
   const [subs, setSubs] = useState(0);
   const [subscribed, setSubscribed] = useState(() => localStorage.getItem("bioxic_sub") === "1");
+  const [showBio, setShowBio] = useState(false);
 
   useEffect(() => {
     api.get("/channel/stats").then((r) => setSubs(r.data.subscribers)).catch(() => {});
@@ -42,12 +44,21 @@ export default function ChannelHeader() {
       <div className="relative h-44 sm:h-60 overflow-hidden">
         <img src="/artist.jpg" alt="BIOXIC" className="w-full h-full object-cover object-center" />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(6,17,13,.15) 0%, rgba(6,17,13,.55) 55%, var(--night) 100%)" }} />
-        <img
-          src="/logo.png"
-          alt="BIOXIC"
+        <button
+          onClick={() => setShowBio(true)}
           data-testid="channel-logo"
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-44 sm:w-64 drop-shadow-[0_10px_36px_rgba(0,0,0,0.75)]"
-        />
+          aria-label="Cine sunt eu — deschide"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 hover:scale-110 hover:-rotate-2 cursor-pointer"
+        >
+          <img
+            src="/logo.png"
+            alt="BIOXIC"
+            className="w-44 sm:w-64 drop-shadow-[0_10px_36px_rgba(0,0,0,0.75)]"
+          />
+        </button>
+        <span className="absolute left-1/2 -translate-x-1/2 bottom-2 text-[9px] font-mono-x uppercase tracking-[0.3em] text-[var(--frost)]/60 animate-pulse pointer-events-none">
+          atinge logo-ul
+        </span>
       </div>
 
       {/* profil */}
@@ -109,6 +120,8 @@ export default function ChannelHeader() {
           </Link>
         </nav>
       </div>
+
+      {showBio && <LogoModal onClose={() => setShowBio(false)} />}
     </header>
   );
 }
