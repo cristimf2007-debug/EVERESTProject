@@ -3,6 +3,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { RadioProvider } from "@/context/RadioContext";
+import Snowfall from "@/components/Snowfall";
 import ChannelHeader from "@/components/ChannelHeader";
 import PlayerBar from "@/components/PlayerBar";
 import Live from "@/pages/Live";
@@ -35,6 +36,8 @@ function App() {
     <div className="min-h-screen" style={{ background: "var(--bg)", color: "var(--text)" }}>
       <BrowserRouter>
         <RadioProvider>
+          <div className="sky-bg" />
+          <Snowfall />
           <div className="grain-overlay" />
           <Shell />
           <Toaster theme="dark" position="top-center" />

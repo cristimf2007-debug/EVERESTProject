@@ -12,8 +12,6 @@ const TABS = [
   { to: "/despre", label: "Despre", tid: "despre", icon: Info },
 ];
 
-const BANNER = "https://images.pexels.com/photos/5610120/pexels-photo-5610120.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
-
 export default function ChannelHeader() {
   const location = useLocation();
   const { playing, mode } = useRadio();
@@ -31,7 +29,7 @@ export default function ChannelHeader() {
     try {
       const r = await api.post("/channel/subscribe", { sid: getSid(), subscribed: nextVal });
       setSubs(r.data.subscribers);
-      if (nextVal) toast.success("Ești abonat la BIOXIC!", { description: "Primești noutățile direct din seif." });
+      if (nextVal) toast.success("Ești abonat la BIOXIC!", { description: "No risks, no hits." });
       else toast.info("Ai dezabonat canalul.");
     } catch {
       toast.error("Ceva nu a mers. Încearcă din nou.");
@@ -39,29 +37,35 @@ export default function ChannelHeader() {
   };
 
   return (
-    <header data-testid="channel-header" className="relative">
-      {/* banner canal */}
-      <div className="relative h-36 sm:h-48 overflow-hidden">
-        <img src={BANNER} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(5,8,17,.25), rgba(5,8,17,.92))" }} />
+    <header data-testid="channel-header" className="relative z-10">
+      {/* banner — poza reală a artistului */}
+      <div className="relative h-44 sm:h-60 overflow-hidden">
+        <img src="/artist.jpg" alt="BIOXIC" className="w-full h-full object-cover object-center" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(6,17,13,.15) 0%, rgba(6,17,13,.55) 55%, var(--night) 100%)" }} />
+        <img
+          src="/logo.png"
+          alt="BIOXIC"
+          data-testid="channel-logo"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-44 sm:w-64 drop-shadow-[0_10px_36px_rgba(0,0,0,0.75)]"
+        />
       </div>
 
-      {/* identitate canal */}
+      {/* profil */}
       <div className="max-w-6xl mx-auto px-4 sm:px-8">
-        <div className="flex items-end gap-4 -mt-10 sm:-mt-12 relative z-10">
+        <div className="flex items-end gap-4 -mt-9 sm:-mt-12 relative z-10">
           <img
-            src="/logo-alt.png"
+            src="/artist.jpg"
             alt="BIOXIC"
             data-testid="channel-avatar"
-            className="w-20 h-20 sm:w-28 sm:h-28 rounded-full object-cover border-2 border-[var(--cyan)] shrink-0"
-            style={{ boxShadow: "0 0 34px rgba(0,240,255,.45)", background: "var(--bg)" }}
+            className="w-20 h-20 sm:w-28 sm:h-28 rounded-full object-cover border-2 border-[var(--accent)] shrink-0"
+            style={{ boxShadow: "0 0 34px rgba(var(--accent-rgb),.4)", background: "var(--night)" }}
           />
           <div className="min-w-0 pb-1 flex-1">
-            <h1 className="font-display text-3xl sm:text-4xl font-black uppercase tracking-tight flex items-center gap-2 leading-none">
-              BIOXIC <BadgeCheck size={22} className="text-[var(--cyan)] shrink-0" />
+            <h1 className="font-display text-xl sm:text-2xl font-extrabold uppercase tracking-wide flex items-center gap-2 leading-none">
+              BIOXIC <BadgeCheck size={19} className="text-[var(--accent)] shrink-0" />
             </h1>
-            <p className="text-xs sm:text-sm text-[var(--muted)] font-mono-x mt-1">
-              @BIOXIC · <span data-testid="channel-subs-count" className="text-white">{subs}</span> abonați · No risks, no hits.
+            <p className="text-[11px] sm:text-xs text-[var(--mist)] font-mono-x mt-1.5 uppercase tracking-widest">
+              <span data-testid="channel-subs-count" className="text-[var(--frost)]">{subs}</span> abonați · No risks, no hits.
             </p>
           </div>
           <div className="pb-1 flex items-center gap-3 shrink-0">
@@ -69,15 +73,15 @@ export default function ChannelHeader() {
             <button
               data-testid="channel-subscribe-button"
               onClick={toggleSub}
-              className={`rounded-full px-5 py-2.5 text-sm font-bold uppercase tracking-wide ${subscribed ? "btn-ghost" : "btn-cyan"}`}
+              className={subscribed ? "btn-x !py-2.5 text-xs font-bold uppercase tracking-widest" : "btn-x gold !py-2.5 text-xs font-bold uppercase tracking-widest"}
             >
               {subscribed ? "Abonat" : "Abonează-te"}
             </button>
           </div>
         </div>
 
-        {/* taburi canal */}
-        <nav className="flex items-center gap-1 mt-6 border-b border-[var(--border)] overflow-x-auto" aria-label="Canal">
+        {/* taburi */}
+        <nav className="flex items-center gap-1 mt-6 border-b border-[var(--line)] overflow-x-auto" aria-label="Canal">
           {TABS.map((t) => {
             const active = location.pathname === t.to;
             const Icon = t.icon;
@@ -86,24 +90,20 @@ export default function ChannelHeader() {
                 key={t.to}
                 to={t.to}
                 data-testid={`tab-${t.tid}`}
-                className={`flex items-center gap-2 px-4 sm:px-5 py-3 text-xs sm:text-sm font-bold uppercase tracking-widest border-b-2 -mb-px whitespace-nowrap transition-colors ${
-                  active
-                    ? "border-[var(--cyan)] text-white"
-                    : "border-transparent text-[var(--faint)] hover:text-white"
+                className={`flex items-center gap-2 px-4 sm:px-5 py-3 text-[11px] sm:text-xs font-bold uppercase tracking-[0.15em] border-b-2 -mb-px whitespace-nowrap transition-colors ${
+                  active ? "border-[var(--accent)] text-[var(--frost)]" : "border-transparent text-[var(--dim)] hover:text-[var(--frost)]"
                 }`}
               >
-                <Icon size={15} />
+                <Icon size={14} />
                 {t.label}
-                {t.tid === "live" && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--live)] live-dot" />
-                )}
+                {t.tid === "live" && <span className="w-1.5 h-1.5 rounded-full bg-[var(--berry)] live-dot" />}
               </Link>
             );
           })}
           <Link
             to="/admin"
             data-testid="tab-admin"
-            className="ml-auto px-3 py-3 text-[11px] font-mono-x uppercase tracking-widest text-[var(--faint)] hover:text-white transition-colors"
+            className="ml-auto px-3 py-3 text-[10px] font-mono-x uppercase tracking-widest text-[var(--dim)] hover:text-[var(--frost)] transition-colors"
           >
             Admin
           </Link>
