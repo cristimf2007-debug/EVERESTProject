@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Radio, Disc3, Info, BadgeCheck } from "lucide-react";
+import { Radio, Disc3, Info, BadgeCheck, MessageSquareQuote } from "lucide-react";
 import { toast } from "sonner";
 import api, { getSid } from "@/lib/api";
 import { useRadio } from "@/context/RadioContext";
@@ -10,6 +10,7 @@ import LogoModal from "@/components/LogoModal";
 const TABS = [
   { to: "/", label: "Live 24/7", tid: "live", icon: Radio },
   { to: "/piese", label: "Piese", tid: "piese", icon: Disc3 },
+  { to: "/pareri", label: "Păreri", tid: "pareri", icon: MessageSquareQuote },
   { to: "/despre", label: "Despre", tid: "despre", icon: Info },
 ];
 

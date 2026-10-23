@@ -19,16 +19,20 @@ export default function Admin() {
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [chatMsgs, setChatMsgs] = useState([]);
-  const [confirmId, setConfirmId] = useState(null); // "del-track-<id>" | "del-msg-<id>" | "ban-<id>"
+  const [contacts, setContacts] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [confirmId, setConfirmId] = useState(null); // "del-track-<id>" | "del-msg-<id>" | "ban-<id>" | "del-review-<id>"
   const audioInputRef = useRef(null);
   const coverInputRef = useRef(null);
 
   const loadTracks = () => api.get("/tracks").then((r) => setTracks(r.data || [])).catch(() => {});
   const loadChat = () => api.get("/admin/chat").then((r) => setChatMsgs(r.data || [])).catch(() => {});
+  const loadContacts = () => api.get("/admin/contacts").then((r) => setContacts(r.data || [])).catch(() => {});
+  const loadReviews = () => api.get("/reviews").then((r) => setReviews(r.data || [])).catch(() => {});
 
   useEffect(() => {
     api.get("/auth/me")
-      .then((r) => { setMe(r.data); loadTracks(); loadChat(); })
+      .then((r) => { setMe(r.data); loadTracks(); loadChat(); loadContacts(); loadReviews(); })
       .catch(() => setMe(false));
   }, []);
 
@@ -41,6 +45,8 @@ export default function Admin() {
       setMe(r.data.user);
       loadTracks();
       loadChat();
+      loadContacts();
+      loadReviews();
       toast.success("Salut, boss!");
     } catch (err) {
       toast.error(formatApiError(err));
@@ -128,6 +134,20 @@ export default function Admin() {
       await api.post("/admin/chat/ban", { name: m.name });
       setChatMsgs((ms) => ms.filter((x) => x.name.toLowerCase() !== m.name.toLowerCase()));
       toast.success(`„${m.name}" a fost blocat pe chat.`);
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  const delReview = async (rv) => {
+    if (confirmId !== `del-review-${rv.id}`) {
+      setConfirmId(`del-review-${rv.id}`);
+      setTimeout(() => setConfirmId((c) => (c === `del-review-${rv.id}` ? null : c)), 3500);
+      return;
+    }
+    setConfirmId(null);
+    try {
+      await api.delete(`/admin/reviews/${rv.id}`);
+      setReviews((rs) => rs.filter((x) => x.id !== rv.id));
+      toast.success("Părere ștearsă.");
     } catch (err) { toast.error(formatApiError(err)); }
   };
 
@@ -331,6 +351,44 @@ export default function Admin() {
         ))}
         {chatMsgs.length === 0 && (
           <p className="text-sm text-[var(--muted)] py-6 text-center">Niciun mesaj pe chat momentan.</p>
+        )}
+      </div>
+
+      {/* mesaje contact */}
+      <h2 className="font-display text-2xl font-extrabold uppercase tracking-tight mt-12">Mesaje contact ({contacts.length})</h2>
+      <div className="grid gap-2 mt-5" data-testid="admin-contacts-list">
+        {contacts.map((c) => (
+          <div key={c.id} className="glass rounded-xl px-4 py-3.5" data-testid={`admin-contact-${c.id}`}>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <p className="text-sm font-bold">{c.name}</p>
+              <a href={`mailto:${c.email}`} className="text-xs font-mono-x text-[var(--amber)] hover:underline">{c.email}</a>
+              <span className="text-[10px] font-mono-x uppercase tracking-widest text-[var(--faint)]">{c.subject}</span>
+            </div>
+            <p className="text-sm text-[var(--muted)] mt-2">{c.message}</p>
+            <p className="text-[10px] font-mono-x text-[var(--faint)] mt-2">{new Date(c.created_at).toLocaleString("ro-RO")}</p>
+          </div>
+        ))}
+        {contacts.length === 0 && (
+          <p className="text-sm text-[var(--muted)] py-6 text-center">Niciun mesaj de contact încă — formularul e pe pagina Despre.</p>
+        )}
+      </div>
+
+      {/* moderare păreri */}
+      <h2 className="font-display text-2xl font-extrabold uppercase tracking-tight mt-12">Păreri fani ({reviews.length})</h2>
+      <div className="grid gap-2 mt-5" data-testid="admin-reviews-list">
+        {reviews.map((rv) => (
+          <div key={rv.id} className="glass rounded-xl px-4 py-3 flex items-center gap-3" data-testid={`admin-review-${rv.id}`}>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm"><span className="font-semibold text-[var(--amber)]">{rv.name}</span> <span className="text-[var(--faint)] font-mono-x text-xs">· {rv.rating}/5</span></p>
+              <p className="text-sm text-[var(--muted)] truncate mt-0.5">{rv.text}</p>
+            </div>
+            <button onClick={() => delReview(rv)} className={`rounded-full h-9 grid place-items-center transition-colors ${confirmId === `del-review-${rv.id}` ? "px-3 text-xs font-bold uppercase bg-[var(--live)] text-white" : "btn-ghost w-9 hover:!text-[var(--live)]"}`} aria-label="Șterge părerea" data-testid={`admin-review-delete-${rv.id}`}>
+              {confirmId === `del-review-${rv.id}` ? "Sigur?" : <Trash2 size={14} />}
+            </button>
+          </div>
+        ))}
+        {reviews.length === 0 && (
+          <p className="text-sm text-[var(--muted)] py-6 text-center">Nicio părere încă.</p>
         )}
       </div>
     </div>

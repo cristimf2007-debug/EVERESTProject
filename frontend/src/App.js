@@ -9,6 +9,7 @@ import PlayerBar from "@/components/PlayerBar";
 import Live from "@/pages/Live";
 import Piese from "@/pages/Piese";
 import Despre from "@/pages/Despre";
+import Pareri from "@/pages/Pareri";
 import Admin from "@/pages/Admin";
 
 function Shell() {
@@ -21,6 +22,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<Live />} />
           <Route path="/piese" element={<Piese />} />
+          <Route path="/pareri" element={<Pareri />} />
           <Route path="/despre" element={<Despre />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Live />} />

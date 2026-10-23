@@ -1303,6 +1303,35 @@ async def ban_name(b: BanInput, admin=Depends(get_current_admin)):
     await db.chat.delete_many({"name": {"$regex": f"^{re.escape(b.name.strip())}$", "$options": "i"}})
     return {"ok": True}
 
+# ---------- PĂRERI (review-uri de la fani) ----------
+
+class ReviewInput(BaseModel):
+    name: str
+    rating: int
+    text: str
+
+@api_router.get("/reviews")
+async def list_reviews():
+    return await db.reviews.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+
+@api_router.post("/reviews")
+async def create_review(r: ReviewInput):
+    text = r.text.strip()[:500]
+    if not text:
+        raise HTTPException(400, "Scrie ceva — părerea ta contează!")
+    doc = {"id": str(uuid.uuid4()), "name": (r.name.strip()[:40] or "Fan"),
+           "rating": min(5, max(1, int(r.rating))), "text": text,
+           "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.reviews.insert_one(doc)
+    return {"ok": True, "id": doc["id"]}
+
+@api_router.delete("/admin/reviews/{review_id}")
+async def delete_review(review_id: str, admin=Depends(get_current_admin)):
+    res = await db.reviews.delete_one({"id": review_id})
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Părerea nu există")
+    return {"ok": True}
+
 # ---------- CONTACT / NEWSLETTER ----------
 
 class ContactInput(BaseModel):
