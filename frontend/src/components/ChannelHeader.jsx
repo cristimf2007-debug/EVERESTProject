@@ -256,8 +256,8 @@ export default function ChannelHeader() {
         </div>
 
         {/* taburi — pilule de sticlă, stilul clasic BIOXIC */}
-        <nav className="mt-7 flex justify-start sm:justify-center overflow-x-auto pb-1" aria-label="Canal">
-          <div className="glass rounded-full p-1.5 flex items-center gap-1">
+        <nav className="mt-7 flex justify-start sm:justify-center overflow-x-auto pb-1 max-w-full" aria-label="Canal">
+          <div className="glass rounded-full p-1 sm:p-1.5 flex items-center gap-0.5 sm:gap-1 shrink-0 mx-auto">
             {TABS.map((t) => {
               const active = location.pathname === t.to;
               const Icon = t.icon;
@@ -266,7 +266,7 @@ export default function ChannelHeader() {
                   key={t.to}
                   to={t.to}
                   data-testid={`tab-${t.tid}`}
-                  className={`flex items-center gap-2 rounded-full px-4 sm:px-6 py-2.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.15em] whitespace-nowrap transition-all duration-300 ${
+                  className={`flex items-center gap-1.5 sm:gap-2 rounded-full px-3 sm:px-6 py-2 sm:py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-[0.12em] sm:tracking-[0.15em] whitespace-nowrap transition-all duration-300 ${
                     active
                       ? "text-[var(--on-accent)] shadow-[0_6px_24px_-6px_rgba(var(--accent-rgb),.7)]"
                       : "text-[var(--mist)] hover:text-[var(--frost)] hover:bg-white/5"

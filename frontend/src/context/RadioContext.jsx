@@ -5,6 +5,16 @@ const RadioContext = createContext(null);
 const DRIFT = 6; // secunde — toleranță de sincronizare cu radioul
 const SEEK_COOLDOWN = 15000; // după o corecție de drift, pauză de corecții (evită re-buffering în lanț)
 
+// link-urile audio sunt semnate și expiră (anti-furt); cerem link proaspăt la fiecare piesă
+async function signSrc(audioUrl) {
+  try {
+    const r = await api.get(`/media/sign?u=${encodeURIComponent(audioUrl)}`);
+    return mediaUrl(r.data.url);
+  } catch {
+    return mediaUrl(audioUrl);
+  }
+}
+
 // UN SINGUR controller audio pentru tot site-ul: radio live + redare on-demand
 export function RadioProvider({ children }) {
   const audioRef = useRef(null);
@@ -12,6 +22,8 @@ export function RadioProvider({ children }) {
   const lastSeekRef = useRef(0);
   const modeRef = useRef("live");
   const statusRef = useRef("idle");
+  const currentRef = useRef(null);
+  const resignRef = useRef(0);
 
   const [mode, setModeState] = useState("live"); // "live" | "track"
   const [status, setStatusState] = useState("idle"); // idle | loading | playing | paused | stopped | error
@@ -29,15 +41,18 @@ export function RadioProvider({ children }) {
   const setMode = (m) => { modeRef.current = m; setModeState(m); };
   const playing = status === "playing";
 
-  // Încarcă o sursă NOUĂ o singură dată (niciodată la re-render)
+  // Încarcă o sursă NOUĂ o singură dată (niciodată la re-render); link audio semnat
   const loadSrc = (track, position = 0) => {
     const audio = audioRef.current;
     if (!audio || !track) return;
     pendingSeekRef.current = position;
-    audio.setAttribute("data-src", mediaUrl(track.audio_url));
-    audio.src = mediaUrl(track.audio_url);
-    audio.load();
     setStatus("loading");
+    signSrc(track.audio_url).then((src) => {
+      audio.setAttribute("data-src", src);
+      audio.setAttribute("data-track", track.id);
+      audio.src = src;
+      audio.load();
+    });
   };
 
   // Sincronizare cu radioul: la 12s. NU reîncarcă sursa dacă e aceeași piesă.
@@ -50,10 +65,10 @@ export function RadioProvider({ children }) {
       if (modeRef.current !== "live") return;
       if (!data.track) { setCurrent(null); return; }
       setCurrent(data.track);
+      currentRef.current = data.track;
       const audio = audioRef.current;
       if (!audio) return;
-      const src = mediaUrl(data.track.audio_url);
-      if (audio.getAttribute("data-src") !== src) {
+      if (audio.getAttribute("data-track") !== data.track.id) {
         // piesă nouă la radio — schimbă sursa o singură dată
         loadSrc(data.track, data.position);
         if (statusRef.current === "playing") audio.play().catch(() => setStatus("error"));
@@ -145,10 +160,10 @@ export function RadioProvider({ children }) {
     const q = list || queue;
     setMode("track");
     setCurrent(t);
+    currentRef.current = t;
     setTrackIdx(q.findIndex((x) => x.id === t.id));
     loadSrc(t, 0);
     setStatus("playing");
-    audioRef.current?.play().catch(() => {});
     api.post(`/tracks/${t.id}/play`).catch(() => {});
   }, [queue]);
 
@@ -226,7 +241,21 @@ export function RadioProvider({ children }) {
     if (modeRef.current === "track") next();
     else syncLive(); // live: serverul a trecut la următoarea; syncLive realiniază
   };
-  const onError = () => setStatus("error");
+  const onError = () => {
+    // link semnat expirat (pauză lungă) → cerem unul proaspăt și reiem o singură dată
+    const t = currentRef.current;
+    const audio = audioRef.current;
+    if (t && audio && Date.now() - resignRef.current > 10000) {
+      resignRef.current = Date.now();
+      signSrc(t.audio_url).then((src) => {
+        audio.src = src;
+        audio.load();
+        if (statusRef.current === "playing") audio.play().catch(() => setStatus("error"));
+      });
+      return;
+    }
+    setStatus("error");
+  };
 
   return (
     <RadioContext.Provider value={{

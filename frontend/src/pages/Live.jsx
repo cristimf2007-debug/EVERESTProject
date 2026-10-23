@@ -173,12 +173,14 @@ export default function Live() {
               </div>
             </div>
 
-            {/* chat + playlist */}
+        {/* chat + playlist */}
             <div className="grid lg:grid-cols-2 gap-8 mt-14 sm:mt-16 items-start">
-              <LiveChat />
+              <div className="min-w-0">
+                <LiveChat />
+              </div>
 
               {queue.length > 0 && (
-                <section data-testid="radio-queue">
+                <section data-testid="radio-queue" className="min-w-0">
                   <h3 className="font-display text-lg sm:text-xl font-extrabold uppercase tracking-wide">
                     Playlist <span className="text-[var(--accent)]">în rotație</span>
                   </h3>

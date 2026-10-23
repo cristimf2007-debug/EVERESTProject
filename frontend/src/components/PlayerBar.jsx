@@ -18,7 +18,8 @@ export default function PlayerBar() {
   const onSeek = (e) => {
     if (!isTrack || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
-    seek(((e.clientX - rect.left) / rect.width) * duration);
+    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    seek(ratio * duration);
   };
 
   const share = () => {

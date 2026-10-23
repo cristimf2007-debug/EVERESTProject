@@ -764,17 +764,53 @@ async def download_track(track_id: str):
 
 # ---------- FILE SERVING (public, din object storage) ----------
 
+import hmac as _hmac, hashlib as _hashlib
+
+FILE_SIGN_SECRET = (os.environ.get("JWT_SECRET", "") + ":bioxic-fileguard").encode()
+
+def sign_file_url(serve_url: str, ttl: int = 900) -> str:
+    """Link audio semnat, valabil `ttl` secunde — linkurile copiate expiră."""
+    exp = int(time.time()) + ttl
+    sig = _hmac.new(FILE_SIGN_SECRET, f"{serve_url}|{exp}".encode(), _hashlib.sha256).hexdigest()[:32]
+    sep = "&" if "?" in serve_url else "?"
+    return f"{serve_url}{sep}exp={exp}&sig={sig}"
+
+def verify_file_sig(serve_url: str, exp: str, sig: str) -> bool:
+    try:
+        if int(exp) < time.time():
+            return False
+    except (TypeError, ValueError):
+        return False
+    expect = _hmac.new(FILE_SIGN_SECRET, f"{serve_url}|{exp}".encode(), _hashlib.sha256).hexdigest()[:32]
+    return bool(sig) and _hmac.compare_digest(expect, sig)
+
+@api_router.get("/media/sign")
+async def media_sign(u: str):
+    """Dă un link semnat cu expirare pentru un fișier audio din catalog."""
+    if not u.startswith("/api/files/"):
+        raise HTTPException(400, "URL invalid")
+    if "/uploads/audio/" not in u:
+        return {"url": u}  # coverele rămân publice
+    exists = await db.files.find_one({"serve_url": u, "is_deleted": False}, {"_id": 1})
+    if not exists:
+        raise HTTPException(404, "Fișier inexistent")
+    return {"url": sign_file_url(u)}
+
 @api_router.get("/files/{path:path}")
-async def serve_file(path: str):
+async def serve_file(path: str, exp: str = "", sig: str = ""):
     rec = await db.files.find_one({"storage_path": path, "is_deleted": False})
     if not rec:
         raise HTTPException(404, "Fișier inexistent")
+    # piesele audio nu se servesc fără link semnat și neexpirat
+    if "/uploads/audio/" in path:
+        if not verify_file_sig(rec["serve_url"], exp, sig):
+            raise HTTPException(403, "Link expirat — reia redarea de pe site")
     try:
         data, ct = await asyncio.to_thread(get_object, path)
     except Exception:
         raise HTTPException(404, "Fișier indisponibil")
     return Response(content=data, media_type=rec.get("content_type") or ct,
-                    headers={"Cache-Control": "public, max-age=86400"})
+                    headers={"Cache-Control": "private, no-store" if "/uploads/audio/" in path else "public, max-age=86400"})
 
 ALLOWED_AUDIO = {".mp3", ".wav", ".ogg", ".m4a"}
 ALLOWED_IMG = {".jpg", ".jpeg", ".png", ".webp"}

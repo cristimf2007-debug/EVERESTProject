@@ -7,6 +7,7 @@ import { FanProvider, useFan } from "@/context/FanContext";
 import api from "@/lib/api";
 import Ambience from "@/components/Ambience";
 import HalloweenIntro from "@/components/HalloweenIntro";
+import Protection from "@/components/Protection";
 import ChannelHeader from "@/components/ChannelHeader";
 import PlayerBar from "@/components/PlayerBar";
 import Live from "@/pages/Live";
@@ -81,6 +82,7 @@ function App() {
             <div className="grain-overlay" />
             <span className="limited-vertical hidden lg:block" aria-hidden="true">LIMITED&nbsp;2026&nbsp;·&nbsp;LIMITED&nbsp;2026</span>
             <HalloweenIntro />
+            <Protection />
             <Shell />
             <Toaster theme="dark" position="top-center" />
           </RadioProvider>

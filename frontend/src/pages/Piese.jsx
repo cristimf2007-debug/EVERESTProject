@@ -13,14 +13,16 @@ function fmt(sec) {
 }
 
 function TrackRow({ t, i }) {
-  const { current, playing, playTrack, toggle } = useRadio();
+  const { current, mode, playing, playTrack, toggle } = useRadio();
   const isCurrent = current?.id === t.id;
   const isPlayingThis = isCurrent && playing;
+  // dacă piesa e cea de pe radio, clickul intră în modul piesă (seek activ), nu doar pauză
+  const onClick = () => (isCurrent && mode === "track" ? toggle() : playTrack(t));
   return (
     <article
       data-testid={`track-card-${t.id}`}
-      className={`track-card glass rounded-2xl p-3.5 sm:p-4 flex items-center gap-4 cursor-pointer ${isCurrent ? "!border-[rgba(var(--accent-rgb),.5)]" : ""}`}
-      onClick={() => (isCurrent ? toggle() : playTrack(t))}
+      className={`track-card glass rounded-2xl p-3.5 sm:p-4 flex items-center gap-4 cursor-pointer ${isCurrent && mode === "track" ? "!border-[rgba(var(--accent-rgb),.5)]" : ""}`}
+      onClick={onClick}
     >
       <span className={`font-display text-xl sm:text-2xl font-black w-9 text-right shrink-0 ${isCurrent ? "text-[var(--accent)]" : "text-[var(--dim)]"}`}>
         {String(i + 1).padStart(2, "0")}

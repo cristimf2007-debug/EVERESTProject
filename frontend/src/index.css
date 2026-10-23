@@ -41,6 +41,7 @@ body {
   color: var(--frost);
   font-family: 'Onest', sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, .font-display { font-family: 'Unbounded', sans-serif; }
@@ -272,7 +273,7 @@ input[type="range"].vol::-moz-range-thumb {
   .pb { gap: 10px; }
   .pb-vol, .pb-eq, .pb-share, .pb-t-only { display: none; }
 }
-@media (max-width: 480px) { .pb-live { display: none; } }
+/* pastila LIVE rămâne vizibilă și pe mobil — e informație-cheie */
 @media (prefers-reduced-motion: reduce) {
   .pb.playing .pb-cover, .pb.playing .pb-eq i, .pb-live::before { animation: none; }
 }
