@@ -114,7 +114,8 @@ class LoginInput(BaseModel):
 @api_router.post("/auth/login")
 async def login(input: LoginInput, request: Request, response: Response):
     email = input.email.lower().strip()
-    identifier = f"{request.client.host}:{email}"
+    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
+    identifier = f"{ip}:{email}"
     attempts = await db.login_attempts.find_one({"identifier": identifier})
     if attempts and attempts.get("count", 0) >= 5:
         locked_until = attempts.get("locked_until")
