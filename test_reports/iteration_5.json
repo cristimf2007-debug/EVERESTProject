@@ -1,0 +1,38 @@
+{
+  "summary": "BIOXIC round 5 — anti-theft (signed audio) + round-4 fixes verification. Backend: 32/32 pytest pass (24 existing + 8 new signed-audio tests). Signed URL protection works end-to-end: GET /api/files/<audio>.wav without sig => 403; with /api/media/sign => 200/206; expired exp => 403; tampered sig => 403; covers remain public without sig; /api/media/sign rejects non-/api/files URLs with 400 and passes-through covers unchanged. Protection.jsx verified: contextmenu, F12, Ctrl+U, Ctrl+S all have defaultPrevented=true; normal 'a' key is NOT prevented (site remains usable). Mobile 390px: pb-live pill is now VISIBLE (box y=785, w=88 — iteration_4 bug FIXED). Audio element src on live playback carries ?exp=&sig= — signing flow works in browser. Piese seek fix verified: clicking the single track card now enters track mode (mode==='track'), player-progress gets 'seekable' class, player-live-badge hidden, track-playing-badge-* appears, audio.src is re-fetched signed; onSeek has Math.min/max clamp (0-1). ONE regression NOT fixed: mobile 390px still has 22px horizontal overflow (document.documentElement.scrollWidth=412 vs innerWidth=390). body has overflow-x:hidden but inner content width is 412. Main offenders: queue-item-* div (left=16, right=412, width=396) in Live/Playlist column; tabs row (right=404); tab-despre reaches right=399. The queue-row needs min-w-0/overflow-hidden on its text children or the whole queue container to compress on 390px.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Live queue row / tabs", "issue": "Mobile 390px horizontal overflow 22px persists (scrollWidth=412 vs innerWidth=390). Primary offender: [data-testid^=queue-item-] (right=412), secondary: tabs row (right=404) and [data-testid=tab-despre] (right=399). body has overflow-x:hidden masking the scroll, but scrollWidth test still fails per spec acceptance criterion.", "selector": "[data-testid^=\"queue-item-\"], .queue-row", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Mobile 390px live page", "issues": ["Queue rows and tabs row still slightly wider than viewport — add min-w-0 to queue-row text content and consider making tabs row scroll internally rather than extend."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_signed_audio.py",
+    "/app/backend/tests/test_chat_share.py",
+    "/app/backend/tests/test_new_features.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix remaining 22px mobile horizontal overflow at 390px: add min-w-0 (or overflow-hidden + truncate) to the queue-row inner text container (the artist/title block), and tighten padding of queue-row on <=390px. Also ensure the tabs row either wraps or scrolls internally within the viewport. Current body overflow-x:hidden hides it visually but the DOM test (documentElement.scrollWidth===innerWidth) still fails per spec."
+  ],
+  "critical_code_review_comments": [
+    "server.py sign_file_url truncates HMAC-SHA256 to 32 hex chars (128 bits) — acceptable but note it; keep secret rotation in mind.",
+    "RadioContext loadSrc requests /api/media/sign on every track switch — fine, but consider caching the signed url for the TTL window to reduce round-trips.",
+    "Protection.jsx is disuasive only (as code comment acknowledges) — real protection is the signed URLs; good layered approach.",
+    "PlayerBar.jsx onSeek has correct clamp 0..1 via Math.min/Math.max.",
+    "Piese.jsx:20 track card click uses isCurrent && mode==='track' ? toggle() : playTrack — correctly enters track mode on first click, confirmed with 1 track in catalog."
+  ],
+  "updated_files": ["/app/backend/tests/test_signed_audio.py"],
+  "success_rate": {"backend": "100% (32/32)", "frontend": "~92% (anti-theft, protection, LIVE pill, seek entry all OK; mobile overflow still 22px)"},
+  "test_credentials": "admin@bioxic.ro / bioxic2024 (unchanged; login worked in backend pytest)",
+  "seed_data_creation": "None persisted. Signed-URL tests only read audio/cover metadata; no new tracks or users created.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend signed-audio contract validated by /app/backend/tests/test_signed_audio.py (8 tests). Protection.jsx validated via synthetic KeyboardEvent/MouseEvent dispatch and defaultPrevented. Mobile pb-live now visible (iter_4 fix OK). Seek entry on single-track catalog now works (click card -> track mode). Remaining issue: scrollWidth>innerWidth by 22px on 390px due to queue-item width 396 and tabs row 388; body overflow-x hidden hides scroll but acceptance test still fails. If the next agent wants to run audio-progression verification, note that headless browser cannot actually play WAV reliably; verify audio.src signature and state transitions instead.",
+  "rca of the issue": "Mobile overflow at 390px: queue-row (left=16, right=412, width=396) exceeds inner viewport. Children likely include non-min-width-0 flex items (artist name + play count) that force the row to its intrinsic width. Fix: on <=480px, add min-w-0 + truncate to the inner text block of queue-row, reduce horizontal padding from px-4 to px-3, or set the queue container to overflow-hidden with inner flex items having min-w-0."
+}

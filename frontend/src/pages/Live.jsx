@@ -174,7 +174,7 @@ export default function Live() {
             </div>
 
         {/* chat + playlist */}
-            <div className="grid lg:grid-cols-2 gap-8 mt-14 sm:mt-16 items-start">
+            <div className="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-8 mt-14 sm:mt-16 items-start">
               <div className="min-w-0">
                 <LiveChat />
               </div>
@@ -191,22 +191,22 @@ export default function Live() {
                         <div
                           key={q.id}
                           data-testid={`queue-item-${q.id}`}
-                          className={`queue-row flex items-center gap-4 rounded-2xl px-4 py-3 border ${isNow ? "border-[rgba(var(--berry-rgb),.5)] bg-[rgba(var(--berry-rgb),.07)]" : "border-[var(--line)] glass"}`}
+                          className={`queue-row w-full min-w-0 overflow-hidden flex items-center gap-3 sm:gap-4 rounded-2xl px-3 sm:px-4 py-3 border ${isNow ? "border-[rgba(var(--berry-rgb),.5)] bg-[rgba(var(--berry-rgb),.07)]" : "border-[var(--line)] glass"}`}
                         >
-                          <span className={`font-display text-lg font-extrabold w-8 text-right ${isNow ? "text-[var(--berry)]" : "text-[var(--dim)]"}`}>
+                          <span className={`font-display text-lg font-extrabold w-8 text-right shrink-0 ${isNow ? "text-[var(--berry)]" : "text-[var(--dim)]"}`}>
                             {String(i + 1).padStart(2, "0")}
                           </span>
-                          <img src={mediaUrl(q.cover_url) || "/logo-alt.png"} alt="" className={`w-11 h-11 object-cover ${isNow ? "rounded-full vinyl-spin" : "rounded-xl"}`} />
+                          <img src={mediaUrl(q.cover_url) || "/logo-alt.png"} alt="" className={`w-11 h-11 object-cover shrink-0 ${isNow ? "rounded-full vinyl-spin" : "rounded-xl"}`} />
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-semibold truncate">{q.title}</p>
                             <p className="text-[10px] font-mono-x uppercase tracking-widest text-[var(--mist)]">{q.artist || "BIOXIC"}</p>
                           </div>
                           {isNow ? (
-                            <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">
+                            <span className="flex items-center gap-2 shrink-0 text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">
                               <Equalizer playing={playing} bars={4} color="var(--accent)" className="h-3.5" /> Acum
                             </span>
                           ) : (
-                            <span className="text-[11px] font-mono-x text-[var(--dim)]">{q.duration ? fmt(q.duration) : ""}</span>
+                            <span className="text-[11px] font-mono-x text-[var(--dim)] shrink-0">{q.duration ? fmt(q.duration) : ""}</span>
                           )}
                         </div>
                       );
