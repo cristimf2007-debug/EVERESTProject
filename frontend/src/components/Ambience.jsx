@@ -73,17 +73,22 @@ export default function Ambience() {
       <canvas ref={canvasRef} className="fixed inset-0 z-[1] pointer-events-none" aria-hidden="true" data-testid="embers" />
       <div className="ground-fog" aria-hidden="true" />
 
-      {/* dovleacul — colț stânga-jos, parțial tăiat de margine, lumânare pâlpâitoare */}
-      <div className="fixed -left-10 -bottom-8 z-[2] w-44 sm:w-56 pointer-events-none select-none" aria-hidden="true" data-testid="pumpkin">
+      {/* dovleacul — colț stânga-jos, topit în fundal cu mască radială, lumânare pâlpâitoare */}
+      <div className="fixed -left-12 -bottom-10 z-[2] w-48 sm:w-60 pointer-events-none select-none" aria-hidden="true" data-testid="pumpkin">
         <div
           className="absolute inset-0 candle-flicker rounded-full"
-          style={{ background: "radial-gradient(circle at 50% 60%, rgba(232,115,26,.34), transparent 65%)", transform: "scale(1.4)" }}
+          style={{ background: "radial-gradient(circle at 55% 62%, rgba(232,115,26,.3), transparent 62%)", transform: "scale(1.5)" }}
         />
         <img
           src="/halloween/pumpkin.png"
           alt=""
           className="relative w-full candle-flicker"
-          style={{ mixBlendMode: "screen", filter: "saturate(1.05)" }}
+          style={{
+            mixBlendMode: "screen",
+            filter: "saturate(1.05) brightness(0.92)",
+            WebkitMaskImage: "radial-gradient(circle at 50% 50%, #000 42%, transparent 72%)",
+            maskImage: "radial-gradient(circle at 50% 50%, #000 42%, transparent 72%)",
+          }}
         />
       </div>
 

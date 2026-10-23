@@ -38,13 +38,20 @@ export default function Live() {
             <div className="grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-10 lg:gap-14 items-center">
               {/* cover tip vinyl — rim portocaliu + pânză de păianjen */}
               <div className="relative mx-auto w-64 sm:w-80 lg:w-full max-w-sm">
-                <img
-                  src="/halloween/cobweb.png"
-                  alt=""
+                {/* pânză de păianjen — SVG real, desenat în cod, nu imagine */}
+                <svg
                   aria-hidden="true"
-                  className="absolute -top-6 -left-6 w-28 z-10 pointer-events-none opacity-25"
-                  style={{ mixBlendMode: "screen" }}
-                />
+                  className="absolute -top-4 -left-4 w-24 z-10 pointer-events-none"
+                  style={{ opacity: 0.18 }}
+                  viewBox="0 0 100 100"
+                  fill="none"
+                  stroke="#EDE6D6"
+                  strokeWidth="0.7"
+                >
+                  <path d="M0 0 L100 12 M0 0 L78 62 M0 0 L42 92 M0 0 L8 100 M0 0 L96 38" />
+                  <path d="M22 3 Q30 14 25 24 M46 6 Q55 24 47 42 M72 9 Q80 34 70 56" />
+                  <path d="M18 8 Q26 22 21 33 M14 22 Q24 34 31 31 M36 13 Q48 30 43 44" opacity="0.7" />
+                </svg>
                 <div className={`rounded-full overflow-hidden border border-[rgba(232,115,26,.45)] cover-glow ${playing && onAir ? "vinyl-spin" : "vinyl-spin vinyl-paused"}`}>
                   <img
                     src={mediaUrl(track.cover_url) || "/logo-alt.png"}
