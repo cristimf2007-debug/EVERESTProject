@@ -32,7 +32,8 @@ function TrackCard({ t }) {
         <img
           src={mediaUrl(t.cover_url) || "/logo-alt.png"}
           alt={t.title}
-          className="w-full h-full object-cover"
+          className={`w-full h-full ${t.cover_url ? "object-cover" : "object-contain p-8"}`}
+          style={{ background: "var(--site-panel-2)" }}
           loading="lazy"
         />
         <span className={`absolute inset-0 grid place-items-center transition-opacity duration-300 ${inTrackMode ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`} style={{ background: "rgba(10,8,7,.5)" }}>
