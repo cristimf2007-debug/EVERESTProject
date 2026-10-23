@@ -18,7 +18,7 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)  # fără Swagger/docs expuse
 api_router = APIRouter(prefix="/api")
 
 # ---------- EMERGENT OBJECT STORAGE ----------

@@ -14,6 +14,7 @@ import Live from "@/pages/Live";
 import Piese from "@/pages/Piese";
 import Pareri from "@/pages/Pareri";
 import Despre from "@/pages/Despre";
+import NotFound from "@/pages/NotFound";
 
 // Adminul se încarcă leneș — codul de administrare NU intră în bundle-ul public
 const Admin = lazy(() => import("@/pages/Admin"));
@@ -69,7 +70,7 @@ function Shell() {
               <Admin />
             </Suspense>
           } />
-          <Route path="*" element={<Live />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       <PlayerBar />
