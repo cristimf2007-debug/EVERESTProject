@@ -1,76 +1,34 @@
-# BIOXIC — PRD
+# BIOXIC — Site oficial (Radio Live 24/7)
 
-## Problem statement (original)
-Site oficial complet pentru artistul/producătorul BIOXIC (Manele Remixate + Manele Artificiale AI): pagină de intrare, home cu videoclipuri YouTube live din RSS, player muzical propriu persistent, pagină LIVE cu chat realtime și reacții, galerie videoclipuri, despre, contact/booking, panou admin (upload piese, control live, moderare, statistici), conturi de fan cu Google + email, notificări email la lansări, Discord BIOXIC HOUSE, temă dark verde-toxic (#39FF14 / #050805), română.
+## Concept curent (după rebuild-ul din 23 oct 2026)
+Site în stil de **canal YouTube** pentru artistul BIOXIC (manele / remixuri / mashup-uri).
+Feature-ul central: **RADIO LIVE 24/7 sincronizat** — toți vizitatorii aud aceeași piesă, la aceeași secundă, ca la radio.
+Tagline: „No risks, no hits." — fără estetică generică AI, fără termeni „virus/toxic".
 
-## Stack (adaptat la platformă)
-React (CRA/craco) + FastAPI + MongoDB (motor). Uploaduri → Emergent Object Storage. Auth: JWT (bcrypt) + Emergent Google OAuth. Email: Resend managed prin proxy Emergent. WS propriu pentru chat live. YouTube RSS fără cheie API.
+## Structură
+- `/` — Live 24/7: vinyl rotativ, equalizer, badge LIVE + contor ascultători (heartbeat), „Acum la radio", „Urmează", playlistul în rotație
+- `/piese` — carduri stil YouTube cu cover, redări, durată; play individual → revine automat la live la final
+- `/despre` — bio, statistici, social (YouTube @djbioxic, TikTok @bioxic.exe, IG @crss.exe_, Spotify)
+- `/admin` — DOAR upload muzică (MP3/WAV + cover), listă piese, ștergere, „sari la piesa următoare"
 
-## Identitate & reguli de brand
-- Numele: BIOXIC (mereu caps). Motto: „No risks, no hits." — NICIODATĂ „virus"/„infecție" în copy (utilizatorul a interzis explicit).
-- Citat: „Un tinerel în curs de perfeționare" — Nicolae Guță.
-- Despre: Cristi, 19 ani, 50M+ vizualizări, colaborări: Nicolae Guță, Nek Music, Șușanu, 210 Production, AMMA, Big Up Music.
-- Logo: logo.png (mare, italic) = hero/first page; logo-alt.png (orizontal) = navbar/cont/favicon. Nu repeta logo-ul excesiv.
-- Linkuri: YouTube @djbioxic (UC2gQmatVSAB3nzqeDmYY3gw), TikTok @bioxic.exe, Instagram @crss.exe_, Spotify artist 4tlelg9L2y1OFOVpUkIiAK, Discord https://discord.gg/PJ5A45SkRs, WhatsApp +44 7400 998964.
-- Ecranul de intrare cu tranziție GSAP a fost ELIMINAT la cererea utilizatorului (22.10) — site-ul intră direct pe Home.
+## Arhitectură
+- Frontend: React + Tailwind, `RadioContext` (audio global, sync 12s, drift >3s, heartbeat 30s), `ChannelHeader`, `PlayerBar` persistent, `Equalizer`
+- Backend: FastAPI + MongoDB; motor radio: colecția `radio` (index + started_at), durată piesă calculată cu mutagen la upload/leneș, ascultători în `radio_listeners` (75s fereastră), abonați în `channel_subs`
+- Storage: Emergent Object Storage (`/api/files/...`)
+- Auth: JWT admin (admin@bioxic.ro / bioxic2024 — TEST)
 
-## Implementat (22.10.2026, iter 5b — fix UX)
-- Fix: piesa featured nu mai dispare la filtrare (catalogul se aduce complet, filtrarea e client-side; featured rămâne mereu vizibilă; mesaj prietenos când o categorie e goală).
-- Fix mobil: butoanele playerului (shuffle, repeat, play, next) vizibile și funcționale și pe telefon; repeat testat — se activează.
+## Endpoint-uri cheie
+- `GET /api/radio/now` · `POST /api/radio/heartbeat` · `POST /api/admin/radio/skip`
+- `GET /api/channel/stats` · `POST /api/channel/subscribe`
+- `GET /api/tracks` · `POST /api/admin/tracks` · `DELETE /api/admin/tracks/{id}`
+- `POST /api/auth/login`
 
-## Implementat (22.10.2026, iter 5 — PIESA #01 reală)
-- Șterse toate cele 4 piese demo. Adăugată piesa reală „Ce bunaciune (Remake AI Cover)" — BIOXIC × Florin Salam: WAV 37MB + cover oficial (1254px) în object storage.
-- Pagină dedicată /muzica/01: hero cu cover care pulsează pe beat, buton PLAY uriaș, vizualizator canvas sub cover, statistici count-up (200K+ TikTok / 243K sunet / 21K+ folosiri), linkuri (TikTok/YouTube/Spotify/Instagram; SoundCloud ascuns până la link), Share cu pagină OG dedicată (/api/share/01 — arată cover pe WhatsApp/TikTok), „Povestea piesei" cu text exact + cronologie verticală aliniată (22.09 TikTok → SoundCloud→YouTube +2 zile → Apelul → Copyright → Strike → Dat jos).
-- Seiful: card featured mare cu badge-uri (#01, COVER, VIRAL TIKTOK, DAT JOS DE PE YOUTUBE).
-- Admin: „Editează" pe fiecare piesă — titlu, artist, dată, badge-uri, linkuri, statistici, poveste (PATCH extins cu story/links/stats/badges/timeline/nr/slug/featured).
-- Backend: GET /api/tracks acceptă și slug; /api/share/{slug} servește HTML cu Open Graph.
+## Changelog
+- 23.10.2026 — REBUILD TOTAL: șters conceptul vechi (Iarnă/Ianuarie, chat, gaming, conturi fan, pagina piesei #01 dedicată); reconstruit ca canal YouTube cu radio 24/7; reparat bugul critic „Maximum update depth exceeded" (countdown cu dep instabilă) care îngheța toată navigarea; testat 100% backend+frontend (iteration_1.json)
+- mai devreme — teme Iarnă/Ianuarie, auth Google+fani, anunțuri, pagină Track #01 (toate eliminate la rebuild)
 
-## Implementat (22.10.2026, iter 4 — TEME: Iarnă / Ianuarie)
-- Toate culorile hardcodate au devenit variabile CSS (--accent, --night, --frost, --mist, --berry etc.).
-- Temă „Ianuarie" (stil glass-navigation din referința Webflow): navbar plutitor tip pill de sticlă (blur 26px, glow albastru-violet), fundal navy #05070f cu blobs cyan/violet, panouri glass albe, accent #5ec8ff, player dock plutitor, wordmark de gheață; fără ninsoare/brazi/ghirlandă/intro; countdown „Până la Anul Nou"; footer „No risks, no hits.".
-- Switch din Admin → Conținut → „Temă site" (Iarnă · Crăciun / Ianuarie · Glass), salvat în site_content.theme, aplicat global prin html[data-theme]. Activ acum: ianuarie.
-
-## Implementat (22.10.2026, iter 3 — REDESIGN „Noapte de iarnă")
-- Temă vizuală nouă peste TOT site-ul (din /app/design/direction.html furnizat de user): noapte de brad (#06110d), auriu lumânare #f3c46a (accent principal), cranberry #d03a45 (badge NOU/ANUNȚ/live), text #eaf2ed/#9db3a8.
-- Fonturi: Unbounded (titluri/wordmark), Onest (text), JetBrains Mono (etichete/durate).
-- Atmosferă globală: ninsoare canvas (fulgi cu glow, legănați), siluete de brazi 3 straturi (SVG generat), grain de film animat, ghirlandă de beculețe sub header (sclipire individuală), panouri „sticlă înghețată" cu margine de chiciură (frost-edge).
-- Intro cinematic <2s (wordmark cu sclipire aurie, o dată pe sesiune, respectă reduced-motion).
-- Home: wordmark BIOXIC cu „zăpadă" pe litere, numărătoare live până la Crăciun, stats (~50M / 5M „Sună și mergem" / 3 meserii), chips colaborări (Guță, Nek, Șușanu, Lucheș, 210 Production), Noutăți (anunțuri), Exclusiv (ultima piesă din seif, play direct), socials + Discord.
-- Piese = „Seiful BIOXIC": titlu „Piese care nu sunt pe YouTube", sigiliu roșu rotativ, căutare, Ascultă tot, Follow, rânduri de piese cu EQ animat; player dock jos cu waveform canvas auriu (seek la click), butoane rotunde.
-- Contact: „Hai să facem un hit.", pills de subiect, formular-scrisoare cu stare TRIMIS (ștampilă), copylines (@crss.exe_, @bioxic.exe, +44 7400 998964).
-- Toate funcțiile platformei rămân: Live/Gaming/Videoclipuri/Despre/Admin/Cont re-temate automat în auriu.
-
-## Implementat (22.10.2026, iter 2)
-- Home curățat: fără secțiunea „Ultimele videoclipuri"; secțiune ANUNȚURI (admin postează → apare pe Home + notificare on-site + email).
-- Canalul BIOXIC (/muzica): header de canal cu Follow (contor), listă piese stil Spotify, secțiune Everest Manele cu cele 5 piese oficiale (Apple Music/YT Music) + linkuri platforme (Spotify = „în curând").
-- Live: prezență cu nume+avatar (join/leave în chat), tap-tap likes cu contor, panou donații (PayPal + transfer UK), follow direct din pagină, profiluri clickabile din chat.
-- Profil fan: editare nume/bio/avatar/banner (upload în object storage), profil public /fan/:id.
-- Gaming (/gaming): control live separat din admin, clipuri gaming uploadate (MP4), CTA Discord.
-- Notificări on-site: clopoțel în navbar cu badge necitite (live/gaming/piesă/video/anunț).
-- Admin: taburi noi — Video (upload MP4), Anunțuri, Admini (multi-admin), control Gaming.
-- Securitate: rutele admin verifică role=admin (fanii primesc 401/403).
-- Curățenie brand: eliminate toate imaginile/referințele „toxic"/virus (inclusiv coverurile demo).
-
-## Implementat (22.10.2026, iter 1)
-- Home: hero cu poza artistului + logo + „No risks, no hits.", card Ultima lansare, ticker marquee, videoclipuri YouTube din RSS cu filtre (Toate/Remixuri/AI/Originale) + badge NOU, stats, carduri Remixate vs AI, citat Guță, secțiune Discord BIOXIC HOUSE + cont fan, CTA live.
-- Muzică: player persistent (play/pause/next/prev/shuffle/repeat/volum/progres/vizualizare), filtre, like (+favorite în cont), ascultări, share link, download per piesă, comentarii.
-- Live: embed YouTube live, chat WS realtime, reacții animate (fire/heart/crown), contor spectatori, cereri de piese, program + countdown.
-- Videoclipuri: galerie RSS + lightbox + căutare.
-- Despre: poveste, citat, colaborări, timeline.
-- Contact: formular booking, WhatsApp, Discord, social, newsletter.
-- Cont fan: email/parolă + Google (Emergent OAuth), profil, favorite, notificări.
-- Admin /admin: login, upload/edit/ștergere piese (audio+cover în object storage), control LIVE + program, moderare chat/comentarii (ban/șterge), cereri, mesaje, statistici, editare texte.
-- Automatizări: detectare videoclip nou din RSS → banner mare pe site (poll 60s) + email abonați; email la piesă nouă / live pornit (Resend managed); newsletter.
-- SEO: title/OG/favicon; performanță: imagini optimizate (artist.jpg 172KB), lazy loading, canvas particles ușor.
-
-## Placeholdere rămase (de completat de utilizator)
-- [EMAIL_OFICIAL] — email oficial contact
-- [LINK_PAYPAL] — link donații PayPal
-- YOUTUBE_API_KEY — pentru contoare live abonați/vizualizări (altfel fallback static)
-- Logo-urile colaboratorilor (acum text)
-- Piese reale MP3 (acum 4 demo generate, marcate [DEMO])
-
-## Backlog
-- P0: nimic blocant
-- P1: toggle EN/RO, PWA manifest complet, mod „Party" vizualizator fullscreen, story-uri/postări pe profilul fanilor, mesaje private între fani
-- P2: RTMP direct (Mux/Cloudflare Stream), apeluri audio/video fan→fan (WebRTC — necesită infra separată), waveform real (WebAudio analyser)
+## Backlog prioritizat
+- P0: utilizatorul urcă piesele reale din /admin (radioul le preia automat în rotație)
+- P1: link SoundCloud real pentru BIOXIC (dacă mai e dorit undeva pe site)
+- P2: chat live sub radio (tip YouTube Live), playlist-uri, program live-uri anunțate
+- P2: refactor server.py (1450+ linii) în routers separate
