@@ -2,11 +2,13 @@ import React, { createContext, useContext, useEffect, useRef, useState, useCallb
 import api, { mediaUrl, getSid } from "@/lib/api";
 
 const RadioContext = createContext(null);
-const DRIFT = 3; // secunde — toleranță de sincronizare cu radioul
+const DRIFT = 6; // secunde — toleranță de sincronizare cu radioul
+const SEEK_COOLDOWN = 15000; // după o corecție, nu mai corecta o perioadă (evită re-buffering în lanț)
 
 export function RadioProvider({ children }) {
   const audioRef = useRef(null);
   const pendingSeekRef = useRef(null);
+  const lastSeekRef = useRef(0);
   const modeRef = useRef("live");
   const playingRef = useRef(false);
   const [mode, setModeState] = useState("live"); // "live" | "track"
@@ -38,10 +40,15 @@ export function RadioProvider({ children }) {
         pendingSeekRef.current = data.position;
         audio.src = src;
         audio.load();
-      } else if (Math.abs(audio.currentTime - data.position) > DRIFT) {
+      } else if (
+        Math.abs(audio.currentTime - data.position) > DRIFT &&
+        !audio.seeking && audio.readyState >= 3 &&
+        Date.now() - lastSeekRef.current > SEEK_COOLDOWN
+      ) {
+        lastSeekRef.current = Date.now();
         audio.currentTime = data.position;
       }
-      if (playingRef.current) audio.play().catch(() => setPlaying(false));
+      if (playingRef.current && audio.paused) audio.play().catch(() => setPlaying(false));
     } catch { /* reîncearcă la ciclul următor */ }
   }, []);
 

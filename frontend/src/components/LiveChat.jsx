@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Send, Users, Heart, Flame, Crown } from "lucide-react";
-import { WS_URL } from "@/lib/api";
+import { Send, Users, Heart, Flame, Crown, LogIn } from "lucide-react";
+import { WS_URL, mediaUrl } from "@/lib/api";
+import { useFan } from "@/context/FanContext";
 
 const REACTION_META = {
   heart: { icon: Heart, color: "var(--berry)", fill: true },
@@ -10,6 +11,7 @@ const REACTION_META = {
 
 // Chat live sub radio — realtime prin WebSocket
 export default function LiveChat() {
+  const { me, setLoginOpen } = useFan();
   const [messages, setMessages] = useState([]);
   const [viewers, setViewers] = useState(0);
   const [likes, setLikes] = useState(0);
@@ -26,8 +28,15 @@ export default function LiveChat() {
     let stopped = false;
     let retry;
     let ping;
+    const seen = new Set();
+    const push = (msg) => {
+      if (msg.id && seen.has(msg.id)) return; // niciodată dubluri
+      if (msg.id) { seen.add(msg.id); if (seen.size > 400) seen.clear(); }
+      setMessages((ms) => [...ms.slice(-80), msg]);
+    };
     const connect = () => {
       if (stopped) return;
+      if (ws && (ws.readyState === 0 || ws.readyState === 1)) return; // o singură conexiune
       ws = new WebSocket(WS_URL);
       wsRef.current = ws;
       ws.onopen = () => {
@@ -45,12 +54,14 @@ export default function LiveChat() {
       ws.onmessage = (ev) => {
         let data;
         try { data = JSON.parse(ev.data); } catch { return; }
-        if (data.type === "history") setMessages(data.messages.map((m) => ({ ...m, type: "message" })));
-        else if (data.type === "message") setMessages((ms) => [...ms.slice(-80), data]);
+        if (data.type === "history") {
+          setMessages(data.messages.filter((m) => !seen.has(m.id)).map((m) => { seen.add(m.id); return { ...m, type: "message" }; }));
+        }
+        else if (data.type === "message") push(data);
         else if (data.type === "viewers") setViewers(data.count);
         else if (data.type === "like_count") setLikes(data.total);
-        else if (data.type === "join") setMessages((ms) => [...ms.slice(-80), { id: data.id, type: "sys", text: `${data.name} a intrat pe chat` }]);
-        else if (data.type === "leave") setMessages((ms) => [...ms.slice(-80), { id: data.id, type: "sys", text: `${data.name} a ieșit` }]);
+        else if (data.type === "join") push({ id: data.id, type: "sys", text: `${data.name} a intrat pe chat` });
+        else if (data.type === "leave") push({ id: data.id, type: "sys", text: `${data.name} a ieșit` });
         else if (data.type === "delete") setMessages((ms) => ms.filter((m) => m.id !== data.id));
         else if (data.type === "reaction" && REACTION_META[data.emoji]) {
           const id = data.id;
@@ -112,10 +123,19 @@ export default function LiveChat() {
           m.type === "sys" ? (
             <p key={m.id} className="chat-msg text-[11px] font-mono-x text-[var(--dim)] italic">{m.text}</p>
           ) : (
-            <div key={m.id} className="chat-msg text-sm" data-testid={`chat-message-${m.id}`}>
-              <span className="font-semibold text-[var(--accent)]">{m.name}</span>
-              <span className="text-[var(--dim)]"> · </span>
-              <span className="text-[var(--frost)]/90">{m.text}</span>
+            <div key={m.id} className="chat-msg flex items-start gap-2.5 text-sm" data-testid={`chat-message-${m.id}`}>
+              {m.picture ? (
+                <img src={mediaUrl(m.picture)} alt={m.name} className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5" />
+              ) : (
+                <span className="grid w-7 h-7 rounded-full place-items-center text-[10px] font-black shrink-0 mt-0.5 text-[var(--on-accent)]" style={{ background: "linear-gradient(180deg, var(--accent-hi), var(--accent))" }}>
+                  {(m.name || "F")[0].toUpperCase()}
+                </span>
+              )}
+              <p className="min-w-0">
+                <span className="font-semibold text-[var(--accent)]">{m.name}</span>
+                <span className="text-[var(--dim)]"> · </span>
+                <span className="text-[var(--frost)]/90 break-words">{m.text}</span>
+              </p>
             </div>
           )
         )}
@@ -152,17 +172,44 @@ export default function LiveChat() {
       </div>
 
       <div className="border-t border-[var(--line)] p-3.5">
-        {!nameSet ? (
-          <form onSubmit={saveName} className="flex gap-2">
+        {me ? (
+          <form onSubmit={send} className="flex items-center gap-2.5">
+            {me.picture ? (
+              <img src={mediaUrl(me.picture)} alt={me.name} className="w-9 h-9 rounded-full object-cover shrink-0" data-testid="chat-my-avatar" />
+            ) : (
+              <span className="grid w-9 h-9 rounded-full place-items-center text-xs font-black shrink-0 text-[var(--on-accent)]" style={{ background: "linear-gradient(180deg, var(--accent-hi), var(--accent))" }} data-testid="chat-my-avatar">
+                {(me.name || "F")[0].toUpperCase()}
+              </span>
+            )}
             <input
-              data-testid="chat-name-input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Numele tău de fan…"
-              maxLength={24}
+              data-testid="chat-text-input"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={`Scrie ca ${me.name}…`}
+              maxLength={300}
               className="flex-1 rounded-full bg-black/30 border border-[var(--line)] px-4 py-2.5 text-sm outline-none focus:border-[rgba(var(--accent-rgb),.5)] transition-colors"
             />
-            <button data-testid="chat-name-save" className="btn-x gold !py-2.5 !px-5 text-xs font-bold uppercase tracking-widest">Intră</button>
+            <button data-testid="chat-send-button" className="btn-x gold !p-2.5 rounded-full shrink-0" aria-label="Trimite">
+              <Send size={16} />
+            </button>
+          </form>
+        ) : !nameSet ? (
+          <form onSubmit={saveName} className="space-y-2.5">
+            <div className="flex gap-2">
+              <input
+                data-testid="chat-name-input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Numele tău de fan…"
+                maxLength={24}
+                className="flex-1 rounded-full bg-black/30 border border-[var(--line)] px-4 py-2.5 text-sm outline-none focus:border-[rgba(var(--accent-rgb),.5)] transition-colors"
+              />
+              <button data-testid="chat-name-save" className="btn-x gold !py-2.5 !px-5 text-xs font-bold uppercase tracking-widest">Intră</button>
+            </div>
+            <button type="button" data-testid="chat-login-link" onClick={() => setLoginOpen(true)}
+              className="w-full flex items-center justify-center gap-1.5 text-[10px] font-mono-x uppercase tracking-widest text-[var(--dim)] hover:text-[var(--accent)] transition-colors">
+              <LogIn size={11} /> sau intră în cont — cu nume și poză de profil
+            </button>
           </form>
         ) : (
           <form onSubmit={send} className="flex gap-2">

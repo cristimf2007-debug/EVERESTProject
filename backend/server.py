@@ -833,11 +833,11 @@ async def create_track(
              "created_at": datetime.now(timezone.utc).isoformat()}
     await db.tracks.insert_one(track)
     track.pop("_id", None)
-    asyncio.create_task(push_notification("piesa", "Piesă nouă: " + title, "Disponibilă acum pe canal.", f"/muzica?track={track['id']}"))
+    asyncio.create_task(push_notification("piesa", "Piesă nouă: " + title, "Disponibilă acum pe canal.", "/piese"))
     asyncio.create_task(notify_subscribers(
         titlu="Piesă nouă: " + title,
         mesaj="BIOXIC tocmai a lansat o piesă nouă pe site. Ascult-o prima dată aici, înainte să ajungă peste tot.",
-        cta_text="Ascultă acum", cta_url=f"{SITE_URL}/muzica?track={track['id']}",
+        cta_text="Ascultă acum", cta_url=f"{SITE_URL}/piese",
         subject=f"Piesă nouă BIOXIC: {title[:60]}"))
     return track
 
@@ -977,10 +977,19 @@ async def channel_subscribe(request: Request):
     sid = str(body.get("sid", ""))[:64]
     if not sid:
         raise HTTPException(400, "sid lipsă")
+    email = str(body.get("email", "")).strip().lower()[:120]
+    # dacă e logat, folosim automat emailul contului
+    fan = await get_optional_fan(request)
+    if fan and fan.get("email"):
+        email = fan["email"]
     if body.get("subscribed"):
         await db.channel_subs.update_one({"sid": sid}, {"$set": {"sid": sid}}, upsert=True)
+        if email:
+            await db.newsletter.update_one({"email": email}, {"$set": {"email": email}}, upsert=True)
     else:
         await db.channel_subs.delete_one({"sid": sid})
+        if email:
+            await db.newsletter.delete_one({"email": email})
     return {"subscribers": await db.channel_subs.count_documents({})}
 
 # ---------- COMMENTS ----------
