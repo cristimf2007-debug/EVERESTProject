@@ -719,7 +719,7 @@ async def share_track(slug: str):
         cover = base + cover
     title = html_escape(f"BIOXIC — {t['title']}")
     desc = html_escape("Ascultă piesa doar aici, în seif. No risks, no hits.")
-    page_url = f"{base}/muzica/{t.get('slug', t['id'])}"
+    page_url = f"{base}/piese"
     html = f"""<!doctype html><html lang="ro"><head>
 <meta charset="utf-8"><title>{title}</title>
 <meta property="og:title" content="{title}">
@@ -811,13 +811,23 @@ async def create_track(
     admin=Depends(get_current_admin)):
     if not audio:
         raise HTTPException(400, "Fișierul audio este obligatoriu")
+    raw = await audio.read()
+    duration = None
+    try:
+        from mutagen import File as MutagenFile
+        mf = MutagenFile(io.BytesIO(raw))
+        if mf is not None and getattr(mf, "info", None) and getattr(mf.info, "length", None):
+            duration = round(float(mf.info.length), 2)
+    except Exception:
+        duration = None
+    await audio.seek(0)
     audio_url = await save_upload(audio, "audio", ALLOWED_AUDIO)
     final_cover = cover_url
     if cover and cover.filename:
         final_cover = await save_upload(cover, "covers", ALLOWED_IMG)
     track = {"id": str(uuid.uuid4()), "title": title, "artist": "BIOXIC", "genre": genre,
              "tags": [t.strip() for t in tags.split(",") if t.strip()], "lyrics": lyrics,
-             "audio_url": audio_url, "cover_url": final_cover,
+             "audio_url": audio_url, "cover_url": final_cover, "duration": duration,
              "download_enabled": download_enabled, "plays": 0, "likes": 0,
              "created_at": datetime.now(timezone.utc).isoformat()}
     await db.tracks.insert_one(track)
@@ -851,6 +861,126 @@ async def delete_track(track_id: str, admin=Depends(get_current_admin)):
         raise HTTPException(404, "Piesa nu există")
     await db.comments.delete_many({"track_id": track_id})
     return {"ok": True}
+
+# ---------- RADIO 24/7 (sincronizat — toți ascultătorii aud aceeași secundă) ----------
+
+RADIO_FALLBACK_DURATION = 240.0
+
+async def radio_queue():
+    return await db.tracks.find({}, {"_id": 0}).sort([("created_at", 1)]).to_list(500)
+
+async def track_duration(t) -> float:
+    d = t.get("duration")
+    if d:
+        return float(d)
+    try:
+        rec = await db.files.find_one({"serve_url": t.get("audio_url"), "is_deleted": False})
+        if rec:
+            data, _ct = await asyncio.to_thread(get_object, rec["storage_path"])
+            from mutagen import File as MutagenFile
+            mf = await asyncio.to_thread(MutagenFile, io.BytesIO(data))
+            if mf is not None and getattr(mf, "info", None) and getattr(mf.info, "length", None):
+                dur = round(float(mf.info.length), 2)
+                await db.tracks.update_one({"id": t["id"]}, {"$set": {"duration": dur}})
+                return dur
+    except Exception as ex:
+        logger.warning(f"Durata necunoscută pentru piesa {t.get('id')}: {ex}")
+    return RADIO_FALLBACK_DURATION
+
+async def radio_resolve(state: dict, tracks: list, now: datetime) -> dict:
+    """Avansează starea radio peste piesele terminate — matematic, oricât timp a trecut."""
+    durs = [await track_duration(t) for t in tracks]
+    total = sum(durs) or RADIO_FALLBACK_DURATION
+    started = datetime.fromisoformat(state["started_at"])
+    elapsed = max(0.0, (now - started).total_seconds())
+    idx = state.get("index", 0) % len(tracks)
+    offset_before = sum(durs[:idx])
+    pos = (offset_before + elapsed) % total
+    acc = 0.0
+    new_idx, in_track = 0, 0.0
+    for i, d in enumerate(durs):
+        if pos < acc + d:
+            new_idx, in_track = i, pos - acc
+            break
+        acc += d
+    new_started = now - timedelta(seconds=in_track)
+    return {"index": new_idx, "started_at": new_started.isoformat()}
+
+async def active_listeners() -> int:
+    cutoff = (datetime.now(timezone.utc) - timedelta(seconds=75)).isoformat()
+    return await db.radio_listeners.count_documents({"last_seen": {"$gte": cutoff}})
+
+@api_router.get("/radio/now")
+async def radio_now():
+    tracks = await radio_queue()
+    listeners = await active_listeners()
+    if not tracks:
+        return {"live": False, "track": None, "next": None, "position": 0, "duration": 0,
+                "queue": [], "listeners": listeners,
+                "server_time": datetime.now(timezone.utc).isoformat()}
+    now = datetime.now(timezone.utc)
+    state = await db.radio.find_one({"id": "state"}, {"_id": 0})
+    if not state:
+        state = {"id": "state", "index": 0, "started_at": now.isoformat()}
+        await db.radio.insert_one({k: v for k, v in state.items()})
+    resolved = await radio_resolve(state, tracks, now)
+    if resolved["index"] != state.get("index") or resolved["started_at"] != state.get("started_at"):
+        await db.radio.update_one({"id": "state"}, {"$set": resolved})
+    idx = resolved["index"] % len(tracks)
+    t = tracks[idx]
+    dur = await track_duration(t)
+    started = datetime.fromisoformat(resolved["started_at"])
+    position = min(max(0.0, (now - started).total_seconds()), dur)
+    nxt = tracks[(idx + 1) % len(tracks)]
+    slim = lambda x: {"id": x["id"], "title": x["title"], "artist": x.get("artist", "BIOXIC"),
+                      "cover_url": x.get("cover_url", ""), "duration": x.get("duration")}
+    return {"live": True, "track": slim(t) | {"audio_url": t.get("audio_url", "")},
+            "next": slim(nxt) if nxt["id"] != t["id"] else slim(t),
+            "position": round(position, 2), "duration": dur,
+            "queue": [slim(x) for x in tracks], "listeners": listeners,
+            "server_time": now.isoformat()}
+
+@api_router.post("/radio/heartbeat")
+async def radio_heartbeat(request: Request):
+    body = await request.json()
+    sid = str(body.get("sid", ""))[:64]
+    if not sid:
+        raise HTTPException(400, "sid lipsă")
+    await db.radio_listeners.update_one(
+        {"sid": sid},
+        {"$set": {"last_seen": datetime.now(timezone.utc).isoformat()}},
+        upsert=True)
+    return {"listeners": await active_listeners()}
+
+@api_router.post("/admin/radio/skip")
+async def radio_skip(admin=Depends(get_current_admin)):
+    tracks = await radio_queue()
+    if not tracks:
+        raise HTTPException(400, "Nu există piese în radio")
+    state = await db.radio.find_one({"id": "state"}, {"_id": 0}) or {"index": 0}
+    new = {"index": (state.get("index", 0) + 1) % len(tracks),
+           "started_at": datetime.now(timezone.utc).isoformat()}
+    await db.radio.update_one({"id": "state"}, {"$set": new}, upsert=True)
+    return {"ok": True, "track": tracks[new["index"]]["title"]}
+
+# ---------- CANAL (abonați) ----------
+
+@api_router.get("/channel/stats")
+async def channel_stats():
+    subs = await db.channel_subs.count_documents({})
+    return {"subscribers": subs}
+
+@api_router.post("/channel/subscribe")
+async def channel_subscribe(request: Request):
+    body = await request.json()
+    sid = str(body.get("sid", ""))[:64]
+    if not sid:
+        raise HTTPException(400, "sid lipsă")
+    if body.get("subscribed"):
+        await db.channel_subs.update_one({"sid": sid}, {"$set": {"sid": sid}}, upsert=True)
+    else:
+        await db.channel_subs.delete_one({"sid": sid})
+    return {"subscribers": await db.channel_subs.count_documents({})}
 
 # ---------- COMMENTS ----------
 
@@ -1304,7 +1434,6 @@ async def startup():
     except Exception as ex:
         logger.error(f"Storage init failed: {ex}")
     await seed_admin()
-    await seed_tracks()
     logger.info("BIOXIC backend pornit")
 
 app.include_router(api_router)

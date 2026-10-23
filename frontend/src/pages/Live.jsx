@@ -1,311 +1,175 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { Flame, Heart, Crown, Send, Radio, Users, CalendarClock, Music, Hand, Copy, CreditCard, UserPlus, UserCheck } from "lucide-react";
-import api, { WS_URL } from "@/lib/api";
-import { useFan } from "@/context/FanContext";
-import { toast } from "sonner";
+import React from "react";
+import { Play, Pause, Volume2, ListMusic, Users } from "lucide-react";
+import { useRadio } from "@/context/RadioContext";
+import { mediaUrl } from "@/lib/api";
+import Equalizer from "@/components/Equalizer";
 
-const CHANNEL_ID = "UC2gQmatVSAB3nzqeDmYY3gw";
-const REACTION_ICONS = { fire: Flame, heart: Heart, crown: Crown };
+const CROWD_BG = "https://images.pexels.com/photos/8448566/pexels-photo-8448566.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
-function Countdown({ target }) {
-  const [left, setLeft] = useState("");
-  useEffect(() => {
-    const tick = () => {
-      const diff = new Date(target) - new Date();
-      if (diff <= 0) { setLeft("Începe curând"); return; }
-      const d = Math.floor(diff / 86400000);
-      const h = Math.floor((diff % 86400000) / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setLeft(`${d > 0 ? `${d}z ` : ""}${h}h ${m}m ${s}s`);
-    };
-    tick();
-    const t = setInterval(tick, 1000);
-    return () => clearInterval(t);
-  }, [target]);
-  return <span data-testid="live-countdown" className="font-display text-[var(--accent)] text-glow tabular-nums">{left}</span>;
-}
-
-function Avatar({ name, picture, size = 22 }) {
-  if (picture) return <img src={picture} alt={name} className="rounded-full border border-[var(--accent)]/50 object-cover" style={{ width: size, height: size }} />;
-  return (
-    <span className="rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/40 flex items-center justify-center text-[var(--accent)] font-bold" style={{ width: size, height: size, fontSize: size * 0.45 }}>
-      {(name || "F")[0].toUpperCase()}
-    </span>
-  );
+function fmt(sec) {
+  if (!sec || !isFinite(sec)) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 export default function Live() {
-  const { fan } = useFan();
-  const [status, setStatus] = useState(null);
-  const [schedule, setSchedule] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [viewers, setViewers] = useState(0);
-  const [viewersList, setViewersList] = useState([]);
-  const [likes, setLikes] = useState(0);
-  const [reactions, setReactions] = useState([]);
-  const [name, setName] = useState(localStorage.getItem("bioxic_name") || "");
-  const [input, setInput] = useState("");
-  const [reqSong, setReqSong] = useState("");
-  const [connected, setConnected] = useState(false);
-  const [follow, setFollow] = useState({ followers: 0, following: false });
-  const wsRef = useRef(null);
-  const chatEndRef = useRef(null);
+  const { liveInfo, current, playing, mode, progress, duration, volume, listeners, toggle, setVolume } = useRadio();
 
-  useEffect(() => {
-    api.get("/live/status").then((r) => { setStatus(r.data); setViewers(r.data.viewers || 0); setViewersList(r.data.viewers_list || []); setLikes(r.data.likes || 0); }).catch(() => {});
-    api.get("/live/schedule").then((r) => setSchedule(r.data || [])).catch(() => {});
-    api.get("/follow/status").then((r) => setFollow(r.data)).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    let ws;
-    let closed = false;
-    const connect = () => {
-      ws = new WebSocket(WS_URL);
-      wsRef.current = ws;
-      ws.onopen = () => setConnected(true);
-      ws.onclose = () => { setConnected(false); if (!closed) setTimeout(connect, 3000); };
-      ws.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (data.type === "history") setMessages(data.messages.map((m) => ({ ...m, type: "message" })));
-          else if (data.type === "message") setMessages((m) => [...m.slice(-100), data]);
-          else if (data.type === "join") setMessages((m) => [...m.slice(-100), { id: data.id, type: "system", text: `${data.name} a intrat în live`, picture: data.picture }]);
-          else if (data.type === "leave") setMessages((m) => [...m.slice(-100), { id: data.id, type: "system", text: `${data.name} a ieșit` }]);
-          else if (data.type === "delete") setMessages((m) => m.filter((x) => x.id !== data.id));
-          else if (data.type === "viewers") { setViewers(data.count); setViewersList(data.users || []); }
-          else if (data.type === "like_count") setLikes(data.total);
-          else if (data.type === "live") setStatus((s) => ({ ...(s || {}), is_live: data.is_live }));
-          else if (data.type === "reaction") {
-            const id = data.id;
-            setReactions((r) => [...r.slice(-24), { id, emoji: data.emoji, x: 10 + Math.random() * 80 }]);
-            setTimeout(() => setReactions((r) => r.filter((x) => x.id !== id)), 2700);
-          } else if (data.type === "request") {
-            toast.info(`${data.name} cere: ${data.song}`);
-          } else if (data.type === "error") {
-            toast.error(data.detail);
-          }
-        } catch (err) { /* ignoră */ }
-      };
-    };
-    connect();
-    return () => { closed = true; wsRef.current?.close(); };
-  }, []);
-
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
-
-  const send = (payload) => {
-    if (wsRef.current?.readyState === 1) wsRef.current.send(JSON.stringify(payload));
-  };
-
-  const sendMessage = () => {
-    if (!input.trim()) return;
-    localStorage.setItem("bioxic_name", name);
-    send({ type: "message", name: name || "Fan", text: input });
-    setInput("");
-  };
-
-  const sendRequest = async () => {
-    if (!reqSong.trim()) return;
-    try {
-      await api.post("/live/requests", { name: name || "Fan", song: reqSong });
-      setReqSong("");
-      toast.success("Cerere trimisă!", { description: "BIOXIC o vede în timpul live-ului." });
-    } catch (e) { toast.error("Nu s-a putut trimite cererea"); }
-  };
-
-  const toggleFollow = async () => {
-    if (!fan) {
-      toast.info("Intră în cont ca să dai follow", { action: { label: "Cont", onClick: () => (window.location.href = "/cont") } });
-      return;
-    }
-    try {
-      const r = await api.post("/fans/follow");
-      setFollow({ followers: r.data.followers, following: r.data.following });
-      toast.success(r.data.following ? "Urmărești canalul BIOXIC!" : "Ai dat unfollow");
-    } catch (e) { toast.error("Eroare la follow"); }
-  };
-
-  const copy = (text) => navigator.clipboard?.writeText(text).then(() => toast.success("Copiat ✓")).catch(() => {});
-
-  const nextShow = schedule.find((s) => new Date(s.date) > new Date());
-  const embedSrc = status?.youtube_video_id
-    ? `https://www.youtube.com/embed/${status.youtube_video_id}?autoplay=1`
-    : `https://www.youtube.com/embed/live_stream?channel=${CHANNEL_ID}&autoplay=1`;
+  const track = liveInfo?.track;
+  const next = liveInfo?.next;
+  const queue = liveInfo?.queue || [];
+  const onAir = mode === "live" && current;
+  const pct = duration ? Math.min(100, (progress / duration) * 100) : 0;
 
   return (
-    <div data-testid="live-page" className="max-w-7xl mx-auto px-4 sm:px-6 py-14">
-      <div className="flex flex-wrap items-center gap-4 mb-8">
-        <h1 className="font-display font-black text-4xl sm:text-6xl uppercase tracking-tighter">
-          Live<span className="text-[var(--accent)]">.</span>
-        </h1>
-        {status?.is_live && (
-          <span data-testid="live-now-badge" className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-black font-display font-bold text-xs tracking-widest uppercase">
-            <span className="w-2 h-2 rounded-full bg-black live-dot" /> Live acum
-          </span>
-        )}
-        <button data-testid="live-follow-button" onClick={toggleFollow}
-          className={`ml-auto flex items-center gap-2 px-5 py-2.5 font-display font-bold text-xs tracking-widest uppercase transition-colors ${follow.following ? "bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/50" : "bg-[var(--accent)] text-black hover:bg-[var(--accent2)]"}`}>
-          {follow.following ? <UserCheck size={14} /> : <UserPlus size={14} />}
-          {follow.following ? "Urmărit" : "Follow"} · {follow.followers}
-        </button>
+    <div data-testid="live-page" className="relative">
+      {/* fundal club */}
+      <div className="absolute inset-x-0 top-0 h-[560px] overflow-hidden -z-10">
+        <img src={CROWD_BG} alt="" className="w-full h-full object-cover opacity-25" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(5,8,17,.35), var(--bg))" }} />
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <div className="relative glass rounded-sm overflow-hidden scanlines" data-testid="live-video-container">
-            {status?.is_live ? (
-              <div className="aspect-video">
-                <iframe src={embedSrc} title="BIOXIC Live" className="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen data-testid="live-embed" />
+      <div className="max-w-6xl mx-auto px-4 sm:px-8 py-10 sm:py-16">
+        {!track ? (
+          <div className="glass rounded-2xl p-10 sm:p-16 text-center max-w-2xl mx-auto" data-testid="radio-empty">
+            <ListMusic size={40} className="mx-auto text-[var(--cyan)] mb-5" />
+            <h2 className="font-display text-3xl sm:text-4xl font-black uppercase">Radio-ul pornește curând</h2>
+            <p className="text-[var(--muted)] mt-3 text-sm sm:text-base">
+              Prima piesă se încarcă în rotație. Revino peste câteva minute — după asta, cântă non-stop, 24/7.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-10 lg:gap-14 items-center">
+              {/* cover uriaș tip vinyl */}
+              <div className="relative mx-auto w-64 sm:w-80 lg:w-full max-w-sm">
+                <div className={`rounded-full overflow-hidden border-2 border-[var(--border)] cover-glow ${playing && onAir ? "vinyl-spin" : "vinyl-spin vinyl-paused"}`}>
+                  <img
+                    src={mediaUrl(track.cover_url) || "/logo-alt.png"}
+                    alt={track.title}
+                    data-testid="live-cover"
+                    className="w-full aspect-square object-cover"
+                  />
+                </div>
+                <div className="absolute inset-0 grid place-items-center pointer-events-none">
+                  <span className="w-14 h-14 rounded-full border-2 border-[var(--border)]" style={{ background: "var(--bg)" }} />
+                </div>
+                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 glass rounded-full px-4 py-2">
+                  <Equalizer playing={playing && !!onAir} bars={7} color="var(--live)" />
+                </div>
               </div>
-            ) : (
-              <div className="aspect-video flex flex-col items-center justify-center bg-[var(--night)] p-8 text-center">
-                <Radio size={48} className="text-[var(--accent)]/40 mb-6" />
-                <p className="font-display font-bold text-xl sm:text-2xl uppercase text-zinc-300" data-testid="offline-message">Momentan offline</p>
-                {nextShow ? (
-                  <p className="mt-4 text-sm text-zinc-500">
-                    Următorul live: <span className="text-white font-semibold">{nextShow.title}</span> — <Countdown target={nextShow.date} />
-                  </p>
-                ) : (
-                  <p className="mt-4 text-sm text-zinc-500">Programul live-urilor va fi anunțat în curând.</p>
-                )}
-              </div>
-            )}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden" data-testid="reactions-layer">
-              {reactions.map((r) => {
-                const Icon = REACTION_ICONS[r.emoji] || Heart;
-                return (
-                  <span key={r.id} className="absolute bottom-4 float-reaction" style={{ left: `${r.x}%` }}>
-                    <Icon size={26} className="text-[var(--accent)]" fill={r.emoji === "heart" ? "var(--accent)" : "none"} style={{ filter: "drop-shadow(0 0 8px rgba(var(--accent-rgb),0.8))" }} />
+
+              {/* panou live */}
+              <div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span data-testid="live-status-pill" className="flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] border border-[rgba(255,42,84,.5)] text-[var(--live)] text-glow-live">
+                    <span className="w-2 h-2 rounded-full bg-[var(--live)] live-dot" />
+                    Live · 24/7
                   </span>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* CONTROALE: spectatori + reacții + tap */}
-          <div className="flex flex-wrap items-center gap-4 mt-4">
-            <div className="flex items-center gap-3" data-testid="viewers-panel">
-              <span className="flex items-center gap-2 text-xs text-zinc-500 uppercase tracking-widest">
-                <Users size={14} className="text-[var(--accent)]" />
-                <span data-testid="viewer-count" className="text-white font-bold">{viewers}</span> spectatori
-              </span>
-              {viewersList.length > 0 && (
-                <div className="flex -space-x-2" data-testid="viewers-avatars">
-                  {viewersList.slice(0, 8).map((u) => (
-                    <Link key={u.user_id} to={`/fan/${u.user_id}`} title={u.name} data-testid={`viewer-${u.user_id}`}>
-                      <Avatar name={u.name} picture={u.picture} size={26} />
-                    </Link>
-                  ))}
-                  {viewersList.length > 8 && <span className="text-[10px] text-zinc-500 pl-3 self-center">+{viewersList.length - 8}</span>}
+                  <span data-testid="live-listeners" className="flex items-center gap-1.5 text-xs font-mono-x uppercase tracking-widest text-[var(--muted)]">
+                    <Users size={13} /> {listeners} {listeners === 1 ? "ascultător" : "ascultători"} acum
+                  </span>
                 </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2 ml-auto">
-              <button data-testid="tap-like-button" onClick={() => send({ type: "tap" })}
-                className="flex items-center gap-2 px-5 py-3 bg-[var(--accent)]/10 border border-[var(--accent)]/50 rounded-sm text-[var(--accent)] hover:bg-[var(--accent)]/20 active:scale-90 transition-all"
-                aria-label="Tap like">
-                <Hand size={17} /> <Heart size={14} fill="var(--accent)" /> <span className="text-xs font-bold" data-testid="tap-count">{likes}</span>
-              </button>
-              <div className="flex gap-2" data-testid="reaction-buttons">
-                {[["fire", Flame], ["crown", Crown]].map(([key, Icon]) => (
-                  <button key={key} data-testid={`reaction-${key}`} onClick={() => send({ type: "reaction", emoji: key })}
-                    className="p-3 glass rounded-sm text-[var(--accent)] hover:bg-[var(--accent)]/20 hover:scale-110 transition-all" aria-label={`Reacție ${key}`}>
-                    <Icon size={17} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
 
-          {/* DONEAZĂ + CERERI */}
-          <div className="grid sm:grid-cols-2 gap-4 mt-6">
-            <div className="glass rounded-sm p-5" data-testid="donate-box">
-              <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2 mb-3">
-                <CreditCard size={15} className="text-[var(--accent)]" /> Susține live-ul
-              </h3>
-              <p className="text-xs text-zinc-500 mb-4">Fiecare donație înseamnă o piesă nouă.</p>
-              <a href="https://www.paypal.com/[LINK_PAYPAL]" target="_blank" rel="noopener noreferrer" data-testid="donate-paypal"
-                className="block text-center w-full px-4 py-2.5 mb-3 border border-[var(--accent)]/50 text-[var(--accent)] text-xs font-bold uppercase tracking-widest hover:bg-[var(--accent)] hover:text-black transition-colors">
-                Donează PayPal
-              </a>
-              <div className="text-[11px] text-zinc-400 space-y-1.5">
-                <p className="uppercase tracking-widest text-zinc-600">Transfer UK — C Maxim</p>
-                <div className="flex justify-between items-center">Sort: <span className="font-mono text-white">20-25-98</span>
-                  <button data-testid="donate-copy-sort" onClick={() => copy("20-25-98")} className="p-1 text-zinc-500 hover:text-[var(--accent)]"><Copy size={12} /></button></div>
-                <div className="flex justify-between items-center">Cont: <span className="font-mono text-white">73583767</span>
-                  <button data-testid="donate-copy-acc" onClick={() => copy("73583767")} className="p-1 text-zinc-500 hover:text-[var(--accent)]"><Copy size={12} /></button></div>
-              </div>
-            </div>
-            <div className="glass rounded-sm p-5" data-testid="song-request-box">
-              <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2 mb-3"><Music size={15} className="text-[var(--accent)]" /> Cere o piesă</h3>
-              <div className="flex gap-2">
-                <input data-testid="song-request-input" value={reqSong} onChange={(e) => setReqSong(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && sendRequest()} placeholder="Ce piesă vrei să aud?"
-                  className="flex-1 bg-black/40 border border-white/10 px-3 py-2.5 text-sm focus:border-[var(--accent)] outline-none" />
-                <button data-testid="song-request-send" onClick={sendRequest} className="px-4 py-2.5 bg-[var(--accent)] text-black font-display font-bold text-xs tracking-widest uppercase hover:bg-[var(--accent2)] transition-colors">Trimite</button>
-              </div>
-            </div>
-          </div>
+                <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tight mt-5 leading-[0.95]">
+                  Radio <span className="text-[var(--cyan)] text-glow-cyan">BIOXIC</span>
+                </h2>
+                <p className="text-[var(--muted)] text-sm sm:text-base mt-3 max-w-lg">
+                  Manele, remixuri și mashup-uri non-stop. Toți ascultătorii aud aceeași piesă, la aceeași secundă — ca la radio.
+                </p>
 
-          {schedule.length > 0 && (
-            <div className="glass rounded-sm p-6 mt-6" data-testid="live-schedule">
-              <h3 className="font-display font-bold text-sm uppercase tracking-widest flex items-center gap-2 mb-4"><CalendarClock size={16} className="text-[var(--accent)]" /> Program live-uri</h3>
-              <div className="space-y-3">
-                {schedule.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <span className="text-sm">{s.title}</span>
-                    <span className="text-xs text-[var(--accent)] tabular-nums">{new Date(s.date).toLocaleString("ro-RO")}</span>
+                {/* acum la radio */}
+                <div className="glass rounded-2xl p-5 sm:p-6 mt-8" data-testid="now-playing-card">
+                  <p className="text-[10px] font-mono-x uppercase tracking-[0.25em] text-[var(--live)]">Acum la radio</p>
+                  <p data-testid="now-playing-title" className="font-display text-2xl sm:text-3xl font-bold uppercase mt-1.5 leading-tight">{track.title}</p>
+                  <p className="text-xs font-mono-x uppercase tracking-widest text-[var(--muted)] mt-1">{track.artist || "BIOXIC"}</p>
+
+                  <div className="h-1.5 w-full bg-slate-800/80 rounded-full mt-4 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-[width] duration-500"
+                      style={{ width: onAir ? `${pct}%` : "0%", background: "var(--live)" }}
+                      data-testid="live-progress"
+                    />
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+                  <div className="flex justify-between text-[11px] font-mono-x text-[var(--faint)] mt-1.5">
+                    <span data-testid="live-position">{onAir ? fmt(progress) : "--:--"}</span>
+                    <span>{fmt(duration || track.duration)}</span>
+                  </div>
 
-        {/* CHAT */}
-        <div className="glass rounded-sm flex flex-col h-[560px]" data-testid="live-chat">
-          <div className="p-4 border-b border-white/10 flex items-center justify-between">
-            <span className="font-display font-bold text-sm uppercase tracking-widest">Chat live</span>
-            <span className={`w-2 h-2 rounded-full ${connected ? "bg-[var(--accent)]" : "bg-red-500"}`} title={connected ? "Conectat" : "Deconectat"} />
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3" data-testid="chat-messages">
-            {messages.length === 0 && <p className="text-xs text-zinc-600 text-center mt-8">Niciun mesaj încă. Spune salut!</p>}
-            {messages.map((m) => m.type === "system" ? (
-              <p key={m.id} className="text-[11px] text-zinc-600 italic flex items-center gap-2" data-testid={`chat-system-${m.id}`}>
-                {m.picture && <Avatar name="?" picture={m.picture} size={16} />} {m.text}
-              </p>
-            ) : (
-              <div key={m.id} className="text-sm flex items-start gap-2.5">
-                {m.user_id ? (
-                  <Link to={`/fan/${m.user_id}`} className="shrink-0 mt-0.5"><Avatar name={m.name} picture={m.picture} size={22} /></Link>
-                ) : (
-                  <span className="shrink-0 mt-0.5"><Avatar name={m.name} picture="" size={22} /></span>
-                )}
-                <div className="min-w-0">
-                  <span className="text-[var(--accent)] font-semibold text-xs uppercase tracking-wide">{m.name}</span>
-                  <p className="text-zinc-300 break-words">{m.text}</p>
+                  {next && next.id !== track.id && (
+                    <p className="text-xs text-[var(--muted)] mt-4" data-testid="up-next">
+                      Urmează: <span className="text-white font-semibold">{next.title}</span>
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-4 mt-5">
+                    <button
+                      data-testid="radio-play-button"
+                      onClick={toggle}
+                      className="btn-live flex items-center gap-2.5 rounded-full px-7 py-3.5 text-sm font-black uppercase tracking-widest"
+                    >
+                      {playing ? <Pause size={17} fill="#fff" /> : <Play size={17} fill="#fff" className="ml-0.5" />}
+                      {playing ? "Pauză" : "Ascultă live"}
+                    </button>
+                    <div className="flex items-center gap-2.5 w-36">
+                      <Volume2 size={15} className="text-[var(--faint)] shrink-0" />
+                      <input
+                        data-testid="radio-volume"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={volume}
+                        onChange={(e) => setVolume(parseFloat(e.target.value))}
+                        className="vol w-full"
+                        aria-label="Volum"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] font-mono-x text-[var(--faint)] mt-4 uppercase tracking-widest">
+                    Sincronizat cu toți ascultătorii · fără întreruperi
+                  </p>
                 </div>
               </div>
-            ))}
-            <div ref={chatEndRef} />
-          </div>
-          <div className="p-4 border-t border-white/10 space-y-2">
-            {!fan && (
-              <input data-testid="chat-name-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Numele tău"
-                className="w-full bg-black/40 border border-white/10 px-3 py-2 text-xs focus:border-[var(--accent)] outline-none" />
-            )}
-            {fan && <p className="text-[11px] text-zinc-500 flex items-center gap-2"><Avatar name={fan.name} picture={fan.picture} size={18} /> Scrii ca <span className="text-[var(--accent)] font-semibold">{fan.name}</span></p>}
-            <div className="flex gap-2">
-              <input data-testid="chat-input" value={input} onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder="Scrie în chat..."
-                className="flex-1 bg-black/40 border border-white/10 px-3 py-2 text-sm focus:border-[var(--accent)] outline-none" />
-              <button data-testid="chat-send" onClick={sendMessage} className="p-2.5 bg-[var(--accent)] text-black hover:bg-[var(--accent2)] transition-colors" aria-label="Trimite mesaj"><Send size={16} /></button>
             </div>
-          </div>
-        </div>
+
+            {/* playlistul serii */}
+            {queue.length > 0 && (
+              <section className="mt-16 sm:mt-20" data-testid="radio-queue">
+                <h3 className="font-display text-2xl sm:text-3xl font-extrabold uppercase tracking-tight">
+                  În rotație <span className="text-[var(--cyan)]">acum</span>
+                </h3>
+                <div className="mt-6 grid gap-2">
+                  {queue.map((q, i) => {
+                    const isNow = q.id === track.id;
+                    return (
+                      <div
+                        key={q.id}
+                        data-testid={`queue-item-${q.id}`}
+                        className={`flex items-center gap-4 rounded-xl px-4 py-3 border ${isNow ? "border-[rgba(255,42,84,.45)] bg-[rgba(255,42,84,.06)]" : "border-[var(--border)] bg-[var(--bg2)]"}`}
+                      >
+                        <span className="font-mono-x text-xs text-[var(--faint)] w-6 text-right">{String(i + 1).padStart(2, "0")}</span>
+                        <img src={mediaUrl(q.cover_url) || "/logo-alt.png"} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold truncate">{q.title}</p>
+                          <p className="text-[10px] font-mono-x uppercase tracking-widest text-[var(--muted)]">{q.artist || "BIOXIC"}</p>
+                        </div>
+                        {isNow ? (
+                          <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--live)]">
+                            <Equalizer playing={playing} bars={4} color="var(--live)" className="h-3.5" /> Acum
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-mono-x text-[var(--faint)]">{q.duration ? fmt(q.duration) : ""}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

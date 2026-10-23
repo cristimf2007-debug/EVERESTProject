@@ -25,4 +25,13 @@ export function mediaUrl(url) {
   return `${process.env.REACT_APP_BACKEND_URL}${url}`;
 }
 
+export function getSid() {
+  let s = sessionStorage.getItem("bioxic_radio_sid");
+  if (!s) {
+    s = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    sessionStorage.setItem("bioxic_radio_sid", s);
+  }
+  return s;
+}
+
 export default api;

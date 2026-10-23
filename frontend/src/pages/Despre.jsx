@@ -1,87 +1,94 @@
-import React from "react";
-import { motion } from "framer-motion";
-import { Biohazard, Bot, Disc3, Youtube } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Youtube, Music2, Instagram, AudioLines } from "lucide-react";
+import api from "@/lib/api";
 
-const AI_IMG = "https://images.pexels.com/photos/7688748/pexels-photo-7688748.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
-const STAGE_IMG = "https://images.pexels.com/photos/10063275/pexels-photo-10063275.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
+const VINYL_IMG = "https://images.pexels.com/photos/27383804/pexels-photo-27383804.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
+const NEON_IMG = "https://images.unsplash.com/photo-1580397424400-2f12fdf0b3e7?crop=entropy&cs=srgb&fm=jpg&q=85";
 
-const TIMELINE = [
-  { year: "Începuturi", text: "Primele remixuri de manele încărcate pe YouTube — bas mai greu, tempo de club." },
-  { year: "Colaborări", text: "Remixuri oficiale și colaborări cu AMMA, Big Up Music, Nek Music." },
-  { year: "Manele Artificiale", text: "Nașterea conceptului AI: manele generate și modificate de inteligență artificială." },
-  { year: "Azi", text: "Live-uri, comunitate, piese noi constant. No risks, no hits." },
+const SOCIALS = [
+  { label: "YouTube", handle: "@djbioxic", href: "https://www.youtube.com/@djbioxic", icon: Youtube, tid: "social-youtube" },
+  { label: "TikTok", handle: "@bioxic.exe", href: "https://www.tiktok.com/@bioxic.exe", icon: Music2, tid: "social-tiktok" },
+  { label: "Instagram", handle: "@crss.exe_", href: "https://www.instagram.com/crss.exe_", icon: Instagram, tid: "social-instagram" },
+  { label: "Spotify", handle: "BIOXIC", href: "https://open.spotify.com/artist/4tlelg9L2y1OFOVpUkIiAK", icon: AudioLines, tid: "social-spotify" },
 ];
 
-const COLLABS = ["AMMA", "Big Up Music", "Nek Music", "Șușanu", "210 Production"];
-
 export default function Despre() {
-  return (
-    <div data-testid="despre-page" className="max-w-7xl mx-auto px-6 py-14">
-      <p className="text-[var(--accent2)] text-xs uppercase tracking-[0.4em] mb-3">Povestea</p>
-      <h1 className="font-display font-black text-4xl sm:text-6xl uppercase tracking-tighter mb-14">
-        Despre <span className="text-[var(--accent)]">BIOXIC</span>
-      </h1>
+  const [stats, setStats] = useState({ tracks: 0, plays: 0 });
 
-      <div className="grid lg:grid-cols-2 gap-10 items-start mb-20">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 text-zinc-300 leading-relaxed">
-          <p>
-            Cristi, 19 ani — artist complet: de la versuri și producție până la imagine și brand. Peste
-            <span className="text-[var(--accent)]"> 50 de milioane de vizualizări</span> și colaborări cu Nicolae Guță,
-            Nek Music, Șușanu și 210 Production.
-          </p>
-          <p>
-            De la remixuri toxice ale clasicelor genului, la <span className="text-[var(--accent)]">Manele Artificiale</span> —
-            piese create cu inteligență artificială — BIOXIC împinge genul în viitor. Tot ce vezi aici, de la logo
-            la videoclipuri, e creat de el.
-          </p>
-          <div className="glass rounded-sm p-8 mt-8">
-            <p className="font-display text-xl sm:text-2xl font-bold leading-snug" data-testid="despre-quote">
-              „Un tinerel în curs de <span className="text-[var(--accent)] text-glow">perfeționare</span>"
+  useEffect(() => {
+    api.get("/tracks").then((r) => {
+      const list = r.data || [];
+      setStats({ tracks: list.length, plays: list.reduce((s, t) => s + (t.plays || 0), 0) });
+    }).catch(() => {});
+  }, []);
+
+  return (
+    <div data-testid="despre-page" className="max-w-6xl mx-auto px-4 sm:px-8 py-10 sm:py-14">
+      <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
+        <div>
+          <p className="text-[11px] font-mono-x uppercase tracking-[0.3em] text-[var(--cyan)]">Despre canal</p>
+          <h2 className="font-display text-4xl sm:text-5xl font-black uppercase tracking-tight mt-3 leading-[0.95]">
+            No risks,<br />no hits.
+          </h2>
+          <div className="text-[var(--muted)] text-sm sm:text-base leading-relaxed mt-6 space-y-4 max-w-lg">
+            <p>
+              BIOXIC face manele, remixuri și mashup-uri care nu stau mult pe YouTube.
+              Piesele care dispar de peste tot ajung aici, în seif — și cântă non-stop pe radioul canalului, 24/7.
             </p>
-            <p className="mt-3 text-xs uppercase tracking-[0.3em] text-zinc-500">— Nicolae Guță</p>
+            <p>
+              Fără etichete, fără reguli. Dai play și ești alături de toți ceilalți ascultători,
+              la aceeași secundă a aceleiași piese.
+            </p>
           </div>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="relative">
-          <div className="relative rounded-sm overflow-hidden border border-white/10 scanlines">
-            <img src={AI_IMG} alt="BIOXIC concept AI" className="w-full h-96 object-cover opacity-80" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[var(--night)] to-transparent" />
+
+          <div className="grid grid-cols-2 gap-4 mt-8 max-w-md">
+            <div className="glass rounded-2xl p-5" data-testid="stat-tracks">
+              <p className="font-display text-3xl font-black text-[var(--cyan)]">{stats.tracks}</p>
+              <p className="text-[11px] font-mono-x uppercase tracking-widest text-[var(--muted)] mt-1">Piese în rotație</p>
+            </div>
+            <div className="glass rounded-2xl p-5" data-testid="stat-plays">
+              <p className="font-display text-3xl font-black text-[var(--amber)]">{stats.plays}</p>
+              <p className="text-[11px] font-mono-x uppercase tracking-widest text-[var(--muted)] mt-1">Redări totale</p>
+            </div>
           </div>
-          <div className="absolute -bottom-6 -right-2 sm:-right-6 w-40 h-40 rounded-sm overflow-hidden border border-[var(--accent)]/40 box-glow hidden sm:block">
-            <img src={STAGE_IMG} alt="BIOXIC pe scenă" className="w-full h-full object-cover" />
-          </div>
-        </motion.div>
+        </div>
+
+        <div className="relative">
+          <img src={VINYL_IMG} alt="BIOXIC studio" className="rounded-2xl w-full aspect-[4/5] object-cover border border-[var(--border)]" />
+          <img
+            src={NEON_IMG}
+            alt=""
+            className="absolute -bottom-8 -left-6 w-40 sm:w-52 rounded-xl border border-[var(--border-hi)] hidden sm:block"
+            style={{ boxShadow: "0 20px 60px -20px rgba(0,240,255,.4)" }}
+          />
+        </div>
       </div>
 
-      {/* COLABORĂRI */}
-      <section className="mb-20">
-        <h2 className="font-display font-bold text-2xl sm:text-3xl uppercase tracking-tight mb-8">Colaborări</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {COLLABS.map((c, i) => (
-            <motion.div key={c} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-              data-testid={`collab-${i}`}
-              className="glass rounded-sm p-8 text-center hover:border-[var(--accent)]/40 hover:box-glow transition-all">
-              <p className="font-display font-bold text-xl tracking-wide">{c}</p>
-              <p className="text-[10px] text-zinc-600 mt-2 uppercase tracking-widest">[LOGO_{c.toUpperCase().replace(/ /g, "_")}]</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* TIMELINE */}
-      <section className="mb-10">
-        <h2 className="font-display font-bold text-2xl sm:text-3xl uppercase tracking-tight mb-10">Cronologie</h2>
-        <div className="relative pl-8 border-l border-[var(--accent)]/30 space-y-10">
-          {TIMELINE.map((t, i) => (
-            <motion.div key={i} initial={{ opacity: 0, x: -16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-              data-testid={`timeline-${i}`} className="relative">
-              <span className="absolute -left-[37px] top-1 w-4 h-4 bg-[var(--night)] border-2 border-[var(--accent)] rotate-45" />
-              <p className="font-display font-bold text-[var(--accent)] text-sm uppercase tracking-widest flex items-center gap-2">
-                {i === 0 && <Disc3 size={14} />}{i === 1 && <Youtube size={14} />}{i === 2 && <Bot size={14} />}{i === 3 && <Biohazard size={14} />}
-                {t.year}
-              </p>
-              <p className="text-zinc-400 mt-2 max-w-xl">{t.text}</p>
-            </motion.div>
-          ))}
+      {/* social */}
+      <section className="mt-20" data-testid="despre-socials">
+        <h3 className="font-display text-2xl sm:text-3xl font-extrabold uppercase tracking-tight">
+          Mă găsești și <span className="text-[var(--cyan)]">aici</span>
+        </h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+          {SOCIALS.map((s) => {
+            const Icon = s.icon;
+            return (
+              <a
+                key={s.label}
+                href={s.href}
+                target="_blank"
+                rel="noreferrer"
+                data-testid={s.tid}
+                className="track-card glass rounded-2xl p-5 flex flex-col gap-3"
+              >
+                <Icon size={22} className="text-[var(--cyan)]" />
+                <div>
+                  <p className="text-[10px] font-mono-x uppercase tracking-[0.25em] text-[var(--faint)]">{s.label}</p>
+                  <p className="font-bold text-sm sm:text-base mt-0.5">{s.handle}</p>
+                </div>
+              </a>
+            );
+          })}
         </div>
       </section>
     </div>
