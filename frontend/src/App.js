@@ -5,7 +5,8 @@ import { Toaster, toast } from "sonner";
 import { RadioProvider } from "@/context/RadioContext";
 import { FanProvider, useFan } from "@/context/FanContext";
 import api from "@/lib/api";
-import Snowfall from "@/components/Snowfall";
+import Ambience from "@/components/Ambience";
+import HalloweenIntro from "@/components/HalloweenIntro";
 import ChannelHeader from "@/components/ChannelHeader";
 import PlayerBar from "@/components/PlayerBar";
 import Live from "@/pages/Live";
@@ -76,8 +77,10 @@ function App() {
         <FanProvider>
           <RadioProvider>
             <div className="sky-bg" />
-            <Snowfall />
+            <Ambience />
             <div className="grain-overlay" />
+            <span className="limited-vertical hidden lg:block" aria-hidden="true">LIMITED&nbsp;2026&nbsp;·&nbsp;LIMITED&nbsp;2026</span>
+            <HalloweenIntro />
             <Shell />
             <Toaster theme="dark" position="top-center" />
           </RadioProvider>

@@ -978,19 +978,45 @@ async def channel_subscribe(request: Request):
     if not sid:
         raise HTTPException(400, "sid lipsă")
     email = str(body.get("email", "")).strip().lower()[:120]
-    # dacă e logat, folosim automat emailul contului
+    # dacă e logat, legăm abonarea de cont (user_id + email) — ține minte pe orice dispozitiv
     fan = await get_optional_fan(request)
+    uid = fan.get("user_id") if fan else None
     if fan and fan.get("email"):
         email = fan["email"]
     if body.get("subscribed"):
-        await db.channel_subs.update_one({"sid": sid}, {"$set": {"sid": sid}}, upsert=True)
+        doc = {"sid": sid, "subscribed_at": datetime.now(timezone.utc).isoformat()}
+        if uid:
+            doc["user_id"] = uid
+        if email:
+            doc["email"] = email
+        await db.channel_subs.update_one({"sid": sid}, {"$set": doc}, upsert=True)
+        if uid:
+            await db.channel_subs.update_many({"user_id": uid}, {"$set": {"user_id": uid}})
         if email:
             await db.newsletter.update_one({"email": email}, {"$set": {"email": email}}, upsert=True)
     else:
-        await db.channel_subs.delete_one({"sid": sid})
+        q = {"$or": [{"sid": sid}]}
+        if uid:
+            q["$or"].append({"user_id": uid})
+        await db.channel_subs.delete_many(q)
         if email:
             await db.newsletter.delete_one({"email": email})
     return {"subscribers": await db.channel_subs.count_documents({})}
+
+@api_router.get("/channel/status")
+async def channel_status(request: Request, sid: str = ""):
+    """Ține minte cine e abonat: după sid (dispozitiv) sau după cont/email."""
+    q = {"$or": []}
+    if sid:
+        q["$or"].append({"sid": sid[:64]})
+    fan = await get_optional_fan(request)
+    if fan:
+        if fan.get("user_id"):
+            q["$or"].append({"user_id": fan["user_id"]})
+        if fan.get("email"):
+            q["$or"].append({"email": fan["email"].lower()})
+    subscribed = bool(q["$or"]) and bool(await db.channel_subs.find_one(q))
+    return {"subscribed": subscribed, "subscribers": await db.channel_subs.count_documents({})}
 
 # ---------- COMMENTS ----------
 

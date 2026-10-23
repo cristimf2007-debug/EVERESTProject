@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Send, Users, Heart, Flame, Crown, LogIn } from "lucide-react";
+import { Send, Users, Heart, LogIn } from "lucide-react";
 import { WS_URL, mediaUrl } from "@/lib/api";
 import { useFan } from "@/context/FanContext";
 
 const REACTION_META = {
-  heart: { icon: Heart, color: "var(--berry)", fill: true },
-  fire: { icon: Flame, color: "#ff8a3c", fill: false },
-  crown: { icon: Crown, color: "var(--accent)", fill: false },
+  heart: { emoji: "🎃" },
+  fire: { emoji: "🔥" },
+  crown: { emoji: "💀" },
 };
 
 const NAME_COLORS = ["var(--accent)", "#8cc7a8", "#bfe3ff", "#f0a4c0", "#ffd28c", "#a8e6cf", "#e3b8ff"];
@@ -170,36 +170,32 @@ export default function LiveChat() {
         )}
         {/* reacții plutitoare */}
         <div className="absolute right-4 bottom-2 pointer-events-none">
-          {floats.map((f) => {
-            const meta = REACTION_META[f.emoji];
-            const Icon = meta.icon;
-            return (
-              <Icon
-                key={f.id}
-                size={18}
-                fill={meta.fill ? meta.color : "none"}
-                className="heart-float absolute"
-                style={{ right: Math.random() * 44, color: meta.color }}
-              />
-            );
-          })}
+          {floats.map((f) => (
+            <span
+              key={f.id}
+              className="heart-float absolute text-lg"
+              style={{ right: Math.random() * 44 }}
+            >
+              {REACTION_META[f.emoji].emoji}
+            </span>
+          ))}
         </div>
       </div>
 
       {/* reacții */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-t border-[var(--line)] bg-black/15" data-testid="chat-reactions">
         <span className="text-[9px] font-mono-x uppercase tracking-[0.25em] text-[var(--dim)] mr-auto">Dă-i drumul</span>
-        <button type="button" data-testid="chat-heart-button" onClick={tapHeart} aria-label="Inimă"
-          className="grid w-9 h-9 rounded-full place-items-center border border-[rgba(var(--berry-rgb),.35)] bg-[rgba(var(--berry-rgb),.08)] hover:scale-110 transition-transform">
-          <Heart size={15} className="text-[var(--berry)]" fill="currentColor" />
+        <button type="button" data-testid="chat-heart-button" onClick={tapHeart} aria-label="Dovleac"
+          className="grid w-9 h-9 rounded-full place-items-center text-base border border-[rgba(232,115,26,.35)] bg-[rgba(232,115,26,.08)] hover:scale-110 transition-transform">
+          🎃
         </button>
         <button type="button" data-testid="chat-fire-button" onClick={() => react("fire")} aria-label="Foc"
-          className="grid w-9 h-9 rounded-full place-items-center border border-[rgba(255,138,60,.35)] bg-[rgba(255,138,60,.08)] hover:scale-110 transition-transform">
-          <Flame size={15} className="text-[#ff8a3c]" />
+          className="grid w-9 h-9 rounded-full place-items-center text-base border border-[rgba(255,138,60,.35)] bg-[rgba(255,138,60,.08)] hover:scale-110 transition-transform">
+          🔥
         </button>
-        <button type="button" data-testid="chat-crown-button" onClick={() => react("crown")} aria-label="Coroană"
-          className="grid w-9 h-9 rounded-full place-items-center border border-[rgba(var(--accent-rgb),.35)] bg-[rgba(var(--accent-rgb),.08)] hover:scale-110 transition-transform">
-          <Crown size={15} className="text-[var(--accent)]" />
+        <button type="button" data-testid="chat-crown-button" onClick={() => react("crown")} aria-label="Cranii"
+          className="grid w-9 h-9 rounded-full place-items-center text-base border border-[rgba(139,14,14,.4)] bg-[rgba(139,14,14,.1)] hover:scale-110 transition-transform">
+          💀
         </button>
       </div>
 
@@ -212,7 +208,7 @@ export default function LiveChat() {
               data-testid="chat-text-input"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={`Scrie ca ${me.name}…`}
+              placeholder={`Scrie ceva… dacă ai curaj`}
               maxLength={300}
               className="flex-1 rounded-full bg-black/40 border border-[var(--line)] px-4 py-2.5 text-sm outline-none focus:border-[rgba(var(--accent-rgb),.5)] transition-colors"
             />
@@ -244,7 +240,7 @@ export default function LiveChat() {
               data-testid="chat-text-input"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={`Scrie ca ${name}…`}
+              placeholder={`Scrie ceva… dacă ai curaj`}
               maxLength={300}
               className="flex-1 rounded-full bg-black/40 border border-[var(--line)] px-4 py-2.5 text-sm outline-none focus:border-[rgba(var(--accent-rgb),.5)] transition-colors"
             />

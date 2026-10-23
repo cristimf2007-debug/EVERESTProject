@@ -10,6 +10,32 @@ import LogoModal from "@/components/LogoModal";
 import LoginModal from "@/components/LoginModal";
 import NotificationBell from "@/components/NotificationBell";
 
+// tunătoare scurtă și joasă, sintetizată — fără fișier audio
+function playThunder() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const dur = 1.1;
+    const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < data.length; i++) {
+      const white = Math.random() * 2 - 1;
+      last = (last + 0.02 * white) / 1.02; // brown noise
+      data[i] = last * 3.2 * Math.pow(1 - i / data.length, 1.6);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 140;
+    const g = ctx.createGain();
+    g.gain.value = 0.22;
+    src.connect(lp).connect(g).connect(ctx.destination);
+    src.start();
+    src.onended = () => ctx.close();
+  } catch { /* fără audio context — trecem peste */ }
+}
+
 const TABS = [
   { to: "/", label: "Live 24/7", tid: "live", icon: Radio },
   { to: "/piese", label: "Piese", tid: "piese", icon: Disc3 },
@@ -22,15 +48,36 @@ export default function ChannelHeader() {
   const { playing, mode } = useRadio();
   const { me, loginOpen, setLoginOpen, logout } = useFan();
   const [subs, setSubs] = useState(0);
-  const [subscribed, setSubscribed] = useState(() => localStorage.getItem("bioxic_sub") === "1");
+  const [subscribed, setSubscribed] = useState(false);
   const [showBio, setShowBio] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
   const [subEmailOpen, setSubEmailOpen] = useState(false);
   const [subEmail, setSubEmail] = useState(() => localStorage.getItem("bioxic_sub_email") || "");
+  const [flash, setFlash] = useState(false);
+  const [whisper, setWhisper] = useState(false);
+
+  // easter egg: atingi logo-ul → fulger + tunet + șoaptă, apoi panoul „Cine sunt eu"
+  const onLogoTouch = () => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) { setShowBio(true); return; }
+    setFlash(true);
+    setWhisper(true);
+    playThunder();
+    setTimeout(() => setFlash(false), 350);
+    setTimeout(() => setWhisper(false), 2200);
+    setTimeout(() => setShowBio(true), 650);
+  };
 
   useEffect(() => {
-    api.get("/channel/stats").then((r) => setSubs(r.data.subscribers)).catch(() => {});
-  }, []);
+    // serverul e sursa de adevăr: ține minte abonarea după dispozitiv ȘI după cont/email
+    api.get(`/channel/status?sid=${getSid()}`)
+      .then((r) => {
+        setSubs(r.data.subscribers);
+        setSubscribed(!!r.data.subscribed);
+        localStorage.setItem("bioxic_sub", r.data.subscribed ? "1" : "0");
+      })
+      .catch(() => {});
+  }, [me]);
 
   const doSubscribe = async (email) => {
     try {
@@ -80,25 +127,41 @@ export default function ChannelHeader() {
 
   return (
     <header data-testid="channel-header" className="relative z-10">
-      {/* banner — poza reală a artistului */}
+      {/* banner — poza reală, tratament cinematic de Halloween */}
       <div className="relative h-44 sm:h-60 overflow-hidden">
-        <img src="/artist.jpg" alt="BIOXIC" className="w-full h-full object-cover object-center" />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(6,17,13,.15) 0%, rgba(6,17,13,.55) 55%, var(--night) 100%)" }} />
+        <img
+          src="/artist.jpg"
+          alt="BIOXIC"
+          className="w-full h-full object-cover object-center"
+          style={{ filter: "saturate(0.35) brightness(0.55) contrast(1.08)" }}
+        />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(10,9,7,.3) 0%, rgba(10,9,7,.65) 55%, var(--night) 100%)" }} />
+        <div className="absolute inset-0" style={{ boxShadow: "inset 0 0 120px 40px rgba(5,4,3,.85)" }} />
+        {/* ceață în 2 straturi, viteze diferite */}
+        <div className="fog-layer fog-a" />
+        <div className="fog-layer fog-b" />
         <button
-          onClick={() => setShowBio(true)}
+          onClick={onLogoTouch}
           data-testid="channel-logo"
           aria-label="Cine sunt eu — deschide"
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-300 hover:scale-110 hover:-rotate-2 cursor-pointer"
         >
+          {/* lumânare în spatele logo-ului */}
+          <span
+            className="absolute inset-0 candle-flicker pointer-events-none"
+            style={{ background: "radial-gradient(circle, rgba(232,115,26,.4), transparent 70%)", transform: "scale(2.4)" }}
+          />
           <img
             src="/logo.png"
             alt="BIOXIC"
-            className="w-44 sm:w-64 drop-shadow-[0_10px_36px_rgba(0,0,0,0.75)]"
+            className="relative w-44 sm:w-64 drop-shadow-[0_10px_36px_rgba(0,0,0,0.75)]"
           />
         </button>
-        <span className="absolute left-1/2 -translate-x-1/2 bottom-2 text-[9px] font-mono-x uppercase tracking-[0.3em] text-[var(--frost)]/60 animate-pulse pointer-events-none hidden sm:block">
-          atinge logo-ul
-        </span>
+        {/* badge ediție limitată */}
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-3 hidden sm:flex items-center gap-2 rounded-full px-4 py-1.5 border border-[rgba(232,115,26,.5)] bg-black/40 backdrop-blur-sm" data-testid="halloween-badge">
+          <span className="w-1.5 h-1.5 rounded-full live-dot" style={{ background: "var(--berry)" }} />
+          <span className="text-[9px] font-mono-x uppercase tracking-[0.3em] text-[var(--accent)]">Halloween · Limited 2026</span>
+        </div>
       </div>
 
       {/* profil */}
@@ -117,6 +180,9 @@ export default function ChannelHeader() {
             </h1>
             <p className="text-[10px] sm:text-xs text-[var(--mist)] font-mono-x mt-1.5 uppercase tracking-widest truncate">
               <span data-testid="channel-subs-count" className="text-[var(--frost)]">{subs}</span> abonați · No risks, no hits.
+            </p>
+            <p className="hidden sm:inline-block mt-1.5 text-[8px] font-mono-x uppercase tracking-[0.25em] text-[var(--accent)]/70 border border-[rgba(232,115,26,.3)] rounded px-2 py-0.5" data-testid="edition-tag">
+              Edition 31/10/2026 · Nº 001
             </p>
           </div>
           <div className="pb-1 flex items-center gap-2.5 sm:gap-3 shrink-0 order-last sm:order-none w-full sm:w-auto justify-end">
@@ -219,6 +285,14 @@ export default function ChannelHeader() {
 
       {showBio && <LogoModal onClose={() => setShowBio(false)} />}
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      {flash && <div className="lightning" data-testid="lightning-flash" />}
+      {whisper && (
+        <div className="fixed inset-0 z-[190] grid place-items-center pointer-events-none">
+          <p className="whisper-text font-mono-x text-sm sm:text-lg uppercase text-[var(--frost)]/90 tracking-[0.5em]" data-testid="whisper-text">
+            No risks, no hits.
+          </p>
+        </div>
+      )}
     </header>
   );
 }

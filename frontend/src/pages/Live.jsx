@@ -36,9 +36,16 @@ export default function Live() {
         ) : (
           <>
             <div className="grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-10 lg:gap-14 items-center">
-              {/* cover tip vinyl */}
+              {/* cover tip vinyl — rim portocaliu + pânză de păianjen */}
               <div className="relative mx-auto w-64 sm:w-80 lg:w-full max-w-sm">
-                <div className={`rounded-full overflow-hidden border-2 border-[var(--line-hi)] cover-glow ${playing && onAir ? "vinyl-spin" : "vinyl-spin vinyl-paused"}`}>
+                <img
+                  src="/halloween/cobweb.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute -top-6 -left-6 w-28 z-10 pointer-events-none opacity-25"
+                  style={{ mixBlendMode: "screen" }}
+                />
+                <div className={`rounded-full overflow-hidden border border-[rgba(232,115,26,.45)] cover-glow ${playing && onAir ? "vinyl-spin" : "vinyl-spin vinyl-paused"}`}>
                   <img
                     src={mediaUrl(track.cover_url) || "/logo-alt.png"}
                     alt={track.title}
@@ -66,8 +73,19 @@ export default function Live() {
                   </span>
                 </div>
 
-                <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold uppercase tracking-wide mt-5 leading-[1.05]">
-                  Radio <span className="text-[var(--accent)] text-glow">BIOXIC</span>
+                <h2 className="font-display title-distressed text-3xl sm:text-4xl lg:text-5xl font-extrabold uppercase tracking-wide mt-5 leading-[1.05]">
+                  Radio{" "}
+                  <span className="relative inline-block text-[var(--accent)] text-glow">
+                    BIOXIC
+                    {/* jăratic care urcă din litere */}
+                    {[...Array(7)].map((_, i) => (
+                      <span
+                        key={i}
+                        className="ember-p"
+                        style={{ left: `${8 + i * 14}%`, animationDelay: `${i * 0.45}s`, "--ex": `${(i % 3 - 1) * 10}px` }}
+                      />
+                    ))}
+                  </span>
                 </h2>
                 <p className="text-[var(--mist)] text-sm sm:text-base mt-3 max-w-lg">
                   Manele, remixuri și mashup-uri non-stop. Toți ascultătorii aud aceeași piesă, la aceeași secundă — ca la radio.
@@ -175,8 +193,8 @@ export default function Live() {
                             <p className="text-[10px] font-mono-x uppercase tracking-widest text-[var(--mist)]">{q.artist || "BIOXIC"}</p>
                           </div>
                           {isNow ? (
-                            <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--berry)]">
-                              <Equalizer playing={playing} bars={4} color="var(--berry)" className="h-3.5" /> Acum
+                            <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">
+                              <Equalizer playing={playing} bars={4} color="var(--accent)" className="h-3.5" /> Acum
                             </span>
                           ) : (
                             <span className="text-[11px] font-mono-x text-[var(--dim)]">{q.duration ? fmt(q.duration) : ""}</span>
