@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, MapPin, Eye, Users, Sparkles } from "lucide-react";
 
 const FACTS = [
@@ -22,9 +23,9 @@ export default function LogoModal({ onClose }) {
     setTilt({ rx: (0.5 - py) * 16, ry: (px - 0.5) * 18, gx: px * 100, gy: py * 100 });
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] grid place-items-center px-4"
+      className="fixed inset-0 z-[150] grid place-items-center px-4 pb-24"
       style={{ background: "rgba(6,17,13,.82)", backdropFilter: "blur(14px)" }}
       data-testid="logo-modal"
       onClick={onClose}
@@ -97,6 +98,7 @@ export default function LogoModal({ onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

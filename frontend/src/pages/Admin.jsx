@@ -19,6 +19,7 @@ export default function Admin() {
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [chatMsgs, setChatMsgs] = useState([]);
+  const [confirmId, setConfirmId] = useState(null); // "del-track-<id>" | "del-msg-<id>" | "ban-<id>"
   const audioInputRef = useRef(null);
   const coverInputRef = useRef(null);
 
@@ -87,7 +88,12 @@ export default function Admin() {
   };
 
   const del = async (t) => {
-    if (!window.confirm(`Ștergi „${t.title}" definitiv?`)) return;
+    if (confirmId !== `del-track-${t.id}`) {
+      setConfirmId(`del-track-${t.id}`);
+      setTimeout(() => setConfirmId((c) => (c === `del-track-${t.id}` ? null : c)), 3500);
+      return;
+    }
+    setConfirmId(null);
     try {
       await api.delete(`/admin/tracks/${t.id}`);
       toast.success("Piesă ștearsă.");
@@ -98,6 +104,12 @@ export default function Admin() {
   };
 
   const delMsg = async (m) => {
+    if (confirmId !== `del-msg-${m.id}`) {
+      setConfirmId(`del-msg-${m.id}`);
+      setTimeout(() => setConfirmId((c) => (c === `del-msg-${m.id}` ? null : c)), 3500);
+      return;
+    }
+    setConfirmId(null);
     try {
       await api.delete(`/admin/chat/${m.id}`);
       setChatMsgs((ms) => ms.filter((x) => x.id !== m.id));
@@ -106,10 +118,15 @@ export default function Admin() {
   };
 
   const banName = async (m) => {
-    if (!window.confirm(`Blochezi numele „${m.name}" și îi ștergi toate mesajele?`)) return;
+    if (confirmId !== `ban-${m.id}`) {
+      setConfirmId(`ban-${m.id}`);
+      setTimeout(() => setConfirmId((c) => (c === `ban-${m.id}` ? null : c)), 3500);
+      return;
+    }
+    setConfirmId(null);
     try {
       await api.post("/admin/chat/ban", { name: m.name });
-      setChatMsgs((ms) => ms.filter((x) => x.name !== m.name));
+      setChatMsgs((ms) => ms.filter((x) => x.name.toLowerCase() !== m.name.toLowerCase()));
       toast.success(`„${m.name}" a fost blocat pe chat.`);
     } catch (err) { toast.error(formatApiError(err)); }
   };
@@ -281,8 +298,8 @@ export default function Admin() {
               onBlur={(e) => { if (e.target.value.trim() !== (t.playlist || "")) setTrackPlaylist(t, e.target.value.trim()); }}
               className="w-36 rounded-lg bg-[var(--bg2)] border border-[var(--border)] px-3 py-2 text-xs outline-none focus:border-[var(--border-hi)] transition-colors"
             />
-            <button onClick={() => del(t)} className="btn-ghost rounded-full w-9 h-9 grid place-items-center hover:!text-[var(--live)]" aria-label={`Șterge ${t.title}`} data-testid={`admin-track-delete-${t.id}`}>
-              <Trash2 size={15} />
+            <button onClick={() => del(t)} className={`rounded-full h-9 grid place-items-center transition-colors ${confirmId === `del-track-${t.id}` ? "px-3 text-xs font-bold uppercase bg-[var(--live)] text-white" : "btn-ghost w-9 hover:!text-[var(--live)]"}`} aria-label={`Șterge ${t.title}`} data-testid={`admin-track-delete-${t.id}`}>
+              {confirmId === `del-track-${t.id}` ? "Sigur?" : <Trash2 size={15} />}
             </button>
           </div>
         ))}
@@ -304,11 +321,11 @@ export default function Admin() {
             <div className="min-w-0 flex-1">
               <p className="text-sm truncate"><span className="font-semibold text-[var(--amber)]">{m.name}</span> <span className="text-[var(--muted)]">· {m.text}</span></p>
             </div>
-            <button onClick={() => banName(m)} className="btn-ghost rounded-full w-9 h-9 grid place-items-center hover:!text-[var(--amber)]" aria-label={`Blochează ${m.name}`} data-testid={`admin-chat-ban-${m.id}`}>
-              <Ban size={14} />
+            <button onClick={() => banName(m)} className={`rounded-full h-9 grid place-items-center transition-colors ${confirmId === `ban-${m.id}` ? "px-3 text-xs font-bold uppercase bg-[var(--amber)] text-black" : "btn-ghost w-9 hover:!text-[var(--amber)]"}`} aria-label={`Blochează ${m.name}`} data-testid={`admin-chat-ban-${m.id}`}>
+              {confirmId === `ban-${m.id}` ? "Ban?" : <Ban size={14} />}
             </button>
-            <button onClick={() => delMsg(m)} className="btn-ghost rounded-full w-9 h-9 grid place-items-center hover:!text-[var(--live)]" aria-label={`Șterge mesajul`} data-testid={`admin-chat-delete-${m.id}`}>
-              <Trash2 size={14} />
+            <button onClick={() => delMsg(m)} className={`rounded-full h-9 grid place-items-center transition-colors ${confirmId === `del-msg-${m.id}` ? "px-3 text-xs font-bold uppercase bg-[var(--live)] text-white" : "btn-ghost w-9 hover:!text-[var(--live)]"}`} aria-label={`Șterge mesajul`} data-testid={`admin-chat-delete-${m.id}`}>
+              {confirmId === `del-msg-${m.id}` ? "Sigur?" : <Trash2 size={14} />}
             </button>
           </div>
         ))}

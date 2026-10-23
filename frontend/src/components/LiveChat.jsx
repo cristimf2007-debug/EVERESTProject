@@ -25,12 +25,20 @@ export default function LiveChat() {
     let ws;
     let stopped = false;
     let retry;
+    let ping;
     const connect = () => {
       if (stopped) return;
       ws = new WebSocket(WS_URL);
       wsRef.current = ws;
-      ws.onopen = () => setConnected(true);
+      ws.onopen = () => {
+        setConnected(true);
+        // keepalive — conexiunea să nu moară în taburi inactive
+        ping = setInterval(() => {
+          if (ws.readyState === 1) ws.send(JSON.stringify({ type: "ping" }));
+        }, 25000);
+      };
       ws.onclose = () => {
+        clearInterval(ping);
         setConnected(false);
         if (!stopped) retry = setTimeout(connect, 3000);
       };
@@ -52,7 +60,7 @@ export default function LiveChat() {
       };
     };
     connect();
-    return () => { stopped = true; clearTimeout(retry); ws?.close(); };
+    return () => { stopped = true; clearTimeout(retry); clearInterval(ping); ws?.close(); };
   }, []);
 
   useEffect(() => {

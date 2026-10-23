@@ -24,6 +24,7 @@ Tagline: „No risks, no hits." — fără estetică generică AI, fără termen
 - `POST /api/auth/login`
 
 ## Changelog
+- 23.10.2026 (runda 3) — LOGO INTERACTIV pe banner: click → panou 3D „Cine sunt eu" (portal în body, tilt care urmărește mouse-ul, poza + info Cristi aka BIOXIC); reacții chat inimă/foc/coroană cu iconițe plutitoare la toți conectații; PLAYLISTURI TEMATICE (câmp playlist la upload + edit per piesă, grupare + filtre pe /piese); MODERARE CHAT în /admin (ștergere + ban în 2 pași, fără window.confirm); ban case-insensitive; keepalive WS; testat (iteration_3.json: backend 24/24) + fixuri verificate manual
 - 23.10.2026 (runda 2) — REVENIRE la tema veche de iarnă (verde-pădure + auriu, Unbounded/Onest, ninsoare, glass) peste structura de canal; banner cu poza reală a artistului (/artist.jpg) + logo.png; CHAT LIVE realtime sub radio (WS /api/ws/chat, nume fan, inimi plutitoare, contor spectatori); buton SHARE pe piese (WhatsApp direct, TikTok/copy link cu OG page /api/share/{id}); mini-player plutitor cu efect 3D de apariție + shimmer auriu; playlist restilizat (rânduri numerotate); testat 100% backend+frontend (iteration_2.json)
 - 23.10.2026 — REBUILD TOTAL: șters conceptul vechi (teme Iarnă/Ianuarie, chat, gaming, conturi fan, pagina piesei #01 dedicată); reconstruit ca canal YouTube cu radio 24/7; reparat bugul critic „Maximum update depth exceeded" (countdown cu dep instabilă) care îngheța toată navigarea; testat 100% (iteration_1.json)
 - mai devreme — teme Iarnă/Ianuarie, auth Google+fani, anunțuri, pagină Track #01 (eliminate la rebuild)

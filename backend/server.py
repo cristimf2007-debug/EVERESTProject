@@ -1300,7 +1300,7 @@ class BanInput(BaseModel):
 @api_router.post("/admin/chat/ban")
 async def ban_name(b: BanInput, admin=Depends(get_current_admin)):
     await db.banned_names.update_one({"name": b.name.lower()}, {"$set": {"name": b.name.lower()}}, upsert=True)
-    await db.chat.delete_many({"name": b.name})
+    await db.chat.delete_many({"name": {"$regex": f"^{re.escape(b.name.strip())}$", "$options": "i"}})
     return {"ok": True}
 
 # ---------- CONTACT / NEWSLETTER ----------
