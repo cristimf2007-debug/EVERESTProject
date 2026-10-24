@@ -503,7 +503,30 @@ async def google_session(input: GoogleSessionInput, request: Request, response: 
 # ---------- GOOGLE OAUTH CU CLIENT PROPRIU (ecranul de consimțământ arată domeniul site-ului) ----------
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
-_oauth_states = {}  # state -> (origin, timestamp) — TTL scurt, single pod
+
+
+def _make_oauth_state(origin: str) -> str:
+    """State fără stocare: payload semnat HMAC — supraviețuiește restarturilor și oricărui pod."""
+    import base64
+    payload = f"{origin}|{int(time.time())}|{uuid.uuid4().hex[:8]}"
+    sig = _hmac.new(FILE_SIGN_SECRET, payload.encode(), _hashlib.sha256).hexdigest()[:24]
+    return base64.urlsafe_b64encode(payload.encode()).decode() + "." + sig
+
+
+def _read_oauth_state(state: str):
+    import base64
+    try:
+        b64, sig = state.rsplit(".", 1)
+        payload = base64.urlsafe_b64decode(b64.encode()).decode()
+        expected = _hmac.new(FILE_SIGN_SECRET, payload.encode(), _hashlib.sha256).hexdigest()[:24]
+        if not _hmac.compare_digest(sig, expected):
+            return None
+        origin, ts, _ = payload.split("|", 2)
+        if time.time() - int(ts) > 600 or not origin.startswith("http"):
+            return None
+        return origin
+    except Exception:
+        return None
 
 
 def _public_origin(request: Request) -> str:
@@ -520,12 +543,7 @@ async def google_oauth_start(request: Request):
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         # până sunt configurate cheile proprii, păstrăm funcțional serviciul de auth găzduit
         return RedirectResponse(f"https://auth.emergentagent.com/?redirect={origin}/auth/success")
-    state = uuid.uuid4().hex
-    now = time.time()
-    for k, (_, ts) in list(_oauth_states.items()):
-        if now - ts > 600:
-            _oauth_states.pop(k, None)
-    _oauth_states[state] = (origin, now)
+    state = _make_oauth_state(origin)
     from urllib.parse import urlencode
     params = {
         "client_id": GOOGLE_CLIENT_ID,
@@ -540,10 +558,9 @@ async def google_oauth_start(request: Request):
 
 @api_router.get("/auth/google/callback")
 async def google_oauth_callback(request: Request, code: str = "", state: str = ""):
-    entry = _oauth_states.pop(state, None)
-    if not entry or not code:
+    origin = _read_oauth_state(state)
+    if not origin or not code:
         raise HTTPException(400, "Sesiune OAuth invalidă sau expirată. Încearcă din nou.")
-    origin, _ = entry
     try:
         async with httpx.AsyncClient(timeout=15) as http:
             tok = await http.post("https://oauth2.googleapis.com/token", data={
