@@ -1,31 +1,37 @@
 import React, { useEffect, useState } from "react";
-import { Clapperboard, Eye } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Clapperboard, Eye, Play } from "lucide-react";
 import api, { mediaUrl } from "@/lib/api";
 
 function VideoCard({ v }) {
-  const [views, setViews] = useState(v.views || 0);
   return (
-    <article className="glass rounded-2xl overflow-hidden track-card" data-testid={`video-card-${v.id}`}>
-      <video
-        src={mediaUrl(v.video_url)}
-        poster={mediaUrl(v.thumb_url) || undefined}
-        controls
-        preload="none"
-        controlsList="nodownload"
-        className="w-full aspect-video bg-black"
-        data-testid={`video-player-${v.id}`}
-        onPlay={() => {
-          setViews((x) => x + 1);
-          api.post(`/videos/${v.id}/view`).catch(() => {});
-        }}
-      />
+    <Link
+      to={`/clipuri/${v.id}`}
+      className="glass rounded-2xl overflow-hidden track-card block"
+      data-testid={`video-card-${v.id}`}
+    >
+      <div className="relative aspect-video bg-black group">
+        <video
+          src={mediaUrl(v.video_url)}
+          poster={mediaUrl(v.thumb_url) || undefined}
+          preload="metadata"
+          muted
+          playsInline
+          className="w-full h-full object-cover pointer-events-none"
+        />
+        <span className="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "rgba(10,8,7,.45)" }}>
+          <span className="grid w-14 h-14 rounded-full place-items-center" style={{ background: "var(--site-accent)", color: "var(--site-accent-ink)", boxShadow: "0 0 26px rgba(232,115,26,.55)" }}>
+            <Play size={22} fill="currentColor" className="ml-1" />
+          </span>
+        </span>
+      </div>
       <div className="p-4">
-        <h3 className="font-bold text-sm leading-snug">{v.title}</h3>
+        <h3 className="font-bold text-sm leading-snug line-clamp-2">{v.title}</h3>
         <p className="text-[10px] font-mono-x uppercase tracking-[0.14em] text-[var(--mist)] mt-1.5 flex items-center gap-1.5">
-          <Eye size={11} /> {views} vizualizări
+          <Eye size={11} /> {v.views || 0} vizualizări
         </p>
       </div>
-    </article>
+    </Link>
   );
 }
 

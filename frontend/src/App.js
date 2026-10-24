@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, lazy, Suspense } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import { RadioProvider } from "@/context/RadioContext";
 import { FanProvider, useFan } from "@/context/FanContext";
@@ -13,6 +13,7 @@ import PlayerBar from "@/components/PlayerBar";
 import Live from "@/pages/Live";
 import Piese from "@/pages/Piese";
 import Videoclipuri from "@/pages/Videoclipuri";
+import VideoPage from "@/pages/VideoPage";
 import Pareri from "@/pages/Pareri";
 import Despre from "@/pages/Despre";
 import NotFound from "@/pages/NotFound";
@@ -50,6 +51,25 @@ function AuthCallback() {
   );
 }
 
+// Scroll: sus la pagină nouă; poziția salvată la înapoi pe /clipuri
+function ScrollManager() {
+  const location = useLocation();
+  const navType = useNavigationType();
+  useEffect(() => {
+    if (navType === "POP") {
+      const saved = sessionStorage.getItem(`scroll_${location.pathname}`);
+      if (saved) { setTimeout(() => window.scrollTo(0, parseInt(saved, 10)), 60); return; }
+    }
+    window.scrollTo(0, 0);
+  }, [location.pathname, navType]);
+  useEffect(() => {
+    const save = () => sessionStorage.setItem(`scroll_${location.pathname}`, String(window.scrollY));
+    window.addEventListener("scroll", save, { passive: true });
+    return () => window.removeEventListener("scroll", save);
+  }, [location.pathname]);
+  return null;
+}
+
 function Shell() {
   const location = useLocation();
   // CRITICAL: detectează session_id SINCRON, în render (useLocation, nu window.location)
@@ -60,11 +80,13 @@ function Shell() {
   return (
     <>
       {!isAdmin && <ChannelHeader />}
+      <ScrollManager />
       <main className="relative z-10 pb-28">
         <Routes>
           <Route path="/" element={<Live />} />
           <Route path="/piese" element={<Piese />} />
           <Route path="/clipuri" element={<Videoclipuri />} />
+          <Route path="/clipuri/:id" element={<VideoPage />} />
           <Route path="/pareri" element={<Pareri />} />
           <Route path="/despre" element={<Despre />} />
           <Route path="/admin" element={

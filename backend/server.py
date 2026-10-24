@@ -613,6 +613,70 @@ async def count_view(video_id: str):
     await db.videos.update_one({"id": video_id}, {"$inc": {"views": 1}})
     return {"ok": True}
 
+@api_router.post("/videos/{video_id}/like")
+async def like_video(video_id: str, request: Request):
+    body = await request.json()
+    sid = str(body.get("sid", ""))[:64]
+    if not sid:
+        raise HTTPException(400, "sid lipsă")
+    if body.get("liked"):
+        res = await db.video_likes.update_one({"video_id": video_id, "sid": sid},
+                                              {"$set": {"video_id": video_id, "sid": sid}}, upsert=True)
+        if res.upserted_id:
+            await db.videos.update_one({"id": video_id}, {"$inc": {"likes": 1}})
+    else:
+        res = await db.video_likes.delete_one({"video_id": video_id, "sid": sid})
+        if res.deleted_count:
+            await db.videos.update_one({"id": video_id, "likes": {"$gt": 0}}, {"$inc": {"likes": -1}})
+    doc = await db.videos.find_one({"id": video_id}, {"_id": 0, "likes": 1})
+    return {"likes": (doc or {}).get("likes", 0)}
+
+# ---------- COMENTARII VIDEO ----------
+
+@api_router.get("/videos/{video_id}/comments")
+async def list_video_comments(video_id: str, sort: str = "new"):
+    direction = -1 if sort == "new" else 1
+    items = await db.video_comments.find({"video_id": video_id}, {"_id": 0}).sort("created_at", direction).to_list(200)
+    if sort == "top":
+        items.sort(key=lambda c: (-(c.get("likes", 0)), c.get("created_at", "")))
+    return items
+
+@api_router.post("/videos/{video_id}/comments")
+async def add_video_comment(video_id: str, request: Request):
+    body = await request.json()
+    text = re.sub(r"<[^>]*>", "", str(body.get("text", ""))[:300]).strip()
+    if not text:
+        raise HTTPException(400, "Scrie un comentariu")
+    for bad in CHAT_BAD_WORDS:
+        text = re.sub(rf"(?i)\b{re.escape(bad)}\b", "***", text)
+    name = str(body.get("name", "Fan"))[:24].strip() or "Fan"
+    doc = {"id": str(uuid.uuid4()), "video_id": video_id, "name": name, "text": text,
+           "parent_id": str(body.get("parent_id", ""))[:40] or None,
+           "likes": 0, "pinned": False, "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.video_comments.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.post("/videos/comments/{comment_id}/like")
+async def like_video_comment(comment_id: str):
+    await db.video_comments.update_one({"id": comment_id}, {"$inc": {"likes": 1}})
+    return {"ok": True}
+
+@api_router.delete("/admin/videos/comments/{comment_id}")
+async def delete_video_comment(comment_id: str, admin=Depends(get_current_admin)):
+    await db.video_comments.delete_one({"id": comment_id})
+    await db.video_comments.delete_many({"parent_id": comment_id})
+    return {"ok": True}
+
+@api_router.post("/admin/videos/comments/{comment_id}/pin")
+async def pin_video_comment(comment_id: str, admin=Depends(get_current_admin)):
+    c = await db.video_comments.find_one({"id": comment_id})
+    if not c:
+        raise HTTPException(404, "Comentariu inexistent")
+    await db.video_comments.update_many({"video_id": c["video_id"]}, {"$set": {"pinned": False}})
+    await db.video_comments.update_one({"id": comment_id}, {"$set": {"pinned": not c.get("pinned", False)}})
+    return {"pinned": not c.get("pinned", False)}
+
 @api_router.post("/admin/videos")
 async def upload_video(
     title: str = Form(...), category: str = Form("muzica"), description: str = Form(""),
@@ -988,6 +1052,13 @@ async def radio_now():
     resolved = await radio_resolve(state, tracks, now)
     if resolved["index"] != state.get("index") or resolved["started_at"] != state.get("started_at"):
         await db.radio.update_one({"id": "state"}, {"$set": resolved})
+        # anunț automat în chat când se schimbă piesa la radio
+        try:
+            t_new = tracks[resolved["index"] % len(tracks)]
+            await ws_manager.broadcast({"type": "sys", "id": str(uuid.uuid4()),
+                                        "text": f"🎵 Acum la radio: {t_new['title']}"})
+        except Exception:
+            pass
     idx = resolved["index"] % len(tracks)
     t = tracks[idx]
     dur = await track_duration(t)
