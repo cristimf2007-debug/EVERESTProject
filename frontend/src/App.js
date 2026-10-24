@@ -35,7 +35,17 @@ function AuthCallback() {
     if (done.current) return;
     done.current = true; // sincron — StrictMode safe
     const sid = new URLSearchParams(window.location.hash.slice(1)).get("session_id");
-    if (!sid) { navigate("/", { replace: true }); return; }
+    if (!sid) {
+      // flow OAuth propriu: cookie-urile de sesiune sunt deja setate de backend la callback
+      api.get("/fans/me")
+        .then((r) => {
+          setMe(r.data);
+          toast.success(`Bine ai venit, ${r.data.name}!`);
+        })
+        .catch(() => toast.error("Autentificarea a eșuat. Încearcă din nou."))
+        .finally(() => navigate("/", { replace: true }));
+      return;
+    }
     api.post("/auth/google/session", { session_id: sid })
       .then((r) => {
         setMe(r.data.user);

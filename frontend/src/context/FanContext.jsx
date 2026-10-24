@@ -31,8 +31,9 @@ export function FanProvider({ children }) {
 
   const loginGoogle = () => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + "/";
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    // flow propriu (client Google al BIOXIC → consimțământul arată bioxic.ro);
+    // serverul redirecționează spre serviciul găzduit până sunt configurate cheile proprii
+    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/api/auth/google/start`;
   };
 
   const loginEmail = async (email, password) => {

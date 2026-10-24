@@ -4,7 +4,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, UploadFile, File, Form, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
@@ -499,6 +499,96 @@ async def google_session(input: GoogleSessionInput, request: Request, response: 
     await log_activity("login", f"{data.get('name', '')} <{email}>", "Autentificare Google", client_ip(request))
     user = await db.users.find_one({"user_id": user_id})
     return {"user": fan_out(user)}
+
+# ---------- GOOGLE OAUTH CU CLIENT PROPRIU (ecranul de consimțământ arată domeniul site-ului) ----------
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+_oauth_states = {}  # state -> (origin, timestamp) — TTL scurt, single pod
+
+
+def _public_origin(request: Request) -> str:
+    """Originea publică reală (https + domeniul vizitatorului), corect și în spatele proxy-ului."""
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    host = request.headers.get("x-forwarded-host", request.url.netloc)
+    return f"{proto}://{host}"
+
+
+@api_router.get("/auth/google/start")
+async def google_oauth_start(request: Request):
+    # REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    origin = _public_origin(request)
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        # până sunt configurate cheile proprii, păstrăm funcțional serviciul de auth găzduit
+        return RedirectResponse(f"https://auth.emergentagent.com/?redirect={origin}/auth/success")
+    state = uuid.uuid4().hex
+    now = time.time()
+    for k, (_, ts) in list(_oauth_states.items()):
+        if now - ts > 600:
+            _oauth_states.pop(k, None)
+    _oauth_states[state] = (origin, now)
+    from urllib.parse import urlencode
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": f"{origin}/api/auth/google/callback",
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "online",
+    }
+    return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}")
+
+
+@api_router.get("/auth/google/callback")
+async def google_oauth_callback(request: Request, code: str = "", state: str = ""):
+    entry = _oauth_states.pop(state, None)
+    if not entry or not code:
+        raise HTTPException(400, "Sesiune OAuth invalidă sau expirată. Încearcă din nou.")
+    origin, _ = entry
+    try:
+        async with httpx.AsyncClient(timeout=15) as http:
+            tok = await http.post("https://oauth2.googleapis.com/token", data={
+                "code": code, "client_id": GOOGLE_CLIENT_ID, "client_secret": GOOGLE_CLIENT_SECRET,
+                "redirect_uri": f"{origin}/api/auth/google/callback", "grant_type": "authorization_code",
+            })
+            tok.raise_for_status()
+            access = tok.json()["access_token"]
+            info = await http.get("https://openidconnect.googleapis.com/v1/userinfo",
+                                  headers={"Authorization": f"Bearer {access}"})
+            info.raise_for_status()
+            data = info.json()
+    except HTTPException:
+        raise
+    except Exception as ex:
+        logger.warning(f"Google callback eșuat: {ex}")
+        raise HTTPException(401, "Autentificarea Google a eșuat. Încearcă din nou.")
+
+    email = (data.get("email") or "").lower().strip()
+    if not email:
+        raise HTTPException(400, "Contul Google nu a returnat un email.")
+    user = await db.users.find_one({"email": email})
+    if user and await is_banned_user(user):
+        raise HTTPException(403, "Contul a fost suspendat")
+    if user:
+        # contul existent (inclusiv cele create prin auth-ul vechi) își păstrează datele
+        user_id = user.get("user_id") or str(user.get("_id"))
+        await db.users.update_one({"email": email},
+                                  {"$set": {"name": data.get("name", user.get("name")), "picture": data.get("picture", "")}})
+    else:
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        await db.users.insert_one({"user_id": user_id, "email": email, "name": data.get("name", "Fan"),
+                                   "picture": data.get("picture", ""), "role": "fan",
+                                   "created_at": datetime.now(timezone.utc).isoformat()})
+    await db.user_sessions.delete_many({"user_id": user_id})
+    session_token = str(uuid.uuid4())
+    await db.user_sessions.insert_one({"user_id": user_id, "session_token": session_token,
+                                       "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
+                                       "created_at": datetime.now(timezone.utc)})
+    await log_activity("login", f"{data.get('name', '')} <{email}>", "Autentificare Google (OAuth propriu)", client_ip(request))
+    resp = RedirectResponse(f"{origin}/auth/success")
+    resp.set_cookie("session_token", session_token, httponly=True, secure=True, samesite="lax", max_age=604800, path="/")
+    resp.set_cookie("fan_token", create_fan_token(user_id, email), httponly=True, secure=True, samesite="lax", max_age=604800, path="/")
+    return resp
+
 
 # ---------- FAVORITE ----------
 
