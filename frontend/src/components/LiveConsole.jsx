@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from "react";
-import { Play, Pause, Volume2, Square, Loader2, Users, TriangleAlert } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Volume2, Square, Loader2, Users, TriangleAlert, Maximize2 } from "lucide-react";
 import { useRadio } from "@/context/RadioContext";
 import { mediaUrl } from "@/lib/api";
 import Equalizer from "@/components/Equalizer";
@@ -7,6 +8,7 @@ import LiveChat from "@/components/LiveChat";
 import ShareButton from "@/components/ShareButton";
 import LiveWave from "@/components/LiveWave";
 import Vinyl from "@/components/Vinyl";
+import PlayKnob from "@/components/PlayKnob";
 
 function fmt(sec) {
   if (!sec || !isFinite(sec)) return "0:00";
@@ -14,9 +16,6 @@ function fmt(sec) {
   const s = Math.floor(sec % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
-
-const RING_R = 40;
-const RING_C = 2 * Math.PI * RING_R;
 
 // Consola live: vinyl + controale + chat + coada de rotație (secțiunea Live din Muzică)
 export default function LiveConsole() {
@@ -103,31 +102,7 @@ export default function LiveConsole() {
 
               {/* transport: knob de play cu inel de progres + stop + volum steel */}
               <div className="flex flex-wrap items-center gap-4 mt-6" data-testid="now-playing-card">
-                <div className="relative w-[88px] h-[88px] shrink-0">
-                  <svg viewBox="0 0 88 88" className="absolute inset-0 -rotate-90" aria-hidden="true">
-                    <circle cx="44" cy="44" r={RING_R} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="2.5" />
-                    <circle
-                      ref={ringRef}
-                      cx="44" cy="44" r={RING_R} fill="none"
-                      stroke="var(--flame)" strokeWidth="2.5" strokeLinecap="round"
-                      strokeDasharray={RING_C}
-                      strokeDashoffset={RING_C * (1 - pct)}
-                      style={{ filter: "drop-shadow(0 0 6px rgba(255,122,26,.7))", transition: "stroke-dashoffset .3s linear" }}
-                    />
-                  </svg>
-                  <button
-                    data-testid="radio-play-button"
-                    onClick={toggle}
-                    disabled={status === "loading"}
-                    aria-label={playing ? "Pauză" : "Ascultă live"}
-                    className="knob knob-xl absolute inset-2 !w-[72px] !h-[72px]"
-                    style={playing ? { color: "var(--flame)" } : {}}
-                  >
-                    {status === "loading" ? <Loader2 size={24} className="animate-spin" />
-                      : playing ? <Pause size={24} fill="currentColor" />
-                      : <Play size={24} fill="currentColor" className="ml-1" />}
-                  </button>
-                </div>
+                <PlayKnob pct={pct} playing={playing} loading={status === "loading"} onToggle={toggle} ringRef={ringRef} />
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-3">
                     <button
@@ -140,6 +115,9 @@ export default function LiveConsole() {
                       <Square size={14} fill="currentColor" />
                     </button>
                     <ShareButton track={track} testid="live-share" />
+                    <Link to="/live" className="knob" aria-label="Deschide camera live full-screen" data-testid="open-live-room" title="Camera live">
+                      <Maximize2 size={14} />
+                    </Link>
                   </div>
                   <div className="flex items-center gap-2.5 w-36">
                     <Volume2 size={14} className="text-[var(--text-3)] shrink-0" />

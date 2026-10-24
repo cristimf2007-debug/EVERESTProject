@@ -286,6 +286,7 @@ export function RadioProvider({ children }) {
       {children}
       <audio
         ref={audioRef}
+        crossOrigin="anonymous"
         onLoadedMetadata={onLoaded}
         onTimeUpdate={onTime}
         onEnded={onEnded}

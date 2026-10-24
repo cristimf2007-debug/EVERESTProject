@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Disc3, Clapperboard, LogIn, LogOut, Search, ShieldCheck, Settings, CircleUserRound } from "lucide-react";
+import { Newspaper, Disc3, Clapperboard, Mail, LogIn, LogOut, Search, ShieldCheck, Settings, CircleUserRound, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import api, { getSid, mediaUrl } from "@/lib/api";
 import { useRadio } from "@/context/RadioContext";
@@ -38,20 +38,43 @@ function playThunder() {
 }
 
 const TABS = [
-  { to: "/", label: "Acasă", tid: "acasa", dot: null },
-  { to: "/muzica", label: "Muzică", tid: "muzica", dot: "muzica" },
+  { to: "/", label: "Noutăți", tid: "acasa", dot: null },
+  { to: "/muzica", label: "Muzică & Radio", tid: "muzica", dot: "muzica" },
   { to: "/clipuri", label: "Video", tid: "video", dot: "video" },
+  { to: "/contact", label: "Contact", tid: "contact", dot: null },
 ];
 
 const MTABS = [
-  { to: "/", label: "Acasă", tid: "acasa", icon: Home, dot: null },
+  { to: "/", label: "Noutăți", tid: "acasa", icon: Newspaper, dot: null },
   { to: "/muzica", label: "Muzică", tid: "muzica", icon: Disc3, dot: "muzica" },
   { to: "/clipuri", label: "Video", tid: "video", icon: Clapperboard, dot: "video" },
+  { to: "/contact", label: "Contact", tid: "contact", icon: Mail, dot: null },
 ];
 
 const isActiveTab = (to, pathname) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
 
-// Header Obsidian — pilulă plutitoare cu 3 taburi + avatar; pe mobil: bară jos cu icoane + avatar
+// Avatar cu fallback garantat: dacă imaginea pică (rate limit Google etc.), rămâne inițiala
+function AvatarImg({ me }) {
+  const [broken, setBroken] = useState(false);
+  if (me.picture && !broken) {
+    return (
+      <img
+        src={mediaUrl(me.picture)}
+        alt={me.name}
+        referrerPolicy="no-referrer"
+        className="w-full h-full object-cover"
+        onError={() => setBroken(true)}
+      />
+    );
+  }
+  return (
+    <span className="grid w-full h-full place-items-center text-xs font-black text-[#07090e]" style={{ background: "linear-gradient(180deg, var(--accent-hi), var(--flame))" }}>
+      {(me.name || "F")[0].toUpperCase()}
+    </span>
+  );
+}
+
+// Header extins — bară de comandă centrată: logo · nav · căutare · clopoțel · abonare · profil
 export default function ChannelHeader() {
   const location = useLocation();
   const { listeners } = useRadio();
@@ -92,7 +115,7 @@ export default function ChannelHeader() {
   // meniul de cont se închide la navigare
   useEffect(() => { setUserMenu(false); setSubEmailOpen(false); }, [location.pathname]);
 
-  // puncte portocalii pe taburile cu noutăți + deschiderea Setărilor din footer
+  // puncte cyan pe taburile cu noutăți + deschiderea Setărilor din footer
   useEffect(() => {
     const onCounts = (e) => setDots({ muzica: e.detail?.muzica || 0, video: e.detail?.video || 0 });
     const onSettings = () => setSettingsOpen(true);
@@ -161,20 +184,10 @@ export default function ChannelHeader() {
     doSubscribe(em);
   };
 
-  const avatar = me ? (
-    me.picture ? (
-      <img src={mediaUrl(me.picture)} alt={me.name} className="w-full h-full object-cover" />
-    ) : (
-      <span className="grid w-full h-full place-items-center text-xs font-black text-[#140800]" style={{ background: "linear-gradient(180deg, var(--accent-hi), var(--flame))" }}>
-        {(me.name || "F")[0].toUpperCase()}
-      </span>
-    )
-  ) : null;
-
   return (
     <>
       <header data-testid="channel-header" className="fixed inset-x-0 top-3 z-[110] flex justify-center px-3 pointer-events-none">
-        <div className={`hdr-pill pointer-events-auto ${scrolled ? "scrolled" : ""}`}>
+        <div className={`hdr-pill pointer-events-auto ${scrolled ? "scrolled" : ""}`} style={{ maxWidth: 1240 }}>
           <button onClick={onLogoTouch} data-testid="channel-logo" aria-label="Cine sunt eu — deschide" className="hdr-logo">
             <img src="/logo-alt.png" alt="BIOXIC" />
             <span className="hdr-word">BIOXIC</span>
@@ -190,11 +203,15 @@ export default function ChannelHeader() {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
-            <span className="hdr-live" data-testid="header-live-pill">
+            <Link to="/muzica" className="hdr-live" data-testid="header-live-pill" aria-label="Deschide pagina radioului">
               <span className="w-1.5 h-1.5 rounded-full live-dot" style={{ background: "var(--live)" }} />
               LIVE{listeners > 0 ? ` · ${listeners}` : ""}
-            </span>
-            <button className="knob knob-sm" data-testid="search-knob" onClick={() => setSearchOpen(true)} aria-label="Caută pe site">
+            </Link>
+            {/* căutare: câmp pe ecrane mari, knob pe restul */}
+            <button className="hdr-search" data-testid="search-field" onClick={() => setSearchOpen(true)} aria-label="Caută piese, clipuri, anunțuri">
+              <Search size={13} /> Caută…
+            </button>
+            <button className="knob knob-sm lg:!hidden" data-testid="search-knob" onClick={() => setSearchOpen(true)} aria-label="Caută pe site">
               <Search />
             </button>
             <NotificationBell />
@@ -224,16 +241,21 @@ export default function ChannelHeader() {
                 </form>
               )}
             </div>
-            {/* avatar pe desktop; pe mobil e în bara de jos */}
+            {/* pilula de profil: avatar + nume + rang; pe mobil avatarul e în bara de jos */}
             {me ? (
               <button
                 data-testid="header-user-chip"
                 onClick={() => setUserMenu((o) => !o)}
-                className="hdr-desktop-only w-9 h-9 rounded-full overflow-hidden border border-[var(--edge-hi)] hover:border-[rgba(var(--flame-rgb),.5)] transition-colors"
-                aria-label="Contul tău"
+                className="hdr-profile hdr-desktop-only !flex"
+                aria-label={`Contul tău — ${me.name}`}
                 aria-expanded={userMenu}
               >
-                {avatar}
+                <span className="block w-8 h-8 rounded-full overflow-hidden shrink-0"><AvatarImg me={me} /></span>
+                <span className="hidden xl:block text-left leading-tight">
+                  <span className="block text-[11px] font-semibold max-w-[90px] truncate">{me.name}</span>
+                  <span className={`hdr-badge ${subscribed ? "vip" : "fan"} mt-0.5 inline-block`}>{subscribed ? "VIP" : "Fan"}</span>
+                </span>
+                <ChevronDown size={12} className="text-[var(--text-3)] hidden xl:block" />
               </button>
             ) : me === false ? (
               <button data-testid="header-login-button" onClick={() => setLoginOpen(true)} className="knob knob-sm hdr-desktop-only" aria-label="Intră în cont">
@@ -270,7 +292,7 @@ export default function ChannelHeader() {
         </div>
       )}
 
-      {/* navigație mobilă — bară jos: 3 icoane + avatar */}
+      {/* navigație mobilă — bară jos: 4 icoane + avatar */}
       <nav className="mnav" aria-label="Navigație mobilă" data-testid="mobile-nav">
         {MTABS.map((t) => {
           const Icon = t.icon;
@@ -284,7 +306,7 @@ export default function ChannelHeader() {
         })}
         {me ? (
           <button data-testid="mtab-cont" onClick={() => setUserMenu((o) => !o)} aria-label="Contul tău" className="mnav-btn overflow-hidden" aria-expanded={userMenu}>
-            <span className="block w-[26px] h-[26px] rounded-full overflow-hidden">{avatar}</span>
+            <span className="block w-[26px] h-[26px] rounded-full overflow-hidden"><AvatarImg me={me} /></span>
           </button>
         ) : (
           <button data-testid="mtab-cont" onClick={() => setLoginOpen(true)} aria-label="Intră în cont" className="mnav-btn">

@@ -1,45 +1,35 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Radio, Disc3, ListMusic } from "lucide-react";
 import LiveConsole from "@/components/LiveConsole";
 import Playlisturi from "@/components/Playlisturi";
 import Piese from "@/pages/Piese";
 
-const SEGMENTS = [
-  { to: "/muzica", key: "live", label: "Live", icon: Radio, tid: "seg-live", exact: true },
-  { to: "/muzica/piese", key: "piese", label: "Piese", icon: Disc3, tid: "seg-piese" },
-  { to: "/muzica/playlisturi", key: "playlisturi", label: "Playlisturi", icon: ListMusic, tid: "seg-playlisturi" },
-];
-
-// Muzică — Live · Piese · Playlisturi, secțiuni interne cu control segmentat
+// Muzică & Radio — deck-ul live 24/7 + discografie + playlisturi, totul într-o pagină
 export default function Muzica() {
-  const { pathname } = useLocation();
-  const sub = pathname.split("/")[2] || "live";
-  const section = ["live", "piese", "playlisturi"].includes(sub) ? sub : "live";
-
   return (
     <div data-testid="muzica-page">
-      <div className="sticky top-[74px] z-40 flex justify-center px-4 pointer-events-none">
-        <div className="seg-control pointer-events-auto" data-testid="muzica-segments" role="tablist" aria-label="Secțiuni muzică">
-          {SEGMENTS.map((s) => {
-            const Icon = s.icon;
-            const active = section === s.key;
-            return (
-              <Link key={s.key} to={s.to} role="tab" aria-selected={active} data-testid={s.tid} className={`seg-link ${active ? "active" : ""}`}>
-                <Icon size={13} /> {s.label}
-              </Link>
-            );
-          })}
-        </div>
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-8 pt-4 sm:pt-6">
+        <header className="rv">
+          <p className="badge-engraved">Emisiune continuă · 24/7</p>
+          <h1 className="font-display text-3xl sm:text-4xl uppercase tracking-tight mt-2">
+            Muzică & <span className="text-[var(--live)]">Radio</span>
+          </h1>
+          <p className="text-[var(--text-2)] text-sm mt-3 max-w-xl">
+            Radioul cântă non-stop, sincronizat pentru toți ascultătorii. Dedesubt — toată discografia, direct din seif.
+          </p>
+        </header>
       </div>
 
-      {section === "live" && <LiveConsole />}
-      {section !== "live" && (
-        <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 sm:py-10">
-          {section === "piese" && <Piese embedded />}
-          {section === "playlisturi" && <Playlisturi />}
-        </div>
-      )}
+      <LiveConsole />
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-8 mt-16 sm:mt-20 cv-auto">
+        <p className="badge-engraved mb-1">Discografie completă</p>
+        <Piese embedded />
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-8 mt-16 sm:mt-20 cv-auto">
+        <p className="badge-engraved mb-5">Playlisturi</p>
+        <Playlisturi />
+      </div>
     </div>
   );
 }

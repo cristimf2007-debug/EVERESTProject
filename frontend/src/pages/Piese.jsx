@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Play, Pause, Headphones, ListMusic } from "lucide-react";
+import { Play, Pause, Headphones, ListMusic, Flame, Mic2 } from "lucide-react";
 import api, { mediaUrl } from "@/lib/api";
 import { useRadio } from "@/context/RadioContext";
 import ShareButton from "@/components/ShareButton";
 import Equalizer from "@/components/Equalizer";
+import LyricsModal from "@/components/LyricsModal";
 
 function fmt(sec) {
   if (!sec || !isFinite(sec)) return "";
@@ -12,63 +13,91 @@ function fmt(sec) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function TrackCard({ t }) {
+const genreLabel = (g) => {
+  const m = { remix: "Remix", mashup: "Mashup", manea: "Manele", manele: "Manele", cover: "Cover AI", trap: "Trap-Manele", pop: "Balkan Pop" };
+  return m[(g || "").toLowerCase()] || (g || "Manea").toUpperCase();
+};
+
+// Rând din deck-ul de stream: număr mare, vinil care iese la hover, wave preview, acțiuni rapide
+function DeckRow({ t, num }) {
   const { current, mode, playing, playTrack, toggle } = useRadio();
+  const [likes, setLikes] = useState(t.likes || 0);
+  const [fired, setFired] = useState(false);
+  const [lyricsOpen, setLyricsOpen] = useState(false);
   const isCurrent = current?.id === t.id;
   const inTrackMode = isCurrent && mode === "track";
   const isPlayingThis = inTrackMode && playing;
-  const onClick = () => (inTrackMode ? toggle() : playTrack(t));
+
+  const onPlay = () => (inTrackMode ? toggle() : playTrack(t));
+  const onFire = async (e) => {
+    e.stopPropagation();
+    if (fired) return;
+    setFired(true);
+    setLikes((l) => l + 1);
+    try {
+      const r = await api.post(`/tracks/${t.id}/like`);
+      if (typeof r.data?.likes === "number") setLikes(r.data.likes);
+    } catch { /* rămâne optimist */ }
+  };
+
   return (
-    <article
+    <div
+      className={`deck-row group ${inTrackMode ? "current" : ""} ${isPlayingThis ? "playing" : ""}`}
+      onClick={onPlay}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onPlay(); } }}
       data-testid={`track-card-${t.id}`}
       data-cursor="PLAY"
-      className="group cursor-pointer"
-      onClick={onClick}
+      aria-label={`Redă ${t.title}`}
     >
-      <div
-        className={`relative aspect-square rounded-2xl overflow-hidden border transition-all duration-300 ${
-          inTrackMode ? "border-[rgba(var(--flame-rgb),.55)]" : "border-[var(--edge)]"
-        } group-hover:-translate-y-1.5 group-hover:border-[rgba(var(--flame-rgb),.5)] group-hover:shadow-[0_18px_50px_-14px_rgba(var(--flame-rgb),.5)]`}
-        style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.07)" }}
-      >
-        <img
-          src={mediaUrl(t.cover_url) || "/logo-alt.png"}
-          alt={t.title}
-          className={`w-full h-full ${t.cover_url ? "object-cover" : "object-contain p-8"}`}
-          style={{ background: "var(--obsidian-2)" }}
-          loading="lazy"
-        />
-        <span className={`absolute inset-0 grid place-items-center transition-opacity duration-300 ${inTrackMode ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`} style={{ background: "rgba(5,5,5,.5)" }}>
-          <span className="knob !w-14 !h-14" style={{ color: "var(--flame)" }}>
-            {isPlayingThis ? <Pause size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" className="ml-1" />}
-          </span>
+      <span className="deck-num">{String(num).padStart(2, "0")}</span>
+
+      {/* cover + vinilul care slidează la hover */}
+      <span className="deck-disc-wrap" aria-hidden="true">
+        <span className="deck-disc" />
+        <img src={mediaUrl(t.cover_url) || "/logo-alt.png"} alt="" loading="lazy"
+          className={`deck-cover ${t.cover_url ? "object-cover" : "object-contain p-2.5"}`} />
+      </span>
+
+      {/* titlu + artist + wave preview la hover */}
+      <span className="min-w-0">
+        <span className="flex items-center gap-2.5">
+          <span className="font-semibold text-sm leading-snug truncate">{t.title}</span>
+          <Equalizer playing={isPlayingThis} bars={4} className={`h-3 shrink-0 deck-eq ${isPlayingThis ? "!opacity-100" : ""}`} />
         </span>
-        {t.duration && (
-          <span className="absolute bottom-2.5 right-2.5 rounded-md px-2 py-0.5 text-[10px] font-mono-x bg-black/70 text-[var(--text)]">
-            {fmt(t.duration)}
-          </span>
-        )}
-        {inTrackMode && (
-          <span className="absolute top-2.5 left-2.5 flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1" data-testid={`track-playing-badge-${t.id}`}>
-            <Equalizer playing={isPlayingThis} bars={3} className="h-2.5" />
-            <span className="text-[9px] font-mono-x uppercase tracking-widest text-[var(--flame)]">{isPlayingThis ? "Se redă" : "Pauză"}</span>
-          </span>
-        )}
-      </div>
-      <div className="flex items-start justify-between gap-2 mt-3 px-0.5">
-        <div className="min-w-0">
-          <h3 className="font-semibold text-sm leading-snug truncate">{t.title}</h3>
-          <p className="text-[10px] font-mono-x uppercase tracking-[0.14em] text-[var(--text-2)] mt-1">
-            {t.artist || "BIOXIC"} · {t.plays || 0} redări
-          </p>
-        </div>
-        <ShareButton track={t} testid={`track-share-${t.id}`} className="shrink-0 -mt-1" />
-      </div>
-    </article>
+        <span className="block text-[10px] font-mono-x uppercase tracking-[0.14em] text-[var(--text-2)] mt-1 truncate">
+          {t.artist || "BIOXIC"}
+        </span>
+      </span>
+
+      <span className="deck-tag deck-hide-sm">{genreLabel(t.genre)}</span>
+      <span className="deck-meta deck-hide-sm"><Headphones size={11} /> {t.plays || 0}</span>
+      <span className="deck-meta deck-hide-sm">{fmt(t.duration)}</span>
+
+      {/* acțiuni rapide — nu declanșează play-ul rândului */}
+      <span className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+        {t.lyrics ? (
+          <button className="knob knob-sm !w-9 !h-9" onClick={() => setLyricsOpen(true)} aria-label={`Versuri ${t.title}`} data-testid={`track-lyrics-${t.id}`}>
+            <Mic2 />
+          </button>
+        ) : null}
+        <button className={`knob knob-sm !w-9 !h-9 ${fired ? "!text-[var(--accent-hi)] !border-[rgba(255,160,80,.5)]" : ""}`} onClick={onFire} aria-label={`Apreciază ${t.title}`} data-testid={`track-fire-${t.id}`}>
+          <Flame />
+          {likes > 0 && <span className="absolute -bottom-1 -right-1 text-[8px] font-mono-x bg-black/80 rounded-full px-1 border border-[var(--edge)]">{likes}</span>}
+        </button>
+        <ShareButton track={t} testid={`track-share-${t.id}`} />
+        <button className="knob !w-11 !h-11" style={{ color: "var(--flame)" }} onClick={onPlay} aria-label={isPlayingThis ? `Pauză ${t.title}` : `Redă ${t.title}`} data-testid={`track-play-${t.id}`}>
+          {isPlayingThis ? <Pause fill="currentColor" /> : <Play fill="currentColor" className="ml-0.5" />}
+        </button>
+      </span>
+
+      {lyricsOpen && <LyricsModal track={t} onClose={() => setLyricsOpen(false)} />}
+    </div>
   );
 }
 
-// Piese — playlisturi tematice (grupate de admin la upload); „embedded" = secțiune în pagina Muzică
+// Piese — deck de stream numerotat, grupat pe playlisturi; „embedded" = secțiune în pagina Muzică
 export default function Piese({ embedded = false }) {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +121,7 @@ export default function Piese({ embedded = false }) {
   }, [tracks]);
 
   const visible = active === "toate" ? groups : groups.filter(([name]) => name === active);
+  let counter = 0; // numerotare continuă pe tot deck-ul
 
   return (
     <div data-testid="piese-page" className={embedded ? "" : "max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8"}>
@@ -136,7 +166,7 @@ export default function Piese({ embedded = false }) {
       {loading ? (
         <div className="grid gap-3 mt-10">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="glass rounded-2xl h-24 animate-pulse" />
+            <div key={i} className="glass rounded-2xl h-[76px] animate-pulse" />
           ))}
         </div>
       ) : tracks.length === 0 ? (
@@ -147,15 +177,16 @@ export default function Piese({ embedded = false }) {
       ) : (
         visible.map(([name, list]) => (
           <section key={name} className="mt-10" data-testid={`playlist-group-${name}`}>
-            <h3 className="font-display text-base sm:text-lg uppercase flex items-center gap-2.5">
+            <h3 className="font-display text-base sm:text-lg uppercase flex items-center gap-2.5 px-2">
               <ListMusic size={17} className="text-[var(--flame)]" />
               {name}
               <span className="text-[10px] font-mono-x text-[var(--text-3)] tracking-widest">{list.length} {list.length === 1 ? "piesă" : "piese"}</span>
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 mt-4">
-              {list.map((t) => (
-                <TrackCard key={t.id} t={t} />
-              ))}
+            <div className="mt-3 space-y-1" data-testid={`deck-${name}`}>
+              {list.map((t) => {
+                counter += 1;
+                return <DeckRow key={t.id} t={t} num={counter} />;
+              })}
             </div>
           </section>
         ))

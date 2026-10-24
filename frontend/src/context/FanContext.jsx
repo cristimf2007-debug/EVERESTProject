@@ -2,15 +2,31 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import api from "@/lib/api";
 
 const FanContext = createContext(null);
+const CACHE_KEY = "bioxic_me_cache";
 
+// Sesiunea de fan: citită instant din cache (nu „dispare" la tranziții/reload), revalidată pe server
 export function FanProvider({ children }) {
-  const [me, setMe] = useState(null); // null = verificare, false = nelogat, obiect = logat
+  const [me, setMeState] = useState(() => {
+    try {
+      const c = sessionStorage.getItem(CACHE_KEY);
+      return c ? JSON.parse(c) : null; // null = verificare, false = nelogat, obiect = logat
+    } catch { return null; }
+  });
   const [loginOpen, setLoginOpen] = useState(false);
+
+  const setMe = (u) => {
+    setMeState(u);
+    try {
+      if (u && typeof u === "object") sessionStorage.setItem(CACHE_KEY, JSON.stringify(u));
+      else sessionStorage.removeItem(CACHE_KEY);
+    } catch { /* storage blocat */ }
+  };
 
   useEffect(() => {
     // CRITICAL: dacă revenim din OAuth, AuthCallback face schimbul de sesiune — sărim verificarea
     if (window.location.hash?.includes("session_id=")) return;
     api.get("/fans/me").then((r) => setMe(r.data)).catch(() => setMe(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loginGoogle = () => {

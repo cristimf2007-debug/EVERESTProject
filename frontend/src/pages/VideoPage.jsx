@@ -62,7 +62,7 @@ function Comments({ videoId, onSeek }) {
   const [me, setMe] = useState(null); // admin?
   const load = () => api.get(`/videos/${videoId}/comments`, { params: { sort } }).then((r) => setItems(r.data || [])).catch(() => {});
 
-  useEffect(() => { load(); }, [videoId, sort]);
+  useEffect(() => { load(); }, [videoId, sort]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { api.get("/auth/me").then((r) => setMe(r.data)).catch(() => {}); }, []);
 
   const submit = async (e) => {

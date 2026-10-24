@@ -1,88 +1,84 @@
 import React, { useEffect, useRef } from "react";
 import { useRadio } from "@/context/RadioContext";
+import { ensureAnalyser, resumeAudioCtx } from "@/lib/audioViz";
 
-// Waveform audio-reactiv desenat pe canvas: partea cântată portocalie, restul întunecat.
-// AnalyserNode real pe elementul audio unic (se conectează o singură dată, la primul play).
+// Waveform desenat pe canvas, audio-reactiv (AnalyserNode pe elementul audio UNIC).
+// Refolosește analyser-ul partajat (fftSize 2048) — createMediaElementSource e one-shot per element.
 export default function LiveWave({ onLevel }) {
-  const { audioRef, playing, progress, duration } = useRadio();
   const canvasRef = useRef(null);
+  const { audioRef, playing } = useRadio();
   const anRef = useRef(null);
-  const progRef = useRef({ p: 0, d: 0 });
-  progRef.current = { p: progress, d: duration };
-  const playingRef = useRef(false);
+  const levelRef = useRef(0);
+  const onLevelRef = useRef(onLevel);
+  onLevelRef.current = onLevel;
+  const playingRef = useRef(playing);
   playingRef.current = playing;
 
+  // conectăm analyserul DOAR după un gest de utilizator (play), altfel AudioContext e blocat
   useEffect(() => {
     if (!playing || anRef.current) return;
     const audio = audioRef.current;
-    if (!audio || audio.__vizHooked) return;
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const src = ctx.createMediaElementSource(audio);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 128;
-      analyser.smoothingTimeConstant = 0.82;
-      src.connect(analyser).connect(ctx.destination);
-      audio.__vizHooked = true;
-      anRef.current = { ctx, analyser, data: new Uint8Array(analyser.frequencyBinCount) };
-    } catch { /* fără WebAudio — rămâne doar progresul vizual */ }
+    if (!audio) return;
+    const v = ensureAnalyser(audio);
+    if (v) { anRef.current = v; resumeAudioCtx(); }
   }, [playing, audioRef]);
 
   useEffect(() => {
-    if (playing && anRef.current) anRef.current.ctx.resume().catch(() => {});
-  }, [playing]);
-
-  useEffect(() => {
     let raf;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const draw = () => {
+    const bars = 56;
+    const phase = Array.from({ length: bars }, (_, i) => i * 0.45);
+    const draw = (t) => {
       raf = requestAnimationFrame(draw);
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const W = canvas.clientWidth * dpr;
-      const H = canvas.clientHeight * dpr;
-      if (canvas.width !== W) { canvas.width = W; canvas.height = H; }
-      ctx.clearRect(0, 0, W, H);
+      const w = canvas.clientWidth * dpr;
+      const h = canvas.clientHeight * dpr;
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+      ctx.clearRect(0, 0, w, h);
 
-      const { p, d } = progRef.current;
-      const pct = d ? Math.min(1, p / d) : 0;
-      const bars = 56;
-      const bw = W / bars;
+      const an = anRef.current;
       let level = 0;
-
-      let freq = null;
-      if (anRef.current && playingRef.current && !reduced) {
-        anRef.current.analyser.getByteFrequencyData(anRef.current.data);
-        freq = anRef.current.data;
-        level = freq.slice(2, 14).reduce((s, v) => s + v, 0) / (12 * 255);
-      }
-      if (onLevel) onLevel(level);
-
-      for (let i = 0; i < bars; i++) {
-        const played = i / bars <= pct;
-        let h;
-        if (freq) {
-          const v = freq[Math.floor((i / bars) * freq.length * 0.8)] / 255;
-          h = Math.max(2 * dpr, v * H * 0.92);
-        } else {
-          // formă statică discretă când nu cântă
-          h = (Math.sin(i * 0.7) * 0.5 + 0.5) * H * 0.18 + 2 * dpr;
+      const values = new Array(bars).fill(0);
+      if (an && playingRef.current) {
+        an.analyser.getByteFrequencyData(an.freq);
+        // eșantionare logaritmică pe jumătatea utilă a spectrului
+        for (let i = 0; i < bars; i++) {
+          const fi = Math.floor(Math.pow(i / bars, 1.7) * (an.freq.length * 0.5)) + 1;
+          values[i] = an.freq[Math.min(fi, an.freq.length - 1)] / 255;
         }
+        let bass = 0;
+        for (let i = 1; i <= 6; i++) bass += an.freq[i];
+        bass /= 6 * 255;
+        levelRef.current = levelRef.current * 0.7 + bass * 0.3;
+        level = levelRef.current;
+      }
+      if (onLevelRef.current) onLevelRef.current(level);
+
+      const gap = w / bars;
+      const bw = Math.max(2, gap * 0.55);
+      const mid = h / 2;
+      for (let i = 0; i < bars; i++) {
+        const idle = 0.09 + 0.05 * Math.sin(t / 700 + phase[i]);
+        const v = values[i] > 0.01 ? 0.12 + values[i] * 0.85 : idle;
+        const bh = Math.max(2 * dpr, v * h * 0.9);
+        const x = i * gap + (gap - bw) / 2;
+        const played = i / bars < 0.4;
         ctx.fillStyle = played ? "#FF7A1A" : "#232327";
         if (played) {
           ctx.shadowColor = "rgba(255,122,26,.55)";
           ctx.shadowBlur = 6 * dpr;
         }
-        const x = i * bw + bw * 0.18;
-        ctx.fillRect(x, (H - h) / 2, bw * 0.64, h);
+        ctx.beginPath();
+        ctx.roundRect(x, mid - bh / 2, bw, bh, bw / 2);
+        ctx.fill();
         ctx.shadowBlur = 0;
       }
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [onLevel]);
+  }, []);
 
-  return <canvas ref={canvasRef} className="w-full h-14 block" data-testid="live-waveform" aria-hidden="true" />;
+  return <canvas ref={canvasRef} className="w-full h-14" data-testid="live-waveform" aria-hidden="true" />;
 }

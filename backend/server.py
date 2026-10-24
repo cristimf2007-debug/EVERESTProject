@@ -10,6 +10,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from typing import Optional, List
 import os, uuid, logging, json, asyncio, time, re, io, wave, struct, math
+from bson import ObjectId
 import bcrypt, jwt, httpx, requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
@@ -97,6 +98,11 @@ async def get_current_admin(request: Request) -> dict:
         payload = jwt.decode(token, os.environ["JWT_SECRET"], algorithms=[JWT_ALGORITHM])
         user = await db.users.find_one({"_id": payload["sub"]})
         if not user:
+            try:
+                user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+            except Exception:
+                user = None
+        if not user:
             raise HTTPException(401, "Utilizator inexistent")
         if user.get("role") != "admin":
             raise HTTPException(403, "Acces interzis — doar administratori")
@@ -129,8 +135,9 @@ async def login(input: LoginInput, request: Request, response: Response):
             upsert=True)
         raise HTTPException(401, "Email sau parolă greșită")
     await db.login_attempts.delete_one({"identifier": identifier})
-    token = create_token(user["_id"], email)
+    token = create_token(str(user["_id"]), email)
     response.set_cookie("access_token", token, httponly=True, secure=True, samesite="strict", max_age=86400, path="/")
+    await log_activity("login", email, "Autentificare admin", ip)
     return {"token": token, "user": {"email": email, "role": user.get("role", "admin")}}
 
 @api_router.get("/auth/me")
@@ -150,8 +157,12 @@ async def seed_admin():
         await db.users.insert_one({"_id": str(uuid.uuid4()), "email": email,
                                    "password_hash": hash_password(password),
                                    "role": "admin", "created_at": datetime.now(timezone.utc).isoformat()})
-    elif not verify_password(password, existing["password_hash"]):
-        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password)}})
+    elif not existing.get("password_hash") or not verify_password(password, existing["password_hash"]) or existing.get("role") != "admin":
+        # cont existent cu același email (ex. fan) → promovat la super-admin cu parola din .env
+        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password), "role": "admin"}})
+    # EXCLUSIV: un singur super-admin — contul din .env; restul conturilor admin sunt retrogradate
+    await db.users.update_many({"role": "admin", "email": {"$ne": email}},
+                               {"$set": {"role": "fan", "demoted_at": datetime.now(timezone.utc).isoformat()}})
 
 # ---------- EMAIL (Resend managed, prin proxy Emergent) ----------
 from html import escape as html_escape
@@ -397,6 +408,8 @@ async def get_current_fan(request: Request) -> dict:
         user = await db.users.find_one({"$or": [{"user_id": payload["sub"]}, {"_id": payload["sub"]}]})
         if not user:
             raise HTTPException(401, "Cont inexistent")
+        if await is_banned_user(user):
+            raise HTTPException(403, "Contul a fost suspendat")
         return user
     except jwt.ExpiredSignatureError:
         raise HTTPException(401, "Sesiune expirată — autentifică-te din nou")
@@ -404,7 +417,7 @@ async def get_current_fan(request: Request) -> dict:
         raise HTTPException(401, "Sesiune invalidă")
 
 @api_router.post("/fans/register")
-async def fan_register(f: FanRegister, response: Response):
+async def fan_register(f: FanRegister, request: Request, response: Response):
     email = f.email.lower().strip()
     name = f.name.strip()[:60]
     if not name:
@@ -421,16 +434,20 @@ async def fan_register(f: FanRegister, response: Response):
                                "created_at": datetime.now(timezone.utc).isoformat()})
     token = create_fan_token(user_id, email)
     response.set_cookie("fan_token", token, httponly=True, secure=True, samesite="lax", max_age=604800, path="/")
+    await log_activity("register", f"{name} <{email}>", "Cont nou de fan", client_ip(request))
     return {"token": token, "user": fan_out({"user_id": user_id, "email": email, "name": name})}
 
 @api_router.post("/fans/login")
-async def fan_login(f: FanLogin, response: Response):
+async def fan_login(f: FanLogin, request: Request, response: Response):
     email = f.email.lower().strip()
     user = await db.users.find_one({"email": email, "role": "fan"})
     if not user or not user.get("password_hash") or not verify_password(f.password, user["password_hash"]):
         raise HTTPException(401, "Email sau parolă greșită")
+    if await is_banned_user(user):
+        raise HTTPException(403, "Contul a fost suspendat")
     token = create_fan_token(user["user_id"], email)
     response.set_cookie("fan_token", token, httponly=True, secure=True, samesite="lax", max_age=604800, path="/")
+    await log_activity("login", f"{user.get('name', '')} <{email}>", "Autentificare cu email", client_ip(request))
     return {"token": token, "user": fan_out(user)}
 
 @api_router.get("/fans/me")
@@ -450,7 +467,7 @@ class GoogleSessionInput(BaseModel):
     session_id: str
 
 @api_router.post("/auth/google/session")
-async def google_session(input: GoogleSessionInput, response: Response):
+async def google_session(input: GoogleSessionInput, request: Request, response: Response):
     try:
         async with httpx.AsyncClient(timeout=15) as http:
             r = await http.get("https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
@@ -462,6 +479,8 @@ async def google_session(input: GoogleSessionInput, response: Response):
         raise HTTPException(401, "Autentificarea Google a eșuat. Încearcă din nou.")
     email = data["email"].lower().strip()
     user = await db.users.find_one({"email": email})
+    if user and await is_banned_user(user):
+        raise HTTPException(403, "Contul a fost suspendat")
     if user:
         user_id = user.get("user_id") or user.get("_id")
         await db.users.update_one({"email": email},
@@ -477,6 +496,7 @@ async def google_session(input: GoogleSessionInput, response: Response):
                                        "created_at": datetime.now(timezone.utc)})
     response.set_cookie("session_token", data["session_token"], httponly=True, secure=True,
                         samesite="lax", max_age=604800, path="/")
+    await log_activity("login", f"{data.get('name', '')} <{email}>", "Autentificare Google", client_ip(request))
     user = await db.users.find_one({"user_id": user_id})
     return {"user": fan_out(user)}
 
@@ -1126,6 +1146,7 @@ async def channel_subscribe(request: Request):
             await db.channel_subs.update_many({"user_id": uid}, {"$set": {"user_id": uid}})
         if email:
             await db.newsletter.update_one({"email": email}, {"$set": {"email": email}}, upsert=True)
+        await log_activity("subscribe", email or sid, "Abonare la canal", client_ip(request))
     else:
         q = {"$or": [{"sid": sid}]}
         if uid:
@@ -1394,6 +1415,19 @@ class WSManager:
         if info and info.get("user_id"):
             asyncio.create_task(self.broadcast({"type": "leave", "id": str(uuid.uuid4()), "name": info["name"]}))
 
+    async def kick_user(self, user_id: str):
+        """Închide forțat toate conexiunile de chat ale unui utilizator (kick din panou)."""
+        targets = [ws for ws, i in self.clients.items() if i.get("user_id") == user_id]
+        for ws in targets:
+            try:
+                await ws.send_text(json.dumps({"type": "kicked"}))
+                await ws.close(code=4000)
+            except Exception:
+                pass
+            self.clients.pop(ws, None)
+        if targets:
+            await self.broadcast({"type": "viewers", "count": self.count, "users": self.user_list()})
+
     async def broadcast(self, msg: dict):
         dead = []
         for ws in self.clients:
@@ -1413,6 +1447,12 @@ CHAT_BAD_WORDS = {"muie", "pula", "pizda", "coaie", "fut", "futu-ti", "cacat", "
 @app.websocket("/api/ws/chat")
 async def chat_ws(ws: WebSocket):
     fan = await resolve_fan_cookies(ws.cookies)
+    # cont banat → refuzăm conexiunea cu mesaj explicit (clientul nu mai reîncearcă)
+    if fan and await is_banned_user(fan):
+        await ws.accept()
+        await ws.send_text(json.dumps({"type": "banned"}))
+        await ws.close(code=4001)
+        return
     info = {"name": (fan.get("name") if fan else "Vizitator"),
             "picture": (fan.get("picture", "") if fan else ""),
             "user_id": (fan.get("user_id") if fan else None)}
@@ -1446,6 +1486,13 @@ async def chat_ws(ws: WebSocket):
                 banned = await db.banned_names.find_one({"name": name.lower()})
                 if banned:
                     await ws.send_text(json.dumps({"type": "error", "detail": "Ești blocat pe chat"}))
+                    continue
+                # moderare din panou: cont mutat (după user_id) sau nume mutat (vizitatori)
+                mute_q = {"$or": [{"name": name.lower()}]}
+                if info.get("user_id"):
+                    mute_q["$or"].append({"user_id": info["user_id"]})
+                if await db.muted_users.find_one(mute_q):
+                    await ws.send_text(json.dumps({"type": "error", "detail": "Ai fost mutat de un moderator"}))
                     continue
                 text = str(data.get("text", ""))[:200].strip()
                 # fără HTML/scripturi — păstrăm doar text curat
@@ -1501,6 +1548,138 @@ async def ban_name(b: BanInput, admin=Depends(get_current_admin)):
     await db.chat.delete_many({"name": {"$regex": f"^{re.escape(b.name.strip())}$", "$options": "i"}})
     return {"ok": True}
 
+
+# ---------- SUPER ADMIN: panou secret, jurnal de activitate, moderare ----------
+
+def client_ip(request: Request) -> str:
+    return request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
+
+
+async def log_activity(kind: str, actor: str, detail: str = "", ip: str = ""):
+    """Jurnal central: cine, ce, când, de unde. Citit doar de admin."""
+    try:
+        await db.activity_log.insert_one({
+            "id": str(uuid.uuid4()), "type": kind, "actor": (actor or "—")[:120],
+            "detail": (detail or "")[:300], "ip": (ip or "")[:64],
+            "ts": datetime.now(timezone.utc).isoformat()})
+    except Exception:
+        pass  # jurnalul nu blochează niciodată fluxul principal
+
+
+async def is_banned_user(user: dict) -> bool:
+    if not user:
+        return False
+    return bool(await db.banned_users.find_one({"$or": [
+        {"user_id": user.get("user_id") or ""},
+        {"email": (user.get("email") or "").lower()},
+    ]}))
+
+
+@api_router.get("/admin/panel/overview")
+async def panel_overview(admin=Depends(get_current_admin)):
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    return {
+        "fans": await db.users.count_documents({"role": "fan"}),
+        "subscribers": await db.channel_subs.count_documents({}),
+        "online_chat": ws_manager.count,
+        "chat_users": ws_manager.user_list(),
+        "messages_total": await db.chat.count_documents({}),
+        "logins_today": await db.activity_log.count_documents({"type": "login", "ts": {"$gte": today}}),
+        "tracks": await db.tracks.count_documents({}),
+        "videos": await db.videos.count_documents({}),
+        "contacts": await db.contacts.count_documents({}),
+    }
+
+
+@api_router.get("/admin/panel/users")
+async def panel_users(admin=Depends(get_current_admin)):
+    fans = await db.users.find({"role": "fan"}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(500)
+    banned_docs = await db.banned_users.find({}, {"_id": 0}).to_list(500)
+    banned_uids = {d.get("user_id") for d in banned_docs if d.get("user_id")}
+    banned_emails = {d.get("email") for d in banned_docs if d.get("email")}
+    muted_docs = await db.muted_users.find({}, {"_id": 0}).to_list(500)
+    muted_uids = {d.get("user_id") for d in muted_docs if d.get("user_id")}
+    muted_names = {d.get("name") for d in muted_docs if d.get("name")}
+    online = {u["user_id"] for u in ws_manager.user_list()}
+    # ultima activitate cunoscută per actor (din jurnal)
+    last_seen = {}
+    async for e in db.activity_log.find({}, {"_id": 0, "actor": 1, "ts": 1}).sort("ts", -1).limit(2000):
+        last_seen.setdefault(e.get("actor"), e.get("ts"))
+    out = []
+    for f in fans:
+        uid = f.get("user_id", "")
+        actor = f"{f.get('name', '')} <{f.get('email', '')}>"
+        out.append({
+            "user_id": uid, "name": f.get("name", ""), "email": f.get("email", ""),
+            "picture": f.get("picture", ""), "created_at": f.get("created_at"),
+            "banned": uid in banned_uids or (f.get("email", "").lower() in banned_emails),
+            "muted": uid in muted_uids or (f.get("name", "").lower() in muted_names),
+            "online": uid in online,
+            "last_seen": last_seen.get(actor) or last_seen.get(f.get("email", "")),
+        })
+    subs = await db.channel_subs.find({}, {"_id": 0}).sort("subscribed_at", -1).to_list(500)
+    return {"fans": out, "subscribers": subs}
+
+
+@api_router.get("/admin/panel/activity")
+async def panel_activity(type: str = "", q: str = "", limit: int = 200, admin=Depends(get_current_admin)):
+    flt = {}
+    if type:
+        flt["type"] = type[:24]
+    if q:
+        rx = {"$regex": re.escape(q[:60]), "$options": "i"}
+        flt["$or"] = [{"actor": rx}, {"detail": rx}, {"ip": rx}]
+    return await db.activity_log.find(flt, {"_id": 0}).sort("ts", -1).to_list(min(max(limit, 1), 500))
+
+
+class ModerateInput(BaseModel):
+    action: str  # kick | ban | unban | mute | unmute
+    user_id: str = ""
+    name: str = ""
+    email: str = ""
+
+
+@api_router.post("/admin/panel/moderate")
+async def panel_moderate(m: ModerateInput, request: Request, admin=Depends(get_current_admin)):
+    action = m.action.strip().lower()
+    uid = m.user_id.strip()[:40]
+    name = m.name.strip()[:60]
+    email = m.email.strip().lower()[:120]
+    label = name or email or uid or "?"
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if action == "kick":
+        if not uid:
+            raise HTTPException(400, "user_id lipsă")
+        await db.user_sessions.delete_many({"user_id": uid})
+        await ws_manager.kick_user(uid)
+    elif action == "ban":
+        if not uid and not email:
+            raise HTTPException(400, "user_id sau email lipsă")
+        doc = {"user_id": uid, "email": email, "name": name.lower(), "by": admin["email"], "ts": now_iso}
+        await db.banned_users.update_one({"user_id": uid} if uid else {"email": email}, {"$set": doc}, upsert=True)
+        if name:
+            await db.banned_names.update_one({"name": name.lower()}, {"$set": {"name": name.lower()}}, upsert=True)
+        if uid:
+            await db.user_sessions.delete_many({"user_id": uid})
+            await ws_manager.kick_user(uid)
+    elif action == "unban":
+        await db.banned_users.delete_many({"$or": [{"user_id": uid}, {"email": email}]})
+        if name:
+            await db.banned_names.delete_one({"name": name.lower()})
+    elif action == "mute":
+        if not uid and not name:
+            raise HTTPException(400, "user_id sau nume lipsă")
+        doc = {"user_id": uid, "name": name.lower(), "by": admin["email"], "ts": now_iso}
+        await db.muted_users.update_one({"user_id": uid} if uid else {"name": name.lower()}, {"$set": doc}, upsert=True)
+    elif action == "unmute":
+        await db.muted_users.delete_many({"$or": [{"user_id": uid}, {"name": name.lower()}]})
+    else:
+        raise HTTPException(400, "Acțiune necunoscută")
+
+    await log_activity("moderation", admin["email"], f"{action} → {label}", client_ip(request))
+    return {"ok": True}
+
 # ---------- PĂRERI (review-uri de la fani) ----------
 
 class ReviewInput(BaseModel):
@@ -1539,11 +1718,12 @@ class ContactInput(BaseModel):
     message: str
 
 @api_router.post("/contact")
-async def contact(c: ContactInput):
+async def contact(c: ContactInput, request: Request):
     doc = {"id": str(uuid.uuid4()), "name": c.name.strip()[:80], "email": c.email.strip()[:120],
            "subject": c.subject.strip()[:120], "message": c.message.strip()[:2000],
            "created_at": datetime.now(timezone.utc).isoformat()}
     await db.contacts.insert_one(doc)
+    await log_activity("contact", f"{doc['name']} <{doc['email']}>", doc["subject"], client_ip(request))
     return {"ok": True}
 
 @api_router.get("/admin/contacts")
@@ -1656,6 +1836,8 @@ async def startup():
     await db.login_attempts.create_index("identifier")
     await db.tracks.create_index("id", unique=True)
     await db.files.create_index("storage_path", unique=True)
+    await db.activity_log.create_index("ts")
+    await db.activity_log.create_index("type")
     try:
         await asyncio.to_thread(init_storage)
         logger.info("Object storage inițializat")
