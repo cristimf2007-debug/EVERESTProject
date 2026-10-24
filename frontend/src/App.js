@@ -16,6 +16,7 @@ import Muzica from "@/pages/Muzica";
 import Videoclipuri from "@/pages/Videoclipuri";
 import VideoPage from "@/pages/VideoPage";
 import Contact from "@/pages/Contact";
+import TvPage from "@/pages/TvPage";
 import Pareri from "@/pages/Pareri";
 import NotFound from "@/pages/NotFound";
 import { applyA11y } from "@/lib/a11y";
@@ -142,6 +143,7 @@ function ShellInner({ location }) {
           <Route path="/clipuri/:id" element={<VideoPage />} />
           <Route path="/pareri" element={<Pareri />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/tv" element={<TvPage />} />
           <Route path="/admin" element={
             <Suspense fallback={<div className="min-h-[60vh] grid place-items-center"><p className="font-mono-x text-xs uppercase tracking-widest text-[var(--text-2)] animate-pulse">Se încarcă…</p></div>}>
               <Admin />

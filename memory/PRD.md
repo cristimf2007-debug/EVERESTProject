@@ -12,6 +12,8 @@ Regulă de aur: backend-ul rămâne neatins la rebuild-uri vizuale.
 - `/clipuri` — canal video: PRIMII clipurile uploadate (12, „Clipuri BIOXIC", thumbnails din cadre video), apoi rând orizontal „Everest Manele" (YouTube RSS, DOAR canalul Everest); filtre TOATE / CLIPURI BIOXIC / EVEREST MANELE + căutare; FĂRĂ player bar
 - `/clipuri/:id` — player intern stil YouTube (viteze, PiP, resume, comentarii, up-next, autoplay)
 - `/live` — camera live full-screen (fără header/footer/playerbar): header stream sus, viewport sticlă cu vinyl+spectrum, titlu animat cu spații corecte, transport jos, chat dreapta; mobil: coloană scrollabilă
+- `/tv` — BIOXIC TV: stream HLS live (stream.tequilamusic.net/hls/tequila_tv.m3u8 — H.264 1080p50 + AAC, CORS deschis) prin hls.js (Safari: nativ), fără autoplay (overlay play → salt la live edge), controale play/mute/fullscreen, auto-recovery la erori rețea, mesaj clar dacă browserul nu are H.264, chat live alături (LiveChat inRoom), mutex cu radioul; PlayerBar ascunsă; tab TV în header + mnav; CSP media-src/connect-src + stream.tequilamusic.net
+- ATENȚIE teste: podul headless NU are codecuri H.264/AAC — redarea video nu e verificabilă în pod (nici clipurile uploadate); pe browsere reale funcționează
 - `/secret-mod` — PANOU SUPER ADMIN secret (nelistat): gate login → overview live (fani/abonați/online/logări azi/piese/clipuri/contacte), taburi Utilizatori (kick/mute/ban one-click + flaguri + ultima activitate + abonați), Activitate (tracking logări), Loguri (căutare + filtre)
 - `/admin` — panoul clasic de conținut (același login admin), `/pareri`, `*` → 404
 - Redirecturi: `/piese` → `/muzica`, `/radio` → `/muzica`, `/despre` → `/contact`

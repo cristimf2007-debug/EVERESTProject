@@ -1986,8 +1986,8 @@ async def security_headers_and_rate_limit(request: Request, call_next):
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: blob: https:; "
-        "media-src 'self' blob:; "
-        "connect-src 'self' ws: wss:; "
+        "media-src 'self' blob: https://stream.tequilamusic.net; "
+        "connect-src 'self' ws: wss: https://stream.tequilamusic.net; "
         "frame-src https://www.youtube.com https://www.youtube-nocookie.com; "
         "object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
     )

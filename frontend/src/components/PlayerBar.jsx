@@ -16,7 +16,7 @@ export default function PlayerBar() {
   const [queueOpen, setQueueOpen] = useState(false);
   const [lyricsOpen, setLyricsOpen] = useState(false);
 
-  if (pathname.startsWith("/clipuri") || pathname === "/live" || pathname.startsWith("/admin") || pathname.startsWith("/secret-mod")) return null;
+  if (pathname.startsWith("/clipuri") || pathname === "/live" || pathname === "/tv" || pathname.startsWith("/admin") || pathname.startsWith("/secret-mod")) return null;
   if (!current) return null;
 
   const isLive = mode === "live";

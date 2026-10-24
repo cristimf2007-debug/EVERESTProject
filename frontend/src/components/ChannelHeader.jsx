@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Newspaper, Disc3, Clapperboard, Mail, LogIn, LogOut, Search, ShieldCheck, Settings, CircleUserRound, ChevronDown } from "lucide-react";
+import { Newspaper, Disc3, Clapperboard, Mail, LogIn, LogOut, Search, ShieldCheck, Settings, CircleUserRound, ChevronDown, Tv } from "lucide-react";
 import { toast } from "sonner";
 import api, { getSid, mediaUrl } from "@/lib/api";
 import { useRadio } from "@/context/RadioContext";
@@ -41,6 +41,7 @@ const TABS = [
   { to: "/", label: "Noutăți", tid: "acasa", dot: null },
   { to: "/muzica", label: "Muzică & Radio", tid: "muzica", dot: "muzica" },
   { to: "/clipuri", label: "Video", tid: "video", dot: "video" },
+  { to: "/tv", label: "TV", tid: "tv", dot: null },
   { to: "/contact", label: "Contact", tid: "contact", dot: null },
 ];
 
@@ -48,6 +49,7 @@ const MTABS = [
   { to: "/", label: "Noutăți", tid: "acasa", icon: Newspaper, dot: null },
   { to: "/muzica", label: "Muzică", tid: "muzica", icon: Disc3, dot: "muzica" },
   { to: "/clipuri", label: "Video", tid: "video", icon: Clapperboard, dot: "video" },
+  { to: "/tv", label: "TV", tid: "tv", icon: Tv, dot: null },
   { to: "/contact", label: "Contact", tid: "contact", icon: Mail, dot: null },
 ];
 
