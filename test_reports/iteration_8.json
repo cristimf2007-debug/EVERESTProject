@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 8 — focused regression on the new super-admin secret panel (/secret-mod + /api/admin/panel/*), moderation flow, live chat/room layout, track deck, home page, media handoff. Backend: 13/13 new pytest cases pass in /app/backend/tests/test_secret_panel.py (unauth 401s, wrong-password rejection, overview counters, users list contains test fan, activity log entries, mute+unmute toggle persists in /panel/users, ban causes 403 on /api/fans/login then unban restores login, moderation entries recorded in activity log, bad action -> 400, old admin@bioxic.ro is demoted). Frontend: /secret-mod unauthenticated shows ONLY the login gate (mod-login), full panel (secret-mod-panel) absent until correct admin login; wrong password keeps the login gate; correct login (cristimf2007@gmail.com / mfcristi2007!) renders 7 overview cards with real numbers (Fani 2 / Abonați 4 / Online 0 / Logări azi 10 / Mesaje 2 / Piese 6 / Clipuri 12 / Contact 0), UTILIZATORI/ACTIVITATE/LOGURI tabs switch, test fan row shows mute button, clicking it adds 'MUTAT' badge and shows success toast 'Utilizator mutat: TestModerare', activity log renders 22 entries including 'Autentificare admin', 'Cont nou de fan', 'Autentificare cu email'. PlayerBar HIDDEN on /secret-mod (0 instances) ✔. Home page: /logo.png and /artist.jpg both load (no broken images). /muzica track deck: 6 numbered deck rows (01..05+) rendered with .deck-num class. /live desktop 1366px: site header=0, site footer=0, player-bar=0 (all correctly hidden), title 'BIOXIC FEAT. EVEREST MANELE - HAI TE ROG EU, SUNA-MA' renders with proper word spacing (room-track-title uses flex gap-x-[0.3em]), vinyl viewport + transport controls + chat column all visible. /live mobile 390px: viewport fits (scrollH=clientH=844), vinyl not cropped, no overlapping elements per screenshot. Radio audio element present with data-testid='radio-audio', paused by default in headless (autoplay policy). WS /api/ws/chat reconnects visible in console (expected during navigation). The 401 console errors are from /api/auth/me without a cookie — expected unauth check, not a bug.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_secret_panel.py",
+    "/app/test_reports/pytest/iter8_secret_panel.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py seed_admin() correctly demotes any role=='admin' user whose email != ADMIN_EMAIL at startup — verified behaviorally (old admin@bioxic.ro no longer admin).",
+    "panel_moderate accepts action in {kick, ban, unban, mute, unmute}; input validated via Pydantic ModerateInput. Bad action returns 400. ban upserts by user_id OR email; unban deletes by both. Clean.",
+    "is_banned_user matches both user_id and email (lowercased) — covers Google-login users without local password too.",
+    "activity_log insert is wrapped in try/except pass — correct: logging never blocks main flow.",
+    "SecretMod.jsx cleanly separates login-gate (mod-login) from panel (secret-mod-panel) and gates all data fetches behind the admin cookie/bearer. 401 responses on initial unauth load do not leak any protected data to the DOM.",
+    "LiveRoom.jsx room-track-title renders words as separate flex spans with gap-x-[0.3em] — eliminates the 'NICOLAEGUTA' concatenation bug mentioned in the request.",
+    "App shell correctly hides header/footer and PlayerBar on /live, /secret-mod, /admin, /clipuri — verified via DOM counts (all 0 on /secret-mod and /live).",
+    "No full-screen pointer canvases observed on /clipuri grid (VideoDust removed as expected)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_secret_panel.py (new)"
+  ],
+  "success_rate": {"backend": "100% (13/13 new tests)", "frontend": "100% of in-scope flows verified"},
+  "test_credentials": "Super admin cristimf2007@gmail.com / mfcristi2007! (confirmed working). Fan testmoderare@example.com / test1234 (auto-created/healed by fixture).",
+  "seed_data_creation": "Test fan testmoderare@example.com was registered (or healed via unban) by the test fixture. Several activity_log entries (login/register/moderation) were written by the test flow. No destructive mutations to production content.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All new batch features (secret panel, moderation, exclusive admin, live room layout fixes, track deck, chat history-merge, media handoff flag, home artist banner, PlayerBar on /secret-mod) are green. test_secret_panel.py is self-healing — it unbans/unmutes the test fan if left banned from a previous run. On next iteration, run `pytest backend/tests/ -v` to execute all historical suites together.",
+  "rca_of_the_issue": "No bugs to RCA this iteration."
+}

@@ -186,15 +186,11 @@ export default function ChannelHeader() {
 
   return (
     <>
-      <header data-testid="channel-header" className="fixed inset-x-0 top-3 z-[110] flex justify-center px-3 pointer-events-none">
-        <div className={`hdr-pill pointer-events-auto ${scrolled ? "scrolled" : ""}`} style={{ maxWidth: 1240 }}>
-          <button onClick={onLogoTouch} data-testid="channel-logo" aria-label="Cine sunt eu — deschide" className="hdr-logo">
-            <img src="/logo-alt.png" alt="BIOXIC" />
-            <span className="hdr-word">BIOXIC</span>
-          </button>
-
-          <nav className="hidden lg:flex items-center gap-0.5" aria-label="Navigație principală">
-            {TABS.map((t) => (
+      <header data-testid="channel-header" className="fixed inset-x-0 top-0 z-[110] pointer-events-none">
+        {/* bara full-width: linkuri stânga · logo centrat · linkuri + acțiuni dreapta */}
+        <div className={`hdr-bar pointer-events-auto ${scrolled ? "scrolled" : ""}`}>
+          <nav className="hidden lg:flex items-center gap-1 flex-1" aria-label="Navigație principală">
+            {TABS.slice(0, 2).map((t) => (
               <Link key={t.to} to={t.to} data-testid={`tab-${t.tid}`} className={`hdr-link ${isActiveTab(t.to, location.pathname) ? "active" : ""}`}>
                 {t.label}
                 {t.dot && dots[t.dot] > 0 && <span className="tab-dot" aria-label={`${dots[t.dot]} noutăți`} />}
@@ -202,7 +198,20 @@ export default function ChannelHeader() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
+          {/* logo oficial centrat (atinge-l — „Cine sunt eu") */}
+          <button onClick={onLogoTouch} data-testid="channel-logo" aria-label="Cine sunt eu — deschide" className="hdr-logo hdr-logo-center">
+            <img src="/logo.png" alt="BIOXIC" />
+          </button>
+
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-1 justify-end">
+            <nav className="hidden lg:flex items-center gap-1 mr-1" aria-label="Navigație secundară">
+              {TABS.slice(2).map((t) => (
+                <Link key={t.to} to={t.to} data-testid={`tab-${t.tid}`} className={`hdr-link ${isActiveTab(t.to, location.pathname) ? "active" : ""}`}>
+                  {t.label}
+                  {t.dot && dots[t.dot] > 0 && <span className="tab-dot" aria-label={`${dots[t.dot]} noutăți`} />}
+                </Link>
+              ))}
+            </nav>
             <Link to="/muzica" className="hdr-live" data-testid="header-live-pill" aria-label="Deschide pagina radioului">
               <span className="w-1.5 h-1.5 rounded-full live-dot" style={{ background: "var(--live)" }} />
               LIVE{listeners > 0 ? ` · ${listeners}` : ""}

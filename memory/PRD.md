@@ -1,43 +1,55 @@
-# BIOXIC — Site oficial (Radio Live 24/7) · tema OBSIDIAN
+# BIOXIC — Site oficial (Radio Live 24/7) · OBSIDIAN GLASS (cyan)
 
-## Concept curent (rebuild OBSIDIAN, 24 oct 2026)
-Site-canal pentru artistul BIOXIC (manele / remixuri / mashup-uri), temă vizuală „OBSIDIAN": obiect de lux într-o cameră întunecată — obsidian lucios, oțel periat, sticlă fumurie, lumânare portocalie (flame #FF7A1A), Halloween Limited 2026 discret (ștampilă gravată, fum fin, zero elemente cartoonish). Fonturi: Space Grotesk (display), Inter (body), JetBrains Mono (etichete).
-Feature central: **RADIO LIVE 24/7 sincronizat** — toți aud aceeași piesă, la aceeași secundă.
-Regulă de aur: backend-ul rămâne neatins la rebuild-uri vizuale; noi rute doar pentru profiluri/feed (faza viitoare).
+## Concept curent (actualizat 24 oct 2026, runda „glass + super-admin")
+Site-comunitate pentru artistul BIOXIC / Everest Music (Cristi, 19 ani, Focșani). Temă: deep obsidian (#07090e), glassmorphism 3D ușor, accent cyan #00F0FF (+ roșu live #FF0055). Fonturi: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (etichete). Performanță întâi: zero canvas global, zero efecte pointer-follow, blur doar pe suprafețe plutitoare.
+Feature central: **RADIO LIVE 24/7 sincronizat** — NU pornește singur; doar la click explicit; buton mute în player bar.
+Regulă de aur: backend-ul rămâne neatins la rebuild-uri vizuale.
 
-## Structură rute (OBSIDIAN v2, faza 1)
-- `/` — Acasă: hero 100vh cu wordmark glossy care urmărește mouse-ul + fum canvas + lumânare, panou „De la ultima vizită" (CeENou, pe baza bioxic_last_visit), bandă „Acum la radio" → camera live, Ultimele piese (reflexie oglindă + tilt), Videoclipuri (3 preview), Cifre (contoare animate), footer BIOXIC gigantic gravat
-- `/muzica` — control segmentat Live · Piese · Playlisturi (rute: /muzica, /muzica/piese, /muzica/playlisturi); Live = consolă (vinyl CSS cu șanțuri+sheen, knob play cu inel de progres, waveform AnalyserNode, chat panou sticlă / bottom sheet pe mobil, coada „În rotație")
-- `/clipuri` + `/clipuri/:id` — zonă video separată, FĂRĂ player bar; player custom (tastatură, viteze, PiP, fullscreen, resume, autoplay-next)
-- `/pareri`, `/despre` (Despre/Contact mutate din taburi în footer), `/admin` (protejat, lazy), `*` → 404
-- Redirecturi: `/piese` → `/muzica/piese`, `/live` → `/muzica`
-- Header: pilulă plutitoare (Acasă · Muzică · Video + LIVE·N + căutare + clopoțel + Abonează-te + avatar); mobil: bară jos 3 icoane + avatar; meniu avatar: Panou admin (dacă sesiune admin), Setări→Accesibilitate, Ieșire
-- Auto-update: `/version.json` + `/changelog.json` (public, no-store), verificare la load/5min/refocus, toast „Versiune nouă" (nu întrerupe video/input), „Mai târziu" snooze 30min, după reload toast „Actualizat ✓"
-- Accesibilitate: Setări→4 toggle-uri (clase pe <html>: a11y-rm/contrast/big/noflash), respectă prefers-reduced-motion/contrast, ținte touch ≥44px (pointer:coarse), aria-live pe chat + „Acum la radio"
+## Structură rute
+- `/` — Noutăți: hero cu logo oficial UNIC (o singură apariție a brandului pe primul ecran), butoane PayPal (link real hosted-button) + Discord (placeholder toast până primim invite-ul), banner artist (/artist.jpg, gradient obsidian), card bio (Cristi · 19 ani · Focșani · colaborări Nek Music, LuCash, AMMA, Big Up, Bogdan de la Ploiești, Costel Biju, Jador), CeENou, feed noutăți, linkuri rapide
+- `/muzica` — LiveConsole (radio 24/7) + discografie în „stream deck" numerotat (vinil slide-out la hover, tag gen, redări, durată, fire/like, share, versuri dacă există) + Playlisturi
+- `/clipuri` — canal video: PRIMII clipurile uploadate (12, „Clipuri BIOXIC", thumbnails din cadre video), apoi rând orizontal „Everest Manele" (YouTube RSS, DOAR canalul Everest); filtre TOATE / CLIPURI BIOXIC / EVEREST MANELE + căutare; FĂRĂ player bar
+- `/clipuri/:id` — player intern stil YouTube (viteze, PiP, resume, comentarii, up-next, autoplay)
+- `/contact` — WhatsApp +44 7400 998964, email contact@everestmanele.com, PayPal + Transfer UK (C Maxim · 20-25-98 · 73583767, butoane Copiază), socialuri, formular → /api/contact
+- `/live` — camera live full-screen (fără header/footer/playerbar): header stream sus, viewport sticlă cu vinyl+spectrum, titlu animat cu spații corecte, transport jos, chat dreapta; mobil: coloană scrollabilă
+- `/secret-mod` — PANOU SUPER ADMIN secret (nelistat): gate login → overview live (fani/abonați/online/logări azi/piese/clipuri/contacte), taburi Utilizatori (kick/mute/ban one-click + flaguri + ultima activitate + abonați), Activitate (tracking logări), Loguri (căutare + filtre)
+- `/admin` — panoul clasic de conținut (același login admin), `/pareri`, `*` → 404
+- Redirecturi: `/piese` → `/muzica`, `/radio` → `/muzica`, `/despre` → `/contact`
 
-## Arhitectură
-- Frontend: React + Tailwind; `RadioContext` = UN SINGUR element <audio> pentru radio + piese on-demand; MUTEX audio global: `<audio onPlay>` emite `bioxic:audio-play` → VideoPlayer se pune pauză; la play video → pauză radio + `window.__bioxicVideoPlaying` (citit de VersionChecker). Niciodată două surse simultan
-- Chat optimizat: buffer + flush 1×/frame (rAF), max 200 mesaje, rânduri memoizate, burst mode (peste 12 msg/s oprește animația de intrare), auto-scroll inteligent + pastilă „X mesaje noi", reconnect backoff 1→2→5→10s + „Se reconectează…", trimitere optimistic, reacții throttled (8/s, max 20), WS unic, hook de stres `window.__bioxicChatStress(n, perSec)`
-- Efecte: Preloader (000→100, o dată/sesiune), PageCurtain (0.4s), Cursor custom (desktop, „PLAY" pe covere), Lenis smooth scroll (desktop), reveal .rv prin IntersectionObserver, grain 3% + vignette
-- Backend: FastAPI + MongoDB (NEATINS în această rundă); motor radio `radio` + `radio_listeners`; audio semnat cu expirare + Range 206
-- Auth: admin cookie httpOnly (admin@bioxic.ro / bioxic2024 — TEST); fani: email/parolă + Google (Emergent)
+## Header (taskbar full-width, idee din designul vechi, pe tema actuală)
+- Stânga: Noutăți · Muzică & Radio | Centru: LOGO imagine (click → fulger+tunet+șoaptă „No risks, no hits" → LogoModal „Cine sunt eu") | Dreapta: Video · Contact · LIVE·N · Căutare · Clopoțel · Abonează-te · profil (avatar+nume+rang VIP/Fan)
+- Mobil: bară jos (Noutăți · Muzică · Video · Contact + avatar)
+- Logo-ul mare din hero → StoryModal „De ce există site-ul ăsta" (3 strike-uri YouTube · caz penal · 0 ștergeri aici · 24/7 live)
+
+## Super Admin (backend nou, 24.10)
+- Credențiale EXCLUSIVE din .env: cristimf2007@gmail.com / mfcristi2007! — la startup, orice alt cont admin e retrogradat la fan; contul cu emailul din .env e promovat/parolă resincronizată (fără change-password în UI)
+- Endpoints (toate `Depends(get_current_admin)`): GET /api/admin/panel/overview, GET /api/admin/panel/users, GET /api/admin/panel/activity?type&q&limit, POST /api/admin/panel/moderate {action: kick|ban|unban|mute|unmute, user_id?, name?, email?}
+- Jurnal central `activity_log` (login admin/fan/Google, register, subscribe, contact, moderation) cu IP + ts
+- Moderare reală: kick = șterge sesiuni + închide WS (ws_manager.kick_user, mesaj `kicked`); ban = `banned_users` + `banned_names` + kick; ban blocat la /fans/login, /auth/google/session, get_current_fan, WS connect (`banned` → clientul oprește reconectarea); mute = `muted_users` verificat la fiecare mesaj chat
+- Fix: conturile fan au _id ObjectId → create_token(str(_id)) + get_current_admin încearcă și ObjectId
+
+## Arhitectură (neschimbată la bază)
+- RadioContext = UN SINGUR <audio>; sincronizare la 12s; drift 3s; cooldown seek 15s; link audio semnat cu expirare + Range 206
+- **Autoplay OFF**: `wantPlayRef` — onLoaded pornește doar dacă userul a apăsat play (play/playTrack/backToLive setează intenția; pause/stop o șterg)
+- MUTEX audio: audio onPlay → `bioxic:audio-play` → VideoPlayer pauză; video play → pauză radio + `__bioxicVideoPlaying`
+- Chat: batching rAF, max 200, memo rows, backoff, optimistic (cu retragere la `error` de la server — rate limit/mute), history MERGE la reconectare (fără flicker), `kicked`/`banned` blochează inputul
+- Reveal .rv: IntersectionObserver + MutationObserver (conținut montat târziu nu mai rămâne invizibil)
+- VideoDust (canvas pointer-reactive) ELIMINAT — cauza latenței de mouse; tilt rămâne doar per-card (transform-only)
+- FanContext: cache sessionStorage + revalidare (avatarul nu mai dispare); AvatarImg cu fallback la inițială
 
 ## Testare
-- iteration_7.json: 40/43 backend (2 erori fixture-only), frontend ~98% — toate fluxurile critice verificate; redirecturi single-hop; mutex audio verificat; update-toast verificat cu version.json interceptat; stress chat: FPS constant în timpul injecției (23→23, limita mediului headless), DOM < 200, input responsive; mobil: nav jos + sheet chat fără suprapuneri
-- Cunoscut (mediu preview): ingress rescrie SameSite=Strict→None (cod corect); fixture test_signed_audio cere cover_url
+- iteration_8.json (testing agent): 13/13 pytest backend panel (401 neauth, login greșit, overview, users, activity, mute/unmute persist, ban→403 la login→unban repară, acțiune greșită→400, retrogradare admin vechi); frontend /secret-mod gate+login+taburi+moderare; /live fără header/footer bleed, titlu cu spații, mobil OK; home logo+banner OK; deck numerotat OK
+- Verificări manuale după: fără autoplay (paused=true la load, „Ascultă live"), play+mute funcționale, login modal OK, taskbar logo centrat, ambele modale de logo, /clipuri uploads-first + Everest-only + thumbnails din cadre video
 
-## Changelog
-- 24.10.2026 — OBSIDIAN v1+v2(faza 1+9+10): rebuild vizual complet frontend-only; navigație 3 taburi + avatar; /muzica cu segmente; redirecturi; CeENou; auto-update version.json; Setări Accesibilitate; chat rescris (batching/memo/backoff/optimistic/burst); FIX STABILITATE AUDIO (mutex global radio↔video); vinyl CSS realist; preloader/cursor/curtain/Lenis; șterse HalloweenIntro/Snowfall; warning react-hooks loadSrc reparat
-- 23.10.2026 (runda 11) — 4 piese noi în rotație (total 6, playlist „HIT-uri De Dragoste 2027 by Bioxic"); prev/next verificate; fallback cover = logo
-- 23.10.2026 (runda 10) — ROUTE AUDIT: docs dezactivate, 404 stilizat, /adminpanel→404, robots.txt, conturi demo șterse
-- 23.10.2026 (runda 9) — SECURITY HARDENING complet (cookie httpOnly, CSP, CORS restrâns, rate limits, chat sanitizat, sourcemaps off)
-- 23.10.2026 (runda 8) — FIX BUG CRITIC live-loop (Range 206, offset ceas, drift 3s) + redesign Halloween
-- (ulterior) 12 videoclipuri urcate + pagini dedicate /clipuri/{id} cu player custom + descriere standard BIOXIC pe toate
+## Changelog (rezumat)
+- 24.10.2026 — GLASS round: 4 pagini (Noutăți/Muzică/Video/Contact), taskbar full-width cu logo centrat, PlayerBar dockable (coadă/versuri/minimize), LiveRoom refăcut fără suprapuneri, VideoDust eliminat, autoplay oprit, stream deck discografie, banner artist, canal video uploads-first + Everest-only, StoryModal+LogoModal, Contact cu date reale, SUPER ADMIN /secret-mod + moderare + jurnal activitate, credențiale admin exclusive, intro „univers" construit și apoi SCOS la cererea userului
+- 24.10.2026 — OBSIDIAN v1+v2: rebuild vizual, chat rescris, mutex audio, auto-update, accesibilitate
+- 23.10.2026 — hardening securitate, fix live-loop (Range 206), 12 clipuri uploadate
 
-## Backlog prioritizat (din brief-ul OBSIDIAN v2 — ordinea cerută de user)
-- P0 următor: Faza 2+3+4+5 — Live POPUP full-screen (/live ca overlay cu URL propriu, shared-element vinyl), vinyl cu spectrum circular 96–128 bare (fftSize 2048, peak-hold, beat kick 20–150Hz, moduri Ring/Liquid/Minimal, particule la kick, culori din cover), titlu animat literă cu literă, chips artiști, story card 1080×1920 la share, chat „bule de lumină" + Moments (separator la schimbarea piesei) + reacții din vinyl + Hype meter + reply/@mențiuni + /cere piesă
-- P1: Faza 6 — Playlist cover flow 3D + pagină playlist cu hero mozaic + timeline + drawer „Urmează" în player bar
-- P1: Faza 8 — Video: fundal WebGL interactiv (particule reactiv la mouse/touch), tilt pe thumbnails, preview mut la hover
-- P2: Faza 7 — Profiluri + feed comunitate (SINGURA fază cu backend nou: users/profiles/posts/follows/likes/comments/reports, upload avatar/banner WebP, moderare, notificări, ștergere cont)
-- P2: Stripe donații „Susține-l pe BIOXIC" (în așteptarea confirmării userului)
-- P2: Pagina /artist (toate colaborările unui artist)
+## Backlog
+- P1: link real Discord invite (userul trebuie să-l trimită — butonul există, toast „în curând")
+- P1: versuri pentru piese (câmpul lyrics există; butonul apare doar dacă are conținut)
+- P2: profiluri + feed comunitate (necesită backend nou — de discutat)
+- P2: pagina /artist (toate colaborările unui artist)
+- P2: email direct la contact@everestmanele.com pentru formularul de contact (acum se salvează în DB + panou admin)
+- NOTĂ: seed-ul rulează doar pe baza goală — pe site-ul live (deployat) datele noi din preview nu se copiază decât la primul Deploy

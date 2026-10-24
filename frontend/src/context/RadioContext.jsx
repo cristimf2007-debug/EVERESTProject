@@ -24,6 +24,7 @@ export function RadioProvider({ children }) {
   const statusRef = useRef("idle");
   const currentRef = useRef(null);
   const resignRef = useRef(0);
+  const wantPlayRef = useRef(false); // radioul NU pornește singur — doar la acțiunea explicită a vizitatorului
   const offsetRef = useRef(0);        // diferența de ceas server − client (ms)
   const lastPosRef = useRef(null);    // { position, at } — ultima poziție cunoscută de la server
 
@@ -140,6 +141,7 @@ export function RadioProvider({ children }) {
   const play = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !current) return;
+    wantPlayRef.current = true;
     if (modeRef.current === "live") {
       setStatus("loading");
       // revenire după stop/pauză → ne realiniem la secunda live, apoi pornim
@@ -156,11 +158,13 @@ export function RadioProvider({ children }) {
   }, [current, syncLive]);
 
   const pause = useCallback(() => {
+    wantPlayRef.current = false;
     audioRef.current?.pause();
     setStatus("paused");
   }, []);
 
   const stop = useCallback(() => {
+    wantPlayRef.current = false;
     const audio = audioRef.current;
     if (!audio) return;
     audio.pause();
@@ -178,6 +182,7 @@ export function RadioProvider({ children }) {
 
   const playTrack = useCallback((t, list) => {
     const q = list || queue;
+    wantPlayRef.current = true;
     setMode("track");
     setCurrent(t);
     currentRef.current = t;
@@ -213,6 +218,7 @@ export function RadioProvider({ children }) {
   }, [queue, trackIdx, playTrack]);
 
   const backToLive = useCallback(() => {
+    wantPlayRef.current = true;
     setMode("live");
     setTrackIdx(-1);
     syncLive().then(() => {
@@ -251,9 +257,12 @@ export function RadioProvider({ children }) {
       pendingSeekRef.current = null;
     }
     setDuration(audio.duration || 0);
-    if (statusRef.current === "loading" || statusRef.current === "playing") {
+    if (wantPlayRef.current) {
       setStatus("playing");
-      audio.play().catch(() => {});
+      audio.play().catch(() => setStatus("error"));
+    } else {
+      // sursa e pregătită, dar nimeni n-a apăsat play — stăm încărcați și silențioși
+      setStatus("paused");
     }
   };
   const onTime = () => { if (audioRef.current) setProgress(audioRef.current.currentTime); };

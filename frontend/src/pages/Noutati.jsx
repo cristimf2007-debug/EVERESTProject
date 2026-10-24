@@ -1,9 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Play, Pause, Loader2, Radio, Music2, Clapperboard, Sparkles, Megaphone, ArrowRight, Eye, Youtube, Instagram, AudioLines, BadgeCheck } from "lucide-react";
+import { Play, Clapperboard, Music2, Sparkles, Megaphone, ArrowRight, Eye, Youtube, Instagram, AudioLines, BadgeCheck, Heart, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 import api, { mediaUrl } from "@/lib/api";
 import { useRadio } from "@/context/RadioContext";
 import CeENou from "@/components/CeENou";
+import StoryModal from "@/components/StoryModal";
+
+const PAYPAL_URL = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=87GMZQWSD6NLY";
+const DISCORD_URL = ""; // invite-ul real se pune aici când îl primim
 
 const SOCIALS = [
   { label: "YouTube", href: "https://www.youtube.com/@djbioxic", icon: Youtube, tid: "bio-youtube" },
@@ -28,8 +33,8 @@ function timeAgo(iso) {
 
 // Pagina principală = NOUTĂȚI & BIOGRAFIE: logo oficial, bio, feed de anunțuri/piese/clipuri
 export default function Noutati() {
-  const { status, playing, toggle } = useRadio();
   const [tracks, setTracks] = useState([]);
+  const [storyOpen, setStoryOpen] = useState(false);
   const [videos, setVideos] = useState([]);
   const [changes, setChanges] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,26 +64,30 @@ export default function Noutati() {
 
   return (
     <div data-testid="noutati-page" className="relative">
-      {/* HERO — logo oficial 3D glass, centrat, interactiv */}
+      {/* HERO — o singură dată brandul: logo oficial mare (atinge-l → povestea site-ului), apoi PayPal + Discord */}
       <section className="max-w-[1240px] mx-auto px-4 sm:px-8 pt-10 sm:pt-14 text-center">
-        <img
-          src="/logo.png"
-          alt="BIOXIC"
-          className="brand-logo-3d w-36 h-36 sm:w-48 sm:h-48 object-contain mx-auto rv"
-          data-testid="hero-logo"
-        />
-        <h1 className="font-display text-4xl sm:text-6xl uppercase tracking-tight mt-5 rv" data-testid="hero-title">Bioxic</h1>
-        <p className="badge-engraved mt-3 rv">Everest Music · Radio live 24/7 · Limited 2026</p>
+        <button onClick={() => setStoryOpen(true)} aria-label="De ce există site-ul — deschide povestea" data-testid="hero-logo" className="mx-auto block rv">
+          <img
+            src="/logo.png"
+            alt="BIOXIC"
+            className="brand-logo-3d w-40 h-40 sm:w-56 sm:h-56 object-contain mx-auto"
+          />
+          <span className="block text-[9px] font-mono-x uppercase tracking-[0.3em] text-[var(--text-3)] mt-2 opacity-70">atinge logo-ul</span>
+        </button>
+        <p className="badge-engraved mt-4 rv">Everest Music · Radio live 24/7 · Limited 2026</p>
         <div className="flex flex-wrap items-center justify-center gap-3 mt-7 rv">
-          <button className="btn-flame" onClick={toggle} disabled={status === "loading"} data-testid="news-play-button">
-            {status === "loading" ? <Loader2 size={15} className="animate-spin" />
-              : playing ? <Pause size={15} fill="currentColor" />
-              : <Play size={15} fill="currentColor" />}
-            {status === "loading" ? "Se încarcă…" : playing ? "Pauză" : "Ascultă live"}
-          </button>
-          <Link to="/muzica" className="btn-steel" data-testid="news-radio-link">
-            <Radio size={14} /> Muzică & Radio
-          </Link>
+          <a href={PAYPAL_URL} target="_blank" rel="noreferrer" className="btn-flame" data-testid="hero-paypal">
+            <Heart size={15} /> Donează · PayPal
+          </a>
+          {DISCORD_URL ? (
+            <a href={DISCORD_URL} target="_blank" rel="noreferrer" className="btn-steel" data-testid="hero-discord">
+              <MessageCircle size={14} /> Discord Community
+            </a>
+          ) : (
+            <button className="btn-steel" data-testid="hero-discord" onClick={() => toast.info("Serverul de Discord se deschide în curând — până atunci, chatul live de pe site e activ.")}>
+              <MessageCircle size={14} /> Discord Community
+            </button>
+          )}
         </div>
       </section>
 
@@ -104,10 +113,11 @@ export default function Noutati() {
             <p className="flex items-center justify-center sm:justify-start gap-2 font-display text-xl uppercase">
               Bioxic <BadgeCheck size={18} className="text-[var(--flame)]" aria-label="Cont verificat" data-testid="bio-verified" />
             </p>
-            <p className="text-[10px] font-mono-x uppercase tracking-[0.2em] text-[var(--text-3)] mt-1.5">Producător · Remixuri · Manele noi</p>
+            <p className="text-[10px] font-mono-x uppercase tracking-[0.2em] text-[var(--text-3)] mt-1.5">Cristi · 19 ani · Focșani · Producător</p>
             <p className="text-sm text-[var(--text-2)] leading-relaxed mt-3">
-              BIOXIC — producător și artist independent (Everest Music). Remixuri, mashup-uri și manele direct din seif:
-              premierele se aud întâi aici, pe radioul live 24/7, înainte de oriunde altundeva.
+              BIOXIC — producător și artist independent (Everest Music). Remixuri, mashup-uri și manele direct din seif,
+              cu colaborări alături de Nek Music, LuCash, AMMA, Big Up, Bogdan de la Ploiești, Costel Biju și Jador.
+              Premierele se aud întâi aici, pe radioul live 24/7.
             </p>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 mt-4" data-testid="bio-socials">
               {SOCIALS.map((s) => {
@@ -173,6 +183,8 @@ export default function Noutati() {
           </Link>
         </div>
       </section>
+
+      {storyOpen && <StoryModal onClose={() => setStoryOpen(false)} />}
     </div>
   );
 }

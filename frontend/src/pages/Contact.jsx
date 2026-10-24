@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Phone, Mail, Music2, Instagram, Youtube, AudioLines, Send, Loader2, MessageCircle } from "lucide-react";
+import { Phone, Mail, Music2, Instagram, Youtube, AudioLines, Send, Loader2, MessageCircle, Heart, Copy } from "lucide-react";
 import { toast } from "sonner";
 import api, { formatApiError } from "@/lib/api";
 
@@ -9,6 +9,35 @@ const SOCIALS = [
   { label: "Instagram", handle: "@crss.exe_", href: "https://www.instagram.com/crss.exe_", icon: Instagram, tid: "contact-instagram" },
   { label: "Spotify", handle: "BIOXIC", href: "https://open.spotify.com/artist/4tlelg9L2y1OFOVpUkIiAK", icon: AudioLines, tid: "contact-spotify" },
 ];
+const PAYPAL_URL = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=87GMZQWSD6NLY";
+const EMAIL = "contact@everestmanele.com";
+const WHATSAPP = "https://wa.me/447400998964";
+const BANK = [
+  { label: "Sort code", value: "20-25-98", tid: "contact-copy-sort" },
+  { label: "Cont", value: "73583767", tid: "contact-copy-cont" },
+];
+
+function CopyChip({ value, tid }) {
+  return (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--edge)] bg-black/30 px-2.5 py-1.5 text-[11px] font-mono-x tracking-wider hover:border-[rgba(var(--flame-rgb),.5)] hover:text-[var(--flame)] transition-colors"
+      data-testid={tid}
+      aria-label={`Copiază ${value}`}
+      onClick={async () => {
+        try { await navigator.clipboard.writeText(value); }
+        catch {
+          const ta = document.createElement("textarea");
+          ta.value = value; document.body.appendChild(ta); ta.select();
+          document.execCommand("copy"); ta.remove();
+        }
+        toast.success("Copiat ✓");
+      }}
+    >
+      {value} <Copy size={11} />
+    </button>
+  );
+}
 
 // Contact & chat direct — căsuța de mesaje ajunge la BIOXIC (panoul de admin + email)
 export default function Contact() {
@@ -44,20 +73,25 @@ export default function Contact() {
 
       {/* cărți de contact */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10" data-testid="contact-cards">
-        <div className="ob-card p-5 rv" data-testid="contact-card-phone">
+        <a href={WHATSAPP} target="_blank" rel="noreferrer" className="ob-card p-5 rv block hover:border-[var(--edge-hi)] transition-colors" data-testid="contact-card-phone">
           <span className="knob !w-11 !h-11" style={{ color: "var(--flame)" }}><Phone size={16} /></span>
-          <p className="font-display text-sm uppercase mt-3.5">Booking / Telefon</p>
-          <p className="text-xs text-[var(--text-2)] mt-1.5">Numărul se afișează în curând — între timp, lasă mesaj mai jos.</p>
-        </div>
-        <div className="ob-card p-5 rv rv-d1" data-testid="contact-card-discord">
-          <span className="knob !w-11 !h-11" style={{ color: "var(--flame)" }}><MessageCircle size={16} /></span>
-          <p className="font-display text-sm uppercase mt-3.5">Discord Community</p>
-          <p className="text-xs text-[var(--text-2)] mt-1.5">Serverul de Discord se deschide în curând — chatul live de pe site e activ acum.</p>
-        </div>
-        <div className="ob-card p-5 rv rv-d2" data-testid="contact-card-email">
+          <p className="font-display text-sm uppercase mt-3.5">WhatsApp / Booking</p>
+          <p className="text-xs text-[var(--text-2)] mt-1.5">+44 7400 998964 — răspunde direct, de obicei în aceeași zi.</p>
+        </a>
+        <a href={`mailto:${EMAIL}`} className="ob-card p-5 rv rv-d2 block hover:border-[var(--edge-hi)] transition-colors" data-testid="contact-card-email">
           <span className="knob !w-11 !h-11" style={{ color: "var(--flame)" }}><Mail size={16} /></span>
           <p className="font-display text-sm uppercase mt-3.5">Email</p>
-          <p className="text-xs text-[var(--text-2)] mt-1.5">Folosește formularul — mesajul ajunge direct în inboxul lui.</p>
+          <p className="text-xs text-[var(--text-2)] mt-1.5 break-all">{EMAIL} — sau folosește formularul de mai jos.</p>
+        </a>
+        <div className="ob-card p-5 rv rv-d1" data-testid="contact-card-support">
+          <span className="knob !w-11 !h-11" style={{ color: "var(--flame)" }}><Heart size={16} /></span>
+          <p className="font-display text-sm uppercase mt-3.5">Susține</p>
+          <p className="text-xs text-[var(--text-2)] mt-1.5">Fiecare donație înseamnă o piesă nouă.</p>
+          <a href={PAYPAL_URL} target="_blank" rel="noreferrer" className="btn-flame !h-9 !px-4 !text-[10px] mt-3" data-testid="contact-paypal">PayPal</a>
+          <p className="text-[9px] font-mono-x uppercase tracking-[0.18em] text-[var(--text-3)] mt-3.5 mb-1.5">Transfer UK · C Maxim</p>
+          <div className="flex flex-wrap gap-1.5">
+            {BANK.map((b) => <CopyChip key={b.label} value={b.value} tid={b.tid} />)}
+          </div>
         </div>
         <div className="ob-card p-5 rv rv-d3" data-testid="contact-card-socials">
           <p className="font-display text-sm uppercase">Social & Management</p>
