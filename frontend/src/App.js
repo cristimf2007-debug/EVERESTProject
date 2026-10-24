@@ -87,7 +87,8 @@ function ScrollManager() {
 function Shell() {
   const location = useLocation();
   // CRITICAL: detectează session_id SINCRON, în render (useLocation, nu window.location)
-  if (location.hash?.includes("session_id=")) {
+  // + ruta /auth/success (OAuth propriu — cookie-urile sunt deja setate de backend, fără hash)
+  if (location.hash?.includes("session_id=") || location.pathname === "/auth/success") {
     return <AuthCallback />;
   }
   return <ShellInner location={location} />;
