@@ -7,6 +7,7 @@ import { FanProvider, useFan } from "@/context/FanContext";
 import api from "@/lib/api";
 import Preloader from "@/components/Preloader";
 import Footer from "@/components/Footer";
+import LoginModal from "@/components/LoginModal";
 import VersionChecker from "@/components/VersionChecker";
 import Protection from "@/components/Protection";
 import ChannelHeader from "@/components/ChannelHeader";
@@ -87,6 +88,9 @@ function ShellInner({ location }) {
   const isAdmin = location.pathname.startsWith("/admin") || location.pathname.startsWith("/secret-mod");
   // Camera live e imersivă full-screen: fără header, footer sau bara player peste ea
   const isLive = location.pathname === "/live";
+  const { me } = useFan();
+  // poartă obligatorie: site-ul public nu se folosește fără cont (adminul are login separat)
+  const gate = !isAdmin && me === false;
 
   // reveal la scroll: elementele .rv apar când intră în viewport — inclusiv cele montate târziu
   // (ex. gridurile încărcate de pe server), prin MutationObserver
@@ -147,6 +151,7 @@ function ShellInner({ location }) {
       </main>
       {!isAdmin && !isLive && <Footer />}
       {!isLive && <PlayerBar />}
+      {gate && <LoginModal blocking />}
     </>
   );
 }

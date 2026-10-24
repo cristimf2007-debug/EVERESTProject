@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Play, Clapperboard, Music2, Sparkles, Megaphone, ArrowRight, Eye, Youtube, Instagram, AudioLines, BadgeCheck, Heart, MessageCircle } from "lucide-react";
-import { toast } from "sonner";
 import api, { mediaUrl } from "@/lib/api";
 import { useRadio } from "@/context/RadioContext";
 import CeENou from "@/components/CeENou";
 import StoryModal from "@/components/StoryModal";
 
-const PAYPAL_URL = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=87GMZQWSD6NLY";
-const DISCORD_URL = ""; // invite-ul real se pune aici când îl primim
+const PAYPAL_URL = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=A8F6WTGW3RU94";
+const DISCORD_URL = "https://discord.gg/jhCDSq7vqu";
 
 const SOCIALS = [
   { label: "YouTube", href: "https://www.youtube.com/@djbioxic", icon: Youtube, tid: "bio-youtube" },
@@ -79,15 +78,9 @@ export default function Noutati() {
           <a href={PAYPAL_URL} target="_blank" rel="noreferrer" className="btn-flame" data-testid="hero-paypal">
             <Heart size={15} /> Donează · PayPal
           </a>
-          {DISCORD_URL ? (
-            <a href={DISCORD_URL} target="_blank" rel="noreferrer" className="btn-steel" data-testid="hero-discord">
-              <MessageCircle size={14} /> Discord Community
-            </a>
-          ) : (
-            <button className="btn-steel" data-testid="hero-discord" onClick={() => toast.info("Serverul de Discord se deschide în curând — până atunci, chatul live de pe site e activ.")}>
-              <MessageCircle size={14} /> Discord Community
-            </button>
-          )}
+          <a href={DISCORD_URL} target="_blank" rel="noreferrer" className="btn-steel" data-testid="hero-discord">
+            <MessageCircle size={14} /> Discord · BIOXIC House
+          </a>
         </div>
       </section>
 

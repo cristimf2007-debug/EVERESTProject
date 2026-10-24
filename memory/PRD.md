@@ -6,15 +6,20 @@ Feature central: **RADIO LIVE 24/7 sincronizat** — NU pornește singur; doar l
 Regulă de aur: backend-ul rămâne neatins la rebuild-uri vizuale.
 
 ## Structură rute
-- `/` — Noutăți: hero cu logo oficial UNIC (o singură apariție a brandului pe primul ecran), butoane PayPal (link real hosted-button) + Discord (placeholder toast până primim invite-ul), banner artist (/artist.jpg, gradient obsidian), card bio (Cristi · 19 ani · Focșani · colaborări Nek Music, LuCash, AMMA, Big Up, Bogdan de la Ploiești, Costel Biju, Jador), CeENou, feed noutăți, linkuri rapide
+- `/` — Noutăți: hero cu logo oficial UNIC (o singură apariție a brandului pe primul ecran), butoane PayPal + Discord (BIOXIC House, discord.gg/jhCDSq7vqu), banner artist (/artist.jpg, gradient obsidian), card bio (Cristi · 19 ani · Focșani · colaborări Nek Music, LuCash, AMMA, Big Up, Bogdan de la Ploiești, Costel Biju, Jador), CeENou, feed noutăți, linkuri rapide
+- `/contact` — WhatsApp +44 7400 998964, email contact@everestmanele.com, PayPal oficial (formular ncp/payment/A8F6WTGW3RU94, fără SDK → CSP neatins), Transfer UK (C Maxim · 20-25-98 · 73583767, butoane Copiază), Discord + socialuri, formular → /api/contact
 - `/muzica` — LiveConsole (radio 24/7) + discografie în „stream deck" numerotat (vinil slide-out la hover, tag gen, redări, durată, fire/like, share, versuri dacă există) + Playlisturi
 - `/clipuri` — canal video: PRIMII clipurile uploadate (12, „Clipuri BIOXIC", thumbnails din cadre video), apoi rând orizontal „Everest Manele" (YouTube RSS, DOAR canalul Everest); filtre TOATE / CLIPURI BIOXIC / EVEREST MANELE + căutare; FĂRĂ player bar
 - `/clipuri/:id` — player intern stil YouTube (viteze, PiP, resume, comentarii, up-next, autoplay)
-- `/contact` — WhatsApp +44 7400 998964, email contact@everestmanele.com, PayPal + Transfer UK (C Maxim · 20-25-98 · 73583767, butoane Copiază), socialuri, formular → /api/contact
 - `/live` — camera live full-screen (fără header/footer/playerbar): header stream sus, viewport sticlă cu vinyl+spectrum, titlu animat cu spații corecte, transport jos, chat dreapta; mobil: coloană scrollabilă
 - `/secret-mod` — PANOU SUPER ADMIN secret (nelistat): gate login → overview live (fani/abonați/online/logări azi/piese/clipuri/contacte), taburi Utilizatori (kick/mute/ban one-click + flaguri + ultima activitate + abonați), Activitate (tracking logări), Loguri (căutare + filtre)
 - `/admin` — panoul clasic de conținut (același login admin), `/pareri`, `*` → 404
 - Redirecturi: `/piese` → `/muzica`, `/radio` → `/muzica`, `/despre` → `/contact`
+
+## Poartă de autentificare (24.10, la cererea userului)
+- Site-ul public e blocat de un LoginModal `blocking` (fără X, fără dismiss pe backdrop, scroll blocat) până când vizitatorul intră în cont (Google sau email/parolă)
+- `/admin` și `/secret-mod` NU sunt afectate (au login admin separat)
+- LoginModal blochează scrollul body cât e deschis (orice context)
 
 ## Header (taskbar full-width, idee din designul vechi, pe tema actuală)
 - Stânga: Noutăți · Muzică & Radio | Centru: LOGO imagine (click → fulger+tunet+șoaptă „No risks, no hits" → LogoModal „Cine sunt eu") | Dreapta: Video · Contact · LIVE·N · Căutare · Clopoțel · Abonează-te · profil (avatar+nume+rang VIP/Fan)

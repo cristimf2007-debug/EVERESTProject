@@ -2,14 +2,15 @@ import React, { useState } from "react";
 import { Phone, Mail, Music2, Instagram, Youtube, AudioLines, Send, Loader2, MessageCircle, Heart, Copy } from "lucide-react";
 import { toast } from "sonner";
 import api, { formatApiError } from "@/lib/api";
+import PayPalButton from "@/components/PayPalButton";
 
 const SOCIALS = [
+  { label: "Discord", handle: "BIOXIC House", href: "https://discord.gg/jhCDSq7vqu", icon: MessageCircle, tid: "contact-discord" },
   { label: "YouTube", handle: "@djbioxic", href: "https://www.youtube.com/@djbioxic", icon: Youtube, tid: "contact-youtube" },
   { label: "TikTok", handle: "@bioxic.exe", href: "https://www.tiktok.com/@bioxic.exe", icon: Music2, tid: "contact-tiktok" },
   { label: "Instagram", handle: "@crss.exe_", href: "https://www.instagram.com/crss.exe_", icon: Instagram, tid: "contact-instagram" },
   { label: "Spotify", handle: "BIOXIC", href: "https://open.spotify.com/artist/4tlelg9L2y1OFOVpUkIiAK", icon: AudioLines, tid: "contact-spotify" },
 ];
-const PAYPAL_URL = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=87GMZQWSD6NLY";
 const EMAIL = "contact@everestmanele.com";
 const WHATSAPP = "https://wa.me/447400998964";
 const BANK = [
@@ -87,7 +88,7 @@ export default function Contact() {
           <span className="knob !w-11 !h-11" style={{ color: "var(--flame)" }}><Heart size={16} /></span>
           <p className="font-display text-sm uppercase mt-3.5">Susține</p>
           <p className="text-xs text-[var(--text-2)] mt-1.5">Fiecare donație înseamnă o piesă nouă.</p>
-          <a href={PAYPAL_URL} target="_blank" rel="noreferrer" className="btn-flame !h-9 !px-4 !text-[10px] mt-3" data-testid="contact-paypal">PayPal</a>
+          <div className="mt-3" data-testid="contact-paypal-wrap"><PayPalButton testid="contact-paypal" /></div>
           <p className="text-[9px] font-mono-x uppercase tracking-[0.18em] text-[var(--text-3)] mt-3.5 mb-1.5">Transfer UK · C Maxim</p>
           <div className="flex flex-wrap gap-1.5">
             {BANK.map((b) => <CopyChip key={b.label} value={b.value} tid={b.tid} />)}
