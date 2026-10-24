@@ -70,9 +70,9 @@ export default function LiveWave({ onLevel }) {
           // formă statică discretă când nu cântă
           h = (Math.sin(i * 0.7) * 0.5 + 0.5) * H * 0.18 + 2 * dpr;
         }
-        ctx.fillStyle = played ? "#E8731A" : "#33261C";
+        ctx.fillStyle = played ? "#FF7A1A" : "#232327";
         if (played) {
-          ctx.shadowColor = "rgba(232,115,26,.55)";
+          ctx.shadowColor = "rgba(255,122,26,.55)";
           ctx.shadowBlur = 6 * dpr;
         }
         const x = i * bw + bw * 0.18;

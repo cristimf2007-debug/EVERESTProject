@@ -46,8 +46,25 @@ export default function VideoPlayer({ video, onEnded, seekApi }) {
   const onPlay = useCallback(() => {
     pauseRadio();
     setPlaying(true);
+    window.__bioxicVideoPlaying = true;
     api.post(`/videos/${video.id}/view`).catch(() => {});
   }, [pauseRadio, video.id]);
+
+  // dacă pornește radioul/o piesă → video-ul se oprește (o singură sursă audio, mereu)
+  useEffect(() => {
+    const onAudioPlay = () => {
+      const v = vidRef.current;
+      if (v && !v.paused) { v.pause(); setPlaying(false); window.__bioxicVideoPlaying = false; }
+    };
+    const markStopped = () => { window.__bioxicVideoPlaying = false; };
+    window.addEventListener("bioxic:audio-play", onAudioPlay);
+    const v = vidRef.current;
+    v?.addEventListener("pause", markStopped);
+    return () => {
+      window.removeEventListener("bioxic:audio-play", onAudioPlay);
+      v?.removeEventListener("pause", markStopped);
+    };
+  }, []);
 
   useEffect(() => {
     const v = vidRef.current;
@@ -82,6 +99,7 @@ export default function VideoPlayer({ video, onEnded, seekApi }) {
       v.removeEventListener("timeupdate", onTime);
       v.removeEventListener("ended", onEnd);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [posKey, onEnded]);
 
   // glow ambient portocaliu sub player (pulsează ușor cât cântă)
@@ -169,7 +187,7 @@ export default function VideoPlayer({ video, onEnded, seekApi }) {
         ref={glowRef}
         aria-hidden="true"
         className="absolute -inset-6 rounded-3xl pointer-events-none transition-opacity duration-700"
-        style={{ background: "radial-gradient(ellipse at 50% 60%, rgba(232,115,26,.22), transparent 70%)", filter: "blur(10px)" }}
+        style={{ background: "radial-gradient(ellipse at 50% 60%, rgba(255,122,26,.22), transparent 70%)", filter: "blur(10px)" }}
       />
       <div className="relative rounded-2xl overflow-hidden border border-[var(--line)] bg-black group/vp">
         <video

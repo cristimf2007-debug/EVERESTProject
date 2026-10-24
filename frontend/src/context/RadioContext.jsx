@@ -44,7 +44,7 @@ export function RadioProvider({ children }) {
   const playing = status === "playing";
 
   // Încarcă o sursă NOUĂ o singură dată (niciodată la re-render); link audio semnat
-  const loadSrc = (track, position = 0) => {
+  const loadSrc = useCallback((track, position = 0) => {
     const audio = audioRef.current;
     if (!audio || !track) return;
     pendingSeekRef.current = position;
@@ -55,7 +55,7 @@ export function RadioProvider({ children }) {
       audio.src = src;
       audio.load();
     });
-  };
+  }, []);
 
   // poziția așteptată calculată LOCAL între poll-uri (cu offset de ceas), fără cereri în plus
   const expectedPosition = () => {
@@ -107,7 +107,7 @@ export function RadioProvider({ children }) {
         }
       }
     } catch { /* reîncearcă la ciclul următor */ }
-  }, []);
+  }, [loadSrc]);
 
   useEffect(() => {
     syncLive();
@@ -185,7 +185,7 @@ export function RadioProvider({ children }) {
     loadSrc(t, 0);
     setStatus("playing");
     api.post(`/tracks/${t.id}/play`).catch(() => {});
-  }, [queue]);
+  }, [queue, loadSrc]);
 
   const next = useCallback(() => {
     if (modeRef.current !== "track" || trackIdx < 0) return;
@@ -290,6 +290,7 @@ export function RadioProvider({ children }) {
         onTimeUpdate={onTime}
         onEnded={onEnded}
         onError={onError}
+        onPlay={() => window.dispatchEvent(new Event("bioxic:audio-play"))}
         controlsList="nodownload noplaybackrate"
         disablePictureInPicture
         data-testid="radio-audio"

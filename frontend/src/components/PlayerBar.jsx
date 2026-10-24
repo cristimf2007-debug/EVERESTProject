@@ -1,15 +1,18 @@
 import React from "react";
+import { useLocation } from "react-router-dom";
 import { SkipBack, SkipForward, Square, Loader2, Share2, Volume2, VolumeX } from "lucide-react";
 import { useRadio } from "@/context/RadioContext";
 import { mediaUrl } from "@/lib/api";
 
 const fmt = (s) => (isFinite(s) && s >= 0) ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00";
 
-// BIOXIC Player Bar — stilul din pachetul oficial .pb-, conectat la controllerul audio unic
+// BIOXIC Player Bar — conectat la controllerul audio unic; zona de clipuri e separată, fără bară
 export default function PlayerBar() {
+  const { pathname } = useLocation();
   const { current, mode, status, playing, progress, duration, volume, muted, listeners,
           toggle, stop, next, prev, seek, setVolume, toggleMute, trackIdx, queue } = useRadio();
 
+  if (pathname.startsWith("/clipuri")) return null; // zona video are playerul ei
   if (!current) return null;
   const isTrack = mode === "track";
   const canPrev = isTrack && (progress > 3 || trackIdx > 0);
