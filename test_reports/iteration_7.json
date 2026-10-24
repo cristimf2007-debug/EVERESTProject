@@ -1,0 +1,44 @@
+{
+  "summary": "BIOXIC OBSIDIAN rebuild — iteration_7 full regression (backend + frontend). Backend: 40/43 pytest pass (unchanged vs iter_6 — SameSite=Strict assertion still env-rewritten, 2 setup errors in test_signed_audio are fixture-only). Frontend OBSIDIAN rebuild verified end-to-end: new routes (/, /muzica, /clipuri) + redirects (/piese -> /muzica/piese, /live -> /muzica) all correct. Hero on /acasa shows BIOXIC wordmark + LIMITED 2026 stamp + hero-play-button + hero-videos-button + home-now-strip + home-latest-tracks + home-videos + home-stats + site-footer. PlayerBar visible on all pages EXCEPT /clipuri/* (confirmed hidden on both /clipuri and /clipuri/{id}). 12 video cards in grid; clicking navigates to /clipuri/{id} with custom player (no player bar). AUDIO STABILITY: critical cross-media mutex verified — triggering video.play() on /clipuri/{id} caused window.__bioxicVideoPlaying=true and radio audio paused=true (ct frozen); the window 'bioxic:audio-play' bus works. In headless Chromium radio autoplay is partially throttled (audio.paused flaps between true/false) but player bar timing clearly advances (observed 0:24->1:47->3:14->4:08 across the suite), so stream advancement is confirmed. Muzica segmented control switches URLs /muzica, /muzica/piese, /muzica/playlisturi; piese grid groups by playlist with 6 track-card-* entries; playlisturi grid has playlist-card/play/shuffle testids. Live segment console shows vinyl, title 'NICOLAE GUTA FEAT. EVEREST MANELE - TE AM IUBIT DIN PRIMA ZI', progress bar, next track, chat panel, 'În rotație · 6 piese' queue. CHAT: guest flow (name -> INTRĂ -> message) works; optimistic rendering confirmed at 120ms (TEST_opt_msg_1 appeared immediately then was confirmed); 3 reaction buttons (heart/fire/crown) present; stress test window.__bioxicChatStress(300,5) ran successfully, DOM capped well under 200 (observed 27-38 messages), 'chat-new-messages' pill appeared ('11 mesaje noi') after scroll-up during stress, input remained responsive during stress. STRESS FPS: ~15.5 fps average over 5s during 60msg/s injection (300 msgs / 5s) — low, but input stayed responsive and no DOM blowup. AUTO-UPDATE: with /version.json and /changelog.json intercepted to serve 'obsidian-9.9.9' AFTER first boot, visibilitychange triggered the check and update-toast appeared with update-now + update-later buttons; clicking 'Mai târziu' dismisses the toast. SETTINGS: footer-link-accesibilitate opens settings-modal with 4 toggles (settings-a11y-rm, settings-a11y-contrast, settings-a11y-big, settings-a11y-noflash); activating 'Mișcare redusă' adds class 'a11y-rm' on <html>; 'Text mai mare' adds 'a11y-big'. SEARCH: search-knob opens search-overlay with search-input; typing 'Guta' returns search-track-* and search-video-* results; Esc closes overlay. MOBILE 390px: mobile-nav visible with mtab-acasa/muzica/video/cont; chat-open-fab (labeled 'CHAT LIVE 1') opens chat-container (class 'chat-shell open'); chat-close-button closes; player-bar bottom=768 and mobile-nav top=772, no overlap. REGRESSION: live pill shows 'LIVE · 4' listener count, subscribe popover (channel-subscribe-button) opens subscribe-email-popover with input+confirm, header-login-button present on desktop when logged out, 'Urmează:' + rotation queue render under console. One failing expectation: preloader did not reappear in headless after clear_cookies (needs sessionStorage.clear which is same-origin from a fresh context); not a bug — session key persists per tab.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/auth/login (cookie)", "issue": "Preview ingress still rewrites SameSite=Strict -> None (same as iter_6). Code correct; environment-only."},
+      {"endpoint": "test_signed_audio fixtures", "issue": "2 setup errors (test_cover_public_without_signature, test_media_sign_passthrough_for_cover) — fixture asserts non-empty cover_url but current tracks have cover_url=''. Not a regression; test needs updating or a seeded track with cover."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Chat stress test", "issue": "Average FPS during __bioxicChatStress(300,5) is ~15 fps (300 msgs / 5s = 60 msgs/sec). Input and scroll remained responsive, DOM count stayed well below 200 cap, but main-thread frame rate dips noticeably. Likely due to per-message React reconciliation + framer-motion animations on each new row. Consider windowing/virtualization or reducing per-row motion when message rate > N/sec.", "affected_selectors": ["chat-messages", "chat-message-*"]},
+      {"flow": "/muzica initial render", "issue": "Occasionally LiveConsole shows 'RADIO-UL PORNEȘTE CURÂND' placeholder for several seconds on first mount before the /api/radio/now payload wires in, even though the API returns data immediately via curl. The chat panel is not rendered during this placeholder state. Suggest rendering the chat panel independently of the current-track loading state."}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_security_hardening.py",
+    "/app/backend/tests/test_chat_security.py",
+    "/app/backend/tests/test_signed_audio.py",
+    "/app/test_reports/pytest/iter7_regression.xml"
+  ],
+  "action_items": [
+    "(Perf, non-blocking) Investigate chat FPS under high ingestion — virtualize message list or throttle framer-motion for row enter animation when rate > 30 msg/s.",
+    "(Nice-to-have) LiveConsole: don't gate the chat panel behind radio-now data; chat should render as soon as the socket connects.",
+    "(Backend regression test) Update test_signed_audio fixtures to seed a track with cover_url, or skip gracefully when no cover is present."
+  ],
+  "critical_code_review_comments": [
+    "VersionChecker busyNow() correctly suppresses auto-update when a video is playing or an input/textarea is focused — verified by code review and by observed behavior (toast only after blur).",
+    "RadioContext emits 'bioxic:audio-play' on <audio onPlay>; VideoPlayer listens and pauses. Reverse direction (video->radio pause) is handled by setting window.__bioxicVideoPlaying=true on video play, which the hero/consola play paths read. Mutex contract verified.",
+    "LiveChat uses batching + max 200 cap + optimistic insert — all behaviors verified at runtime. Reaction buttons (heart/fire/crown) wired to WS.",
+    "SettingsModal + /lib/a11y.js correctly mutate documentElement classList (a11y-rm, a11y-big) and persist to localStorage; verified across reload in prior iterations.",
+    "Routes redirect /piese -> /muzica/piese, /live -> /muzica — observed as single hop (no 404)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "93% (40/43, same as iter_6)", "frontend": "~98% — all critical OBSIDIAN flows verified; only concerns are perf (chat FPS) and minor initial-render placeholder on /muzica"},
+  "test_credentials": "admin@bioxic.ro / bioxic2024 (unchanged, in /app/memory/test_credentials.md)",
+  "seed_data_creation": "A few TEST_* chat messages (TEST_opt_msg_1, TEST_type_during_stress) and localStorage keys (bioxic_update_snooze, a11y-*) were written in the headless session. Chat messages auto-expire via 200-cap and 1 msg/2s rate limit; snooze is a 30-min TTL. No DB mutations beyond that.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "OBSIDIAN rebuild is fully live. The 3-tab IA (Acasă / Muzică / Video) is stable. Audio stability contract: radio<->video single-source mutex works via bioxic:audio-play event + window.__bioxicVideoPlaying flag. VersionChecker runs on 5-min interval + visibilitychange; to force a toast, mock /version.json AFTER first mount then dispatch visibilitychange with document.hidden=false. Chat stress hook window.__bioxicChatStress(count, perSec) is live and useful for load tests. If retesting mobile, remember the bottom sheet class token is on [data-testid=chat-container] which carries both 'chat-shell' and (when open) 'open' classes.",
+  "rca_of_the_issue": "No new issues require RCA this iteration. Carry-over from iter_6: SameSite=Strict is downgraded to None by the preview ingress (environment-only, not a code bug). test_signed_audio setup errors stem from current tracks lacking cover_url — update the fixture or seed a cover."
+}

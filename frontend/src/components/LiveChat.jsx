@@ -85,6 +85,8 @@ export default function LiveChat() {
   const reactTimesRef = useRef([]);
   const needScrollRef = useRef(false);
   const flushedRef = useRef(0);
+  const rateRef = useRef([]);
+  const [burst, setBurst] = useState(false); // la rafale mari oprim animația de intrare per mesaj
 
   // flush o singură dată pe frame de animație — nu un re-render per mesaj
   const flush = useCallback(() => {
@@ -93,6 +95,10 @@ export default function LiveChat() {
     if (!batch.length) return;
     bufferRef.current = [];
     flushedRef.current = batch.length;
+    const now = Date.now();
+    rateRef.current = rateRef.current.filter((t) => now - t < 1000).concat(batch.map(() => now));
+    const isBurst = rateRef.current.length > 12;
+    setBurst((b) => (b !== isBurst ? isBurst : b));
     // confirmarea mesajelor optimistic: ecoul serverului înlocuiește copia locală
     const ops = [];
     for (const b of batch) {
@@ -272,7 +278,7 @@ export default function LiveChat() {
         {viewers > 0 && <span className="text-[var(--flame)]">{viewers}</span>}
       </button>
 
-      <section className={`chat-shell ${open ? "open" : ""}`} data-testid="chat-container">
+      <section className={`chat-shell ${open ? "open" : ""} ${burst ? "chat-burst" : ""}`} data-testid="chat-container">
         {/* header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--edge)] bg-black/25 shrink-0">
           <div className="flex items-center gap-2.5">

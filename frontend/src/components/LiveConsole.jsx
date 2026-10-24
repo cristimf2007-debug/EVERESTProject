@@ -43,12 +43,16 @@ export default function LiveConsole() {
   if (!track) {
     return (
       <div className="max-w-[1240px] mx-auto px-4 sm:px-8 py-6">
-        <div className="ob-card p-10 sm:p-16 text-center max-w-2xl mx-auto" data-testid="radio-empty">
-          <Loader2 size={34} className="mx-auto text-[var(--flame)] mb-5 animate-spin" />
-          <h2 className="font-display text-2xl sm:text-3xl uppercase">Radio-ul pornește curând</h2>
-          <p className="text-[var(--text-2)] mt-3 text-sm sm:text-base">
-            Prima piesă se încarcă în rotație. Revino peste câteva minute — după asta, cântă non-stop, 24/7.
-          </p>
+        <div className="grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-6 items-stretch">
+          <div className="ob-card p-10 sm:p-16 text-center" data-testid="radio-empty">
+            <Loader2 size={34} className="mx-auto text-[var(--flame)] mb-5 animate-spin" />
+            <h2 className="font-display text-2xl sm:text-3xl uppercase">Radio-ul pornește curând</h2>
+            <p className="text-[var(--text-2)] mt-3 text-sm sm:text-base">
+              Prima piesă se încarcă în rotație. Revino peste câteva minute — după asta, cântă non-stop, 24/7.
+            </p>
+          </div>
+          {/* chatul nu așteaptă radioul — se conectează imediat */}
+          <LiveChat />
         </div>
       </div>
     );
