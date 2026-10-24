@@ -835,6 +835,13 @@ async def upload_video(
            "views": 0, "created_at": datetime.now(timezone.utc).isoformat()}
     await db.videos.insert_one(doc)
     doc.pop("_id", None)
+    # alertă premieră: notificare email abonaților + push — la fel ca la piese
+    asyncio.create_task(push_notification("video", "Videoclip nou: " + doc["title"], "Proaspăt pe site.", "/clipuri"))
+    asyncio.create_task(notify_subscribers(
+        titlu="Videoclip nou: " + doc["title"],
+        mesaj="BIOXIC tocmai a urcat un videoclip nou. Vezi-l primul, direct pe site.",
+        cta_text="Vezi clipul", cta_url=f"{SITE_URL}/clipuri",
+        subject=f"Videoclip nou BIOXIC: {doc['title'][:60]}"))
     return doc
 
 @api_router.delete("/admin/videos/{video_id}")
@@ -843,6 +850,37 @@ async def delete_video(video_id: str, admin=Depends(get_current_admin)):
     if res.deleted_count == 0:
         raise HTTPException(404, "Videoclip inexistent")
     return {"ok": True}
+
+# ---------- PROGRAM TV ----------
+
+class TvScheduleInput(BaseModel):
+    time: str   # „HH:MM"
+    title: str
+    note: str = ""
+
+
+@api_router.get("/tv/schedule")
+async def tv_schedule():
+    return await db.tv_schedule.find({}, {"_id": 0}).sort("time", 1).to_list(100)
+
+
+@api_router.post("/admin/tv/schedule")
+async def tv_schedule_add(s: TvScheduleInput, admin=Depends(get_current_admin)):
+    time_s = s.time.strip()
+    if not re.match(r"^\d{1,2}:\d{2}$", time_s):
+        raise HTTPException(400, "Ora trebuie să fie în format HH:MM (ex. 21:30)")
+    if not s.title.strip():
+        raise HTTPException(400, "Titlul emisiunii lipsește")
+    doc = {"id": str(uuid.uuid4()), "time": time_s, "title": s.title.strip()[:100], "note": s.note.strip()[:200]}
+    await db.tv_schedule.insert_one(doc)
+    return {k: v for k, v in doc.items() if k != "_id"}  # fără _id (ObjectId) — JSON safe
+
+
+@api_router.delete("/admin/tv/schedule/{entry_id}")
+async def tv_schedule_del(entry_id: str, admin=Depends(get_current_admin)):
+    await db.tv_schedule.delete_one({"id": entry_id})
+    return {"ok": True}
+
 
 # ---------- GAMING ----------
 

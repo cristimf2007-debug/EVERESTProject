@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
-import { Play, Pause, Volume2, VolumeX, Maximize, Tv, Radio, Users } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, Tv, Radio, Users, Clock } from "lucide-react";
 import LiveChat from "@/components/LiveChat";
 import { useRadio } from "@/context/RadioContext";
+import api from "@/lib/api";
 
 const STREAM_URL = "https://stream.tequilamusic.net/hls/tequila_tv.m3u8";
 
@@ -14,6 +15,18 @@ export default function TvPage() {
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [err, setErr] = useState("");
+  const [schedule, setSchedule] = useState([]);
+
+  useEffect(() => {
+    api.get("/tv/schedule").then((r) => setSchedule(r.data || [])).catch(() => {});
+  }, []);
+
+  // următoarea emisiune din ziua curentă (prima cu ora >= acum; altfel prima din program)
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const toMin = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  const nextIdx = schedule.length
+    ? Math.max(0, schedule.findIndex((s) => toMin(s.time) >= nowMin))
+    : -1;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -166,6 +179,43 @@ export default function TvPage() {
           </div>
         </aside>
       </div>
+
+      {/* programul zilei — editabil din panoul admin */}
+      {schedule.length > 0 && (
+        <section className="mt-10 rv" data-testid="tv-schedule">
+          <h3 className="font-display text-xl sm:text-2xl uppercase tracking-tight flex items-center gap-2.5">
+            <Clock size={18} className="text-[var(--flame)]" /> Programul de azi
+          </h3>
+          <div className="mt-4 space-y-2">
+            {schedule.map((s, i) => {
+              const isNext = i === nextIdx;
+              return (
+                <div
+                  key={s.id}
+                  className={`flex items-center gap-4 rounded-2xl border px-4 sm:px-5 py-3.5 transition-colors ${
+                    isNext ? "border-[rgba(var(--flame-rgb),.5)] bg-[rgba(var(--flame-rgb),.06)]" : "border-[var(--edge)] bg-black/20"
+                  }`}
+                  data-testid={`tv-schedule-${s.id}`}
+                >
+                  <span className={`font-mono-x text-sm font-bold tabular-nums ${isNext ? "text-[var(--flame)]" : "text-[var(--text-2)]"}`}>
+                    {s.time}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold truncate">{s.title}</span>
+                    {s.note && <span className="block text-[11px] text-[var(--text-3)] truncate mt-0.5">{s.note}</span>}
+                  </span>
+                  {isNext && (
+                    <span className="hdr-badge vip shrink-0" data-testid="tv-schedule-next">Urmează</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[10px] font-mono-x uppercase tracking-widest text-[var(--text-3)] mt-3">
+            Orele sunt orientative · premierile se aud întâi aici
+          </p>
+        </section>
+      )}
     </div>
   );
 }

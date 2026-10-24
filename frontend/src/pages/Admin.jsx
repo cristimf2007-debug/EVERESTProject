@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { UploadCloud, Trash2, SkipForward, LogOut, Music2, Image as ImageIcon, Ban, RefreshCw } from "lucide-react";
+import { UploadCloud, Trash2, SkipForward, LogOut, Music2, Image as ImageIcon, Ban, RefreshCw, Mic2, Tv, Plus } from "lucide-react";
 import { toast } from "sonner";
 import api, { mediaUrl, formatApiError } from "@/lib/api";
 
@@ -22,6 +22,12 @@ export default function Admin() {
   const [contacts, setContacts] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [confirmId, setConfirmId] = useState(null); // "del-track-<id>" | "del-msg-<id>" | "ban-<id>" | "del-review-<id>"
+  const [lyricsFor, setLyricsFor] = useState(null); // id-ul piesei cu editorul de versuri deschis
+  const [lyricsText, setLyricsText] = useState("");
+  const [tvProg, setTvProg] = useState([]);
+  const [tvTime, setTvTime] = useState("");
+  const [tvTitle, setTvTitle] = useState("");
+  const [tvNote, setTvNote] = useState("");
   const audioInputRef = useRef(null);
   const coverInputRef = useRef(null);
 
@@ -29,10 +35,11 @@ export default function Admin() {
   const loadChat = () => api.get("/admin/chat").then((r) => setChatMsgs(r.data || [])).catch(() => {});
   const loadContacts = () => api.get("/admin/contacts").then((r) => setContacts(r.data || [])).catch(() => {});
   const loadReviews = () => api.get("/reviews").then((r) => setReviews(r.data || [])).catch(() => {});
+  const loadTv = () => api.get("/tv/schedule").then((r) => setTvProg(r.data || [])).catch(() => {});
 
   useEffect(() => {
     api.get("/auth/me")
-      .then((r) => { setMe(r.data); loadTracks(); loadChat(); loadContacts(); loadReviews(); })
+      .then((r) => { setMe(r.data); loadTracks(); loadChat(); loadContacts(); loadReviews(); loadTv(); })
       .catch(() => setMe(false));
   }, []);
 
@@ -46,6 +53,7 @@ export default function Admin() {
       loadChat();
       loadContacts();
       loadReviews();
+      loadTv();
       toast.success("Salut, boss!");
     } catch (err) {
       toast.error(formatApiError(err));
@@ -154,6 +162,34 @@ export default function Admin() {
       await api.patch(`/admin/tracks/${t.id}`, { playlist: pl });
       setTracks((ts) => ts.map((x) => (x.id === t.id ? { ...x, playlist: pl } : x)));
       toast.success(pl ? `„${t.title}" mutată în playlistul „${pl}".` : `„${t.title}" scoasă din playlist.`);
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  // versuri: salvare per piesă — butonul de lyrics apare automat pe site când piesa are text
+  const saveLyrics = async (t) => {
+    try {
+      await api.patch(`/admin/tracks/${t.id}`, { lyrics: lyricsText });
+      setTracks((ts) => ts.map((x) => (x.id === t.id ? { ...x, lyrics: lyricsText } : x)));
+      setLyricsFor(null);
+      toast.success(lyricsText.trim() ? `Versuri salvate pentru „${t.title}" — apar acum în player.` : `Versuri șterse la „${t.title}".`);
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  // program TV
+  const addTv = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post("/admin/tv/schedule", { time: tvTime, title: tvTitle, note: tvNote });
+      setTvTime(""); setTvTitle(""); setTvNote("");
+      loadTv();
+      toast.success("Emisiune adăugată în programul TV.");
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+  const delTv = async (id) => {
+    try {
+      await api.delete(`/admin/tv/schedule/${id}`);
+      setTvProg((p) => p.filter((x) => x.id !== id));
+      toast.info("Emisiune ștearsă din program.");
     } catch (err) { toast.error(formatApiError(err)); }
   };
 
@@ -316,13 +352,83 @@ export default function Admin() {
               onBlur={(e) => { if (e.target.value.trim() !== (t.playlist || "")) setTrackPlaylist(t, e.target.value.trim()); }}
               className="w-36 rounded-lg bg-[var(--bg2)] border border-[var(--border)] px-3 py-2 text-xs outline-none focus:border-[var(--border-hi)] transition-colors"
             />
+            <button
+              onClick={() => { setLyricsFor(lyricsFor === t.id ? null : t.id); setLyricsText(t.lyrics || ""); }}
+              className={`btn-ghost rounded-full h-9 px-3 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 ${t.lyrics ? "!text-[var(--accent)]" : ""}`}
+              aria-label={`Versuri ${t.title}`}
+              data-testid={`admin-track-lyrics-${t.id}`}
+            >
+              <Mic2 size={13} /> Versuri{t.lyrics ? " ✓" : ""}
+            </button>
             <button onClick={() => del(t)} className={`rounded-full h-9 grid place-items-center transition-colors ${confirmId === `del-track-${t.id}` ? "px-3 text-xs font-bold uppercase bg-[var(--live)] text-white" : "btn-ghost w-9 hover:!text-[var(--live)]"}`} aria-label={`Șterge ${t.title}`} data-testid={`admin-track-delete-${t.id}`}>
               {confirmId === `del-track-${t.id}` ? "Sigur?" : <Trash2 size={15} />}
             </button>
+            {lyricsFor === t.id && (
+              <div className="w-full flex flex-col sm:flex-row gap-2 mt-1">
+                <textarea
+                  value={lyricsText}
+                  onChange={(e) => setLyricsText(e.target.value)}
+                  rows={4}
+                  placeholder="Lipește aici versurile piesei…"
+                  className="flex-1 rounded-lg bg-[var(--bg2)] border border-[var(--border)] px-3 py-2 text-xs outline-none focus:border-[var(--border-hi)] transition-colors resize-y"
+                  data-testid={`admin-lyrics-text-${t.id}`}
+                />
+                <button onClick={() => saveLyrics(t)} className="btn-ghost rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest shrink-0" data-testid={`admin-lyrics-save-${t.id}`}>
+                  Salvează
+                </button>
+              </div>
+            )}
           </div>
         ))}
         {tracks.length === 0 && (
           <p className="text-sm text-[var(--muted)] py-6 text-center">Nicio piesă încă — urcă prima piesă mai sus.</p>
+        )}
+      </div>
+
+      {/* program TV — apare pe pagina /tv, secțiunea „Programul de azi" */}
+      <h2 className="font-display text-2xl font-extrabold uppercase tracking-tight mt-12 flex items-center gap-2">
+        <Tv size={18} /> Program TV ({tvProg.length})
+      </h2>
+      <form onSubmit={addTv} className="glass rounded-2xl p-5 mt-5 flex flex-wrap gap-3 items-center" data-testid="admin-tv-form">
+        <input
+          value={tvTime}
+          onChange={(e) => setTvTime(e.target.value)}
+          placeholder="21:00"
+          required
+          className="w-24 rounded-lg bg-[var(--bg2)] border border-[var(--border)] px-3 py-2 text-xs outline-none focus:border-[var(--border-hi)] transition-colors font-mono-x"
+          data-testid="admin-tv-time"
+        />
+        <input
+          value={tvTitle}
+          onChange={(e) => setTvTitle(e.target.value)}
+          placeholder="Titlul emisiunii / premierei…"
+          required
+          className="flex-1 min-w-[180px] rounded-lg bg-[var(--bg2)] border border-[var(--border)] px-3 py-2 text-xs outline-none focus:border-[var(--border-hi)] transition-colors"
+          data-testid="admin-tv-title"
+        />
+        <input
+          value={tvNote}
+          onChange={(e) => setTvNote(e.target.value)}
+          placeholder="Notă (opțional) — ex. premieră, invitat…"
+          className="flex-1 min-w-[160px] rounded-lg bg-[var(--bg2)] border border-[var(--border)] px-3 py-2 text-xs outline-none focus:border-[var(--border-hi)] transition-colors"
+          data-testid="admin-tv-note"
+        />
+        <button type="submit" className="btn-ghost rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest flex items-center gap-1.5" data-testid="admin-tv-add">
+          <Plus size={13} /> Adaugă
+        </button>
+      </form>
+      <div className="grid gap-2 mt-4" data-testid="admin-tv-list">
+        {tvProg.map((s) => (
+          <div key={s.id} className="glass rounded-xl px-4 py-3 flex items-center gap-3" data-testid={`admin-tv-row-${s.id}`}>
+            <span className="font-mono-x text-xs font-bold text-[var(--amber)]">{s.time}</span>
+            <span className="text-sm flex-1 min-w-0 truncate">{s.title}{s.note ? <span className="text-[var(--muted)]"> · {s.note}</span> : ""}</span>
+            <button onClick={() => delTv(s.id)} className="btn-ghost rounded-full w-9 h-9 grid place-items-center hover:!text-[var(--live)]" aria-label={`Șterge ${s.title}`} data-testid={`admin-tv-del-${s.id}`}>
+              <Trash2 size={15} />
+            </button>
+          </div>
+        ))}
+        {tvProg.length === 0 && (
+          <p className="text-sm text-[var(--muted)] py-4 text-center">Nicio emisiune în program — adaugă prima mai sus.</p>
         )}
       </div>
 
