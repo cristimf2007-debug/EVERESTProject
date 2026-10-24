@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clapperboard, Play, Eye, Search, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { Clapperboard, Play, Eye, Search, ChevronLeft, ChevronRight, ExternalLink, X } from "lucide-react";
 import api, { mediaUrl } from "@/lib/api";
+import { useRadio } from "@/context/RadioContext";
 
 const CATS = [
   { k: "toate", label: "Toate" },
@@ -21,8 +22,50 @@ const fmtDate = (iso) => {
   return new Date(t).toLocaleDateString("ro-RO", { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
-// Card de canal — thumbnail cu badge, titlu, dată + canal; YT → extern, seif → playerul intern
-function ChannelCard({ v }) {
+// Player YouTube oficial (embed) — o singură instanță, pune pauză radioului cât rulează
+function YTModal({ video, onClose }) {
+  const { pause } = useRadio();
+  useEffect(() => {
+    pause(); // niciodată două surse audio simultan
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [pause]);
+  return (
+    <div
+      className="fixed inset-0 z-[150] grid place-items-center px-3 pb-24"
+      style={{ background: "rgba(7,9,14,.88)", backdropFilter: "blur(12px)" }}
+      data-testid="yt-modal"
+      onClick={onClose}
+    >
+      <div className="ob-card w-full max-w-3xl p-3 sm:p-4" onClick={(e) => e.stopPropagation()} style={{ animation: "player-rise .35s cubic-bezier(.2,.9,.25,1.15) both" }}>
+        <div className="flex items-center justify-between gap-3 px-1 pb-3">
+          <p className="text-sm font-semibold truncate">{video.title}</p>
+          <div className="flex items-center gap-2 shrink-0">
+            <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noreferrer" className="knob knob-sm" aria-label="Deschide pe YouTube" data-testid="yt-open-external">
+              <ExternalLink />
+            </a>
+            <button onClick={onClose} className="knob knob-sm" aria-label="Închide playerul" data-testid="yt-close"><X /></button>
+          </div>
+        </div>
+        <div className="relative aspect-video rounded-xl overflow-hidden bg-black border border-[var(--edge)]">
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&rel=0`}
+            title={video.title}
+            className="absolute inset-0 w-full h-full"
+            allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+            data-testid="yt-iframe"
+          />
+        </div>
+        <p className="text-[10px] font-mono-x uppercase tracking-widest text-[var(--text-3)] mt-3 px-1">
+          Redare prin playerul oficial YouTube · {video.channel || "Everest Manele"}
+        </p>
+      </div>
+    </div>
+  );
+}
+function ChannelCard({ v, onPlayYt }) {
   const cat = catOf(v);
   const inner = (
     <>
@@ -62,19 +105,19 @@ function ChannelCard({ v }) {
       </span>
     </>
   );
-  const cls = "ytc-card group";
+  const cls = "ytc-card group text-left";
   if (v.uploaded) {
     return <Link to={`/clipuri/${v.id}`} className={cls} data-testid={`video-card-${v.id}`} data-cursor="PLAY">{inner}</Link>;
   }
   return (
-    <a href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noreferrer" className={cls} data-testid={`yt-card-${v.id}`} data-cursor="PLAY">
+    <button type="button" onClick={() => onPlayYt(v)} className={cls} data-testid={`yt-card-${v.id}`} data-cursor="PLAY" aria-label={`Redă ${v.title}`}>
       {inner}
-    </a>
+    </button>
   );
 }
 
 // Rând orizontal de canal cu săgeți — ca pe YouTube, dar în sticlă obsidian
-function ChannelRow({ cat, items }) {
+function ChannelRow({ cat, items, onPlayYt }) {
   const rowRef = useRef(null);
   const scroll = (dir) => rowRef.current?.scrollBy({ left: dir * 620, behavior: "smooth" });
   const meta = CATS.find((c) => c.k === cat);
@@ -90,7 +133,7 @@ function ChannelRow({ cat, items }) {
         </div>
       </div>
       <div ref={rowRef} className="ytc-row chat-scroll mt-4" data-lenis-prevent>
-        {items.map((v) => <ChannelCard key={`${v.uploaded ? "up" : "yt"}-${v.id}`} v={v} />)}
+        {items.map((v) => <ChannelCard key={`${v.uploaded ? "up" : "yt"}-${v.id}`} v={v} onPlayYt={onPlayYt} />)}
       </div>
     </section>
   );
@@ -103,6 +146,7 @@ export default function Videoclipuri() {
   const [loading, setLoading] = useState(true);
   const [cat, setCat] = useState("toate");
   const [q, setQ] = useState("");
+  const [ytPlay, setYtPlay] = useState(null); // clipul YouTube deschis în playerul embed
 
   useEffect(() => {
     Promise.all([
@@ -190,18 +234,20 @@ export default function Videoclipuri() {
                 Clipuri <span className="text-[var(--flame)]">BIOXIC</span> <span className="text-[var(--flame)] font-mono-x text-xs">({seifItems.length})</span>
               </h3>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mt-4">
-                {seifItems.map((v) => <ChannelCard key={`up-${v.id}`} v={v} />)}
+                {seifItems.map((v) => <ChannelCard key={`up-${v.id}`} v={v} onPlayYt={setYtPlay} />)}
               </div>
             </section>
           )}
-          {/* mai jos: doar canalul Everest Manele de pe YouTube */}
-          {everestItems.length > 0 && <ChannelRow cat="everest" items={everestItems} />}
+          {/* mai jos: doar canalul Everest Manele de pe YouTube — player embed oficial, direct pe site */}
+          {everestItems.length > 0 && <ChannelRow cat="everest" items={everestItems} onPlayYt={setYtPlay} />}
         </>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mt-8" data-testid="yt-grid">
-          {(byCat[cat] || []).filter(match).map((v) => <ChannelCard key={`${v.uploaded ? "up" : "yt"}-${v.id}`} v={v} />)}
+          {(byCat[cat] || []).filter(match).map((v) => <ChannelCard key={`${v.uploaded ? "up" : "yt"}-${v.id}`} v={v} onPlayYt={setYtPlay} />)}
         </div>
       )}
+
+      {ytPlay && <YTModal video={ytPlay} onClose={() => setYtPlay(null)} />}
     </div>
   );
 }

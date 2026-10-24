@@ -128,7 +128,7 @@ async def login(input: LoginInput, request: Request, response: Response):
         if locked_until and datetime.fromisoformat(locked_until) > datetime.now(timezone.utc):
             raise HTTPException(429, "Prea multe încercări. Reîncearcă în 15 minute.")
     user = await db.users.find_one({"email": email})
-    if not user or not verify_password(input.password, user["password_hash"]):
+    if not user or not user.get("password_hash") or not verify_password(input.password, user["password_hash"]):
         await db.login_attempts.update_one(
             {"identifier": identifier},
             {"$inc": {"count": 1}, "$set": {"locked_until": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()}},
@@ -1881,6 +1881,7 @@ async def security_headers_and_rate_limit(request: Request, call_next):
         "img-src 'self' data: blob: https:; "
         "media-src 'self' blob:; "
         "connect-src 'self' ws: wss:; "
+        "frame-src https://www.youtube.com https://www.youtube-nocookie.com; "
         "object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
     )
     return resp
