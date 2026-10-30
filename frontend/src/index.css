@@ -64,9 +64,9 @@
   --cyan: var(--flame);
   --amber: var(--gold);
 
-  /* rețete de sticlă — folosite de utilitarele de mai jos */
-  --glass-1-bg: linear-gradient(180deg, rgba(148, 163, 184, .09), rgba(148, 163, 184, .028) 42%), rgba(11, 16, 27, .62);
-  --glass-3-bg: linear-gradient(180deg, rgba(148, 163, 184, .12), rgba(148, 163, 184, .04) 38%), rgba(7, 10, 17, .86);
+  /* rețete de suprafață — antracit natural, aproape opac, sticlă doar pe plutitoare */
+  --glass-1-bg: linear-gradient(180deg, rgba(148, 163, 184, .07), rgba(148, 163, 184, .02) 42%), rgba(13, 19, 32, .88);
+  --glass-3-bg: linear-gradient(180deg, rgba(148, 163, 184, .1), rgba(148, 163, 184, .035) 38%), rgba(8, 11, 18, .9);
   --shadow-1: inset 0 1px 0 rgba(255, 255, 255, .08), 0 24px 50px -28px rgba(0, 0, 0, .85);
   --shadow-2: inset 0 1px 0 rgba(255, 255, 255, .1), 0 32px 64px -30px rgba(0, 0, 0, .9);
   --radius-card: 20px;
@@ -98,9 +98,9 @@ h1, h2, h3, .font-display {
 .void-bg {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(1100px 520px at 50% -14%, rgba(56, 120, 190, .14), transparent 64%),
-    radial-gradient(820px 480px at 88% 112%, rgba(var(--flame-rgb), .055), transparent 62%),
-    radial-gradient(700px 420px at -8% 70%, rgba(14, 124, 147, .08), transparent 60%),
+    radial-gradient(1100px 520px at 50% -14%, rgba(56, 120, 190, .09), transparent 64%),
+    radial-gradient(820px 480px at 88% 112%, rgba(var(--flame-rgb), .03), transparent 62%),
+    radial-gradient(700px 420px at -8% 70%, rgba(14, 124, 147, .05), transparent 60%),
     var(--void);
 }
 .vignette {
@@ -141,7 +141,7 @@ h1, h2, h3, .font-display {
   .chat-shell, .pb, .mnav, .hdr-bar.scrolled, .pb-pill, .pb-queue, .seg-control, .chat-fab { background: rgba(9, 13, 21, .97) !important; }
 }
 
-.text-glow { text-shadow: 0 0 30px rgba(var(--flame-rgb), .5); }
+.text-glow { text-shadow: 0 0 22px rgba(var(--flame-rgb), .32); }
 .text-glow-live { text-shadow: 0 0 22px rgba(var(--live-rgb), .75); }
 
 .badge-engraved {
@@ -541,8 +541,9 @@ input[type="range"].vol::-moz-range-thumb {
 }
 @media (max-width: 560px) {
   .pb { gap: 10px; }
-  .pb-vol, .pb-eq, .pb-share, .pb-t-only { display: none; }
+  .pb-vol, .pb-eq, .pb-share, .pb-t-only, .pb [data-testid="pb-stop"] { display: none; }
 }
+.pb-icon.pb-on { color: var(--flame); border-color: rgba(var(--flame-rgb), .55); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 0 14px -4px rgba(var(--flame-rgb), .5); }
 @media (prefers-reduced-motion: reduce) {
   .pb.playing .pb-cover, .pb.playing .pb-eq i, .pb-live::before { animation: none; }
 }
@@ -770,7 +771,7 @@ html.a11y-noflash .lightning { animation: none !important; }
   transition: border-color .18s, color .18s;
 }
 .hdr-search:hover { border-color: rgba(var(--flame-rgb), .45); color: var(--text-2); }
-@media (min-width: 1100px) { .hdr-search { display: flex; } }
+@media (min-width: 1440px) { .hdr-search { display: flex; } }
 
 .hdr-profile {
   display: flex; align-items: center; gap: 9px; padding: 4px 14px 4px 4px; border-radius: 999px;

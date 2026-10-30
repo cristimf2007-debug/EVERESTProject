@@ -18,6 +18,8 @@ import VideoPage from "@/pages/VideoPage";
 import Contact from "@/pages/Contact";
 import TvPage from "@/pages/TvPage";
 import Pareri from "@/pages/Pareri";
+import Despre from "@/pages/Despre";
+import Proiecte from "@/pages/Proiecte";
 import NotFound from "@/pages/NotFound";
 import { applyA11y } from "@/lib/a11y";
 
@@ -148,7 +150,8 @@ function ShellInner({ location }) {
           {/* redirecturi din structurile vechi — linkurile vechi nu se strică */}
           <Route path="/piese" element={<Navigate to="/muzica" replace />} />
           <Route path="/radio" element={<Navigate to="/muzica" replace />} />
-          <Route path="/despre" element={<Navigate to="/contact" replace />} />
+          <Route path="/despre" element={<Despre />} />
+          <Route path="/proiecte" element={<Proiecte />} />
           <Route path="/live" element={
             <Suspense fallback={<div className="min-h-[60vh] grid place-items-center"><p className="font-mono-x text-xs uppercase tracking-widest text-[var(--text-2)] animate-pulse">Se deschide camera live…</p></div>}>
               <LiveRoom />

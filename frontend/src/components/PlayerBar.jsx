@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { SkipBack, SkipForward, Square, Loader2, Volume2, VolumeX, Play, Pause, ListMusic, ChevronDown, Mic2, X } from "lucide-react";
+import { SkipBack, SkipForward, Square, Loader2, Volume2, VolumeX, Play, Pause, ListMusic, ChevronDown, Mic2, X, Shuffle, Repeat, Repeat1 } from "lucide-react";
 import { useRadio } from "@/context/RadioContext";
 import { mediaUrl } from "@/lib/api";
 import LyricsModal from "@/components/LyricsModal";
@@ -11,7 +11,8 @@ const fmt = (s) => (isFinite(s) && s >= 0) ? `${Math.floor(s / 60)}:${String(Mat
 export default function PlayerBar() {
   const { pathname } = useLocation();
   const { current, mode, status, playing, progress, duration, volume, muted, listeners,
-          queue, trackIdx, toggle, stop, next, prev, seek, setVolume, toggleMute, playTrack } = useRadio();
+          queue, trackIdx, toggle, stop, next, prev, seek, setVolume, toggleMute, playTrack,
+          shuffle, repeat, toggleShuffle, cycleRepeat } = useRadio();
   const [minimized, setMinimized] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [lyricsOpen, setLyricsOpen] = useState(false);
@@ -62,11 +63,27 @@ export default function PlayerBar() {
           <button className="pb-icon" onClick={() => setLyricsOpen(true)} aria-label="Versuri" data-testid="pb-lyrics"><Mic2 /></button>
         ) : null}
         <button className="pb-icon" onClick={() => setQueueOpen((o) => !o)} aria-label="Coada de redare" aria-expanded={queueOpen} data-testid="pb-queue-toggle"><ListMusic /></button>
+        <button
+          className={`pb-icon ${shuffle ? "pb-on" : ""}`}
+          onClick={toggleShuffle}
+          disabled={isLive}
+          aria-label={shuffle ? "Dezactivează amestecarea" : "Amestecă piesele"}
+          aria-pressed={shuffle}
+          data-testid="pb-shuffle"
+        ><Shuffle /></button>
         <button className="pb-icon" onClick={prev} disabled={isLive} aria-label="Piesa anterioară" data-testid="pb-prev"><SkipBack /></button>
         <button className="pb-play" onClick={toggle} disabled={loading} aria-label={playing ? "Pauză" : "Redă"} data-testid="pb-play-pause">
           {loading ? <Loader2 size={17} className="animate-spin" /> : playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" style={{ marginLeft: 2 }} />}
         </button>
         <button className="pb-icon" onClick={next} disabled={isLive} aria-label="Piesa următoare" data-testid="pb-next"><SkipForward /></button>
+        <button
+          className={`pb-icon ${repeat !== "off" ? "pb-on" : ""}`}
+          onClick={cycleRepeat}
+          disabled={isLive}
+          aria-label={repeat === "one" ? "Repetă piesa (activ)" : repeat === "all" ? "Repetă coada (activ)" : "Repetare oprită"}
+          aria-pressed={repeat !== "off"}
+          data-testid="pb-repeat"
+        >{repeat === "one" ? <Repeat1 /> : <Repeat />}</button>
         <button className="pb-icon" onClick={stop} disabled={status === "idle" || status === "stopped"} aria-label="Stop" data-testid="pb-stop"><Square style={{ width: 13, height: 13 }} fill="currentColor" /></button>
         <div className="pb-vol">
           <button onClick={toggleMute} aria-label={muted ? "Activează sunetul" : "Mute"} data-testid="pb-mute">

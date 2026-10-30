@@ -1,165 +1,128 @@
 {
-  "project_identity": {
-    "name": "EVEREA TV / BIOXIC",
-    "tagline": "24/7 Live HLS Broadcast & Music Hub",
-    "design_archetype": "Architectural 3D Liquid Glass & Cinematic Dark Tech",
-    "primary_emotion": "Immersive, high-end broadcasting studio elegance with tactile glass depth",
-    "language": "Romanian (ro-RO)",
-    "file_extension_convention": ".js / .jsx (CRA JS Environment)"
-  },
-  "theme_strategy": {
-    "mode": "Dark Theme (Pure Deep Void + Midnight Cyan Refraction)",
-    "rationale": "Music streaming & 24/7 video broadcasting platforms require low-ambient distraction, high image contrast, and vibrant broadcast highlights. Dark backdrop allows glass refractions and neon live indicators to pop effortlessly.",
-    "color_palette": {
-      "background": {
-        "void_black": "#07090E",
-        "deep_midnight": "#0B0F19",
-        "surface_graphite": "#121824",
-        "surface_card_base": "rgba(18, 24, 36, 0.65)"
-      },
-      "brand_accents": {
-        "cyan_laser": "#00F0FF",
-        "cyan_glow": "rgba(0, 240, 255, 0.25)",
-        "teal_deep": "#0A2540",
-        "live_red": "#FF3B30",
-        "live_red_glow": "rgba(255, 59, 48, 0.35)",
-        "gold_accent": "#FFB800"
-      },
-      "text": {
-        "primary": "#F1F5F9",
-        "secondary": "#94A3B8",
-        "muted": "#64748B",
-        "accent_highlight": "#38BDF8"
-      },
-      "forbidden_colors": [
-        "#7351B7 (AI Purple)",
-        "#1B93A4 (Generic Flat Teal)",
-        "#000000 (Flat pure black without depth or tint)",
-        "Heavy purple-pink gradients"
-      ]
-    }
-  },
-  "glass_system_recipes": {
-    "principles": "Layered translucent surfaces with explicit physical depth, high contrast text legibility, 1px specular inner borders, and subtle top lighting.",
-    "level_1_background_panels": {
-      "bg": "rgba(11, 15, 25, 0.75)",
-      "backdrop_filter": "blur(20px) saturate(160%)",
-      "border": "1px solid rgba(255, 255, 255, 0.08)",
-      "box_shadow": "0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
-    },
-    "level_2_interactive_cards": {
-      "bg": "rgba(18, 24, 36, 0.60)",
-      "backdrop_filter": "blur(16px) saturate(180%)",
-      "border": "1px solid rgba(255, 255, 255, 0.12)",
-      "hover_bg": "rgba(24, 32, 48, 0.75)",
-      "hover_border": "1px solid rgba(0, 240, 255, 0.4)",
-      "hover_box_shadow": "0 12px 30px rgba(0, 240, 255, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.2)"
-    },
-    "level_3_modals_and_floating_bars": {
-      "bg": "rgba(7, 9, 14, 0.85)",
-      "backdrop_filter": "blur(24px) saturate(200%)",
-      "border": "1px solid rgba(255, 255, 255, 0.15)",
-      "box_shadow": "0 30px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.25)"
-    },
-    "video_player_control_bar": {
-      "bg": "rgba(11, 15, 25, 0.80)",
-      "backdrop_filter": "blur(20px)",
-      "border": "1px solid rgba(0, 240, 255, 0.2)",
-      "box_shadow": "0 10px 30px rgba(0, 0, 0, 0.6)"
-    }
-  },
-  "typography": {
-    "heading_font": "Outfit / Syne (Display, Bold / SemiBold)",
-    "body_font": "Plus Jakarta Sans / Inter (Clean Sans, High Readability)",
-    "hierarchy": {
-      "hero_h1": "text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight",
-      "section_h2": "text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight",
-      "card_h3": "text-lg sm:text-xl font-medium tracking-normal",
-      "body_text": "text-base font-normal leading-relaxed text-slate-300",
-      "caption_label": "text-xs font-semibold uppercase tracking-widest text-cyan-400"
-    },
-    "anti_patterns": [
-      "No default Inter for main H1 titles",
-      "No text size exceeding text-6xl",
-      "No transparent text on low-contrast glass"
+  "project_name": "BIOXIC Music Platform Redesign",
+  "version": "2.0.0",
+  "design_philosophy": {
+    "archetype": "THE PERFORMANCE PRO / MATURE HI-FI MUSIC PLATFORM",
+    "core_concept": "Editorial Spotify/TIDAL fusion with tactile 3D control elements, organic anthracite dark surfaces, and discrete BIOXIC cyan signal accents.",
+    "anti_patterns_banned": [
+      "No sci-fi robots or futuristic space slop",
+      "No excessive neon cyan gradients or glowing webgl grids",
+      "No full-screen blur transparent glass over readable text",
+      "No generic AI-generated filler photos or fake artist images",
+      "No non-functional buttons or cramped mobile target areas",
+      "No Inter font on headlines or H1 font sizes above text-6xl"
     ]
   },
-  "layout_blueprints": {
-    "navigation_header": {
-      "desktop": "Fixed top horizontal glass header (height: 72px) with official white transparent logo, primary links (Acasă, TV Broadcast, Muzică, Videoclipuri, Program TV, Chat Live), user avatar/login CTA, and search bar.",
-      "mobile": "Sticky top bar with logo & live badge + bottom glass navigation dock or sliding glass drawer."
+  "typography": {
+    "font_families": {
+      "display": "'Syne', sans-serif",
+      "body": "'Plus Jakarta Sans', sans-serif",
+      "mono": "'JetBrains Mono', monospace"
     },
+    "hierarchy": {
+      "hero_title": "text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.02]",
+      "section_title": "text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-[1.1]",
+      "subsection_title": "text-xl sm:text-2xl font-semibold tracking-tight",
+      "card_title": "text-base sm:text-lg font-semibold tracking-normal",
+      "body_text": "text-sm sm:text-base font-normal leading-relaxed text-slate-300",
+      "caption_mono": "font-mono text-xs tracking-widest uppercase text-slate-400"
+    }
+  },
+  "colors": {
+    "mode": "dark",
+    "base_neutrals": {
+      "void_bg": "#05070C",
+      "obsidian": "#090D16",
+      "obsidian_elevated": "#0D1320",
+      "anthracite_surface": "#131C2C",
+      "edge_subtle": "rgba(148, 163, 184, 0.12)",
+      "edge_highlight": "rgba(148, 163, 184, 0.26)"
+    },
+    "text_colors": {
+      "primary": "#F1F5F9",
+      "secondary": "#9AA8BF",
+      "muted": "#5E6C84"
+    },
+    "brand_accents": {
+      "cyan_primary": "#2DD8F0",
+      "cyan_deep": "#0E7C93",
+      "cyan_glow": "rgba(45, 216, 240, 0.35)",
+      "live_red": "#FF3B5C",
+      "gold_amber": "#FFC24B"
+    }
+  },
+  "surfaces_and_effects": {
+    "tactile_3d_buttons": {
+      "btn_flame": "bg-gradient-to-b from-[#6FE7F7] via-[#2DD8F0] to-[#0E7C93] text-[#032530] font-mono text-xs font-semibold uppercase tracking-wider h-12 px-7 rounded-full shadow-[0_16px_42px_-14px_rgba(45,216,240,0.5),inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-2px_6px_rgba(0,0,0,0.22)] active:translate-y-[1px] active:scale-[0.98] transition-transform duration-150",
+      "btn_steel": "bg-gradient-to-b from-white/10 to-white/2 border border-slate-400/25 text-slate-100 font-mono text-xs font-semibold uppercase tracking-wider h-12 px-6 rounded-full shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_12px_26px_-16px_rgba(0,0,0,0.8)] hover:border-[#2DD8F0]/50 hover:-translate-y-[1px] active:translate-y-[1px] active:scale-[0.98]",
+      "knob_control": "w-11 h-11 rounded-full border border-slate-400/25 bg-gradient-to-b from-white/10 to-white/2 flex items-center justify-center text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_10px_20px_-12px_rgba(0,0,0,0.9)] hover:text-[#2DD8F0] hover:border-[#2DD8F0]/50 active:scale-95 transition-all duration-150"
+    },
+    "cards": {
+      "ob_card": "bg-gradient-to-b from-slate-400/8 via-slate-400/2 to-[#0B101B]/70 border border-slate-400/15 rounded-[20px] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_50px_-28px_rgba(0,0,0,0.85)] overflow-hidden relative"
+    },
+    "glassmorphism": {
+      "floating_surfaces": "backdrop-blur-[20px] backdrop-saturate-[160%] bg-[#070A11]/86 border border-slate-400/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_32px_64px_-30px_rgba(0,0,0,0.9)]"
+    }
+  },
+  "page_layouts": {
     "homepage": {
-      "structure": [
-        "1. Large Hero Broadcast Section (Cinematic 16:9 HLS Live Player, LIVE red pulse badge, next-premiere countdown timer, quick play/mute CTA, overlay metadata).",
-        "2. Weekly TV Schedule Bar (Horizontal scroll timeline with status indicators: În Direct, Urmează, Premieră).",
-        "3. Editorial Video Cards Grid (Responsive bento grid, 16:9 cards, play overlay on hover, track title, artist).",
-        "4. Upcoming Premieres & Countdown Cards (Glass cards with real-time countdown clock).",
-        "5. Recent Audio Tracks & Radio Stream Quick Deck."
+      "hero_section": "Editorial hero showcase with featured music release or live video, high-contrast typography, 3D listen CTA, and official imagery",
+      "sections": [
+        "Recomandări BIOXIC (Featured releases & curated highlights)",
+        "Ultimele Lansări (Recent singles with vinyl deck hover effect)",
+        "Piese Populare (Stream deck table with track numbers, length, and playback trigger)",
+        "Videoclipuri Recente (Video hub grid with HD video preview cards)",
+        "BIOXIC TV Live Entry (Interactive banner leading to live channel with viewer count)",
+        "Albume și Colecții (Grid of square album artwork collections)",
+        "Acces Rapid (Quick links grid to all sections)"
+      ]
+    },
+    "player_bar": {
+      "type": "Persistent bottom bar",
+      "elements": [
+        "Rotating track cover artwork",
+        "Title, artist name, elapsed time",
+        "3D play/pause knob",
+        "Next / Previous track controls",
+        "Interactive progress seekbar with cyan indicator",
+        "Volume control knob + slider",
+        "Queue / Lyrics toggle drawer"
       ]
     },
     "tv_page": {
-      "route": "/tv",
-      "layout": "2-column layout on desktop (3:1 ratio). Main cinematic TV player taking 75% width with floating glass controls, advertising 2s white logo intro sequence, right column spacious live chat container."
+      "layout": "Cinematic 16:9 video player frame with ambient glow, live chat sidebar, weekly TV schedule timetable tabs, premiere countdown timer"
     },
-    "live_chat": {
-      "container": "Wide central conversation column (min-width: 340px, comfortable message padding p-4). Translucent glass message bubbles with clear contrast between user and assistant/system messages. Large premium input bar with send CTA and emoji picker."
-    },
-    "music_page": {
-      "route": "/muzica",
-      "layout": "Radio live stream player banner + seekable audio track list with cover artwork + synchronized lyrics interactive modal overlay."
-    },
-    "video_hub": {
-      "route": "/clipuri",
-      "layout": "Bento grid video library with categories, search, YouTube-style lightbox player with comments & related clips."
-    },
-    "live_room": {
-      "route": "/live",
-      "layout": "Full-screen dark room with interactive vinyl spectrum visualizer + floating chat overlay + stream stats."
-    },
-    "fan_login_modal": {
-      "design": "Centered glass panel over blurred backdrop. Email/Password inputs with sharp focus rings, Google OAuth button, white transparent logo at header."
-    },
-    "persistent_player": {
-      "position": "Fixed bottom dock bar (h-20) with track artwork, play/pause, seek timeline, volume control, lyrics toggle, and minimize option."
+    "about_page": {
+      "layout": "Magazine-editorial spread with high-res studio photography, artist bio story, diskography milestones, discreet numerical statistics"
     }
   },
   "media_assets": {
-    "hero_artist_background": "https://images.unsplash.com/photo-1768885512012-0c47ad00870c?crop=entropy&cs=srgb&fm=jpg&q=85",
-    "concert_neon_lighting": "https://images.unsplash.com/photo-1768885514740-d64d25ac9a64?crop=entropy&cs=srgb&fm=jpg&q=85",
-    "artist_portrait_drummer": "https://images.pexels.com/photos/8041266/pexels-photo-8041266.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "artist_portrait_teal": "https://images.pexels.com/photos/3021552/pexels-photo-3021552.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    "images": [
+      {
+        "category": "Studio Audio Console / Album Cover",
+        "url": "https://images.unsplash.com/photo-1790042200763-d715bb455b9a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHw0fHxtdXNpYyUyMGFydGlzdCUyMHN0dWRpbyUyMGRhcmslMjBhZXN0aGV0aWMlMjBhbGJ1bSUyMGNvdmVyJTIwaGlwJTIwaG9wJTIwZWxlY3Ryb25pY3xlbnwwfHx8fDE3OTMzODk0Njd8MA&ixlib=rb-4.1.0&q=85",
+        "usage": "Hero featured album / studio mixing console banner"
+      },
+      {
+        "category": "Artist Profile Portrait",
+        "url": "https://images.unsplash.com/photo-1611019430706-d584dab5814c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHwzfHxtdXNpYyUyMGFydGlzdCUyMHN0dWRpbyUyMGRhcmslMjBhZXN0aGV0aWMlMjBhbGJ1bSUyMGNvdmVyJTIwaGlwJTIwaG9wJTIwZWxlY3Ryb25pY3xlbnwwfHx8fDE3OTMzODk0Njd8MA&ixlib=rb-4.1.0&q=85",
+        "usage": "About section artist portrait & BIOXIC profile image"
+      },
+      {
+        "category": "Live Performance / TV Hub Banner",
+        "url": "https://images.unsplash.com/photo-1652809096869-55b40bd14ac1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHwyfHxtdXNpYyUyMGFydGlzdCUyMHN0dWRpbyUyMGRhcmslMjBhZXN0aGV0aWMlMjBhbGJ1bSUyMGNvdmVyJTIwaGlwJTIwaG9wJTIwZWxlY3Ryb25pY3xlbnwwfHx8fDE3OTMzODk0Njd8MA&ixlib=rb-4.1.0&q=85",
+        "usage": "BIOXIC TV stream preview thumbnail"
+      }
+    ]
   },
-  "component_specifications": {
-    "buttons": {
-      "primary": "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(0,240,255,0.3)] transition-all duration-300 active:scale-95",
-      "secondary_glass": "bg-white/10 hover:bg-white/20 border border-white/15 text-white font-medium px-5 py-2.5 rounded-xl backdrop-blur-md transition-all duration-200"
-    },
-    "badges": {
-      "live_now": "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/50 text-red-400 text-xs font-bold uppercase tracking-wider animate-pulse",
-      "upcoming_premiere": "inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 text-xs font-semibold"
-    },
-    "cards": {
-      "video_card": "group relative overflow-hidden rounded-2xl bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,240,255,0.15)]",
-      "schedule_card": "p-4 rounded-xl bg-slate-900/40 border border-white/5 hover:bg-slate-800/60 transition-colors"
-    }
+  "testing_requirements": {
+    "data_testid_policy": "All interactive elements (buttons, links, volume slider, play/pause controls, menu toggles, search input, track rows) MUST have clear kebab-case data-testid attributes (e.g. data-testid='player-play-button', data-testid='track-row-1')."
   },
-  "micro_interactions_and_motion": {
-    "hover_depth": "Translate-Y -4px with glowing cyan shadow expansion on interactive cards",
-    "entrance_animation": "Fade-in with slide-up y: 20px, duration 0.4s ease-out",
-    "reduced_motion": "Respect prefers-reduced-motion media query by disabling parallax and heavy CSS transforms, maintaining static crisp glass panels.",
-    "performance_rule": "No global mouse-move canvas listeners; use CSS transform GPU layers (will-change: transform) for high-framerate playback."
-  },
-  "testing_and_accessibility": {
-    "data_testid_convention": "kebab-case mandatory on all buttons, links, player controls, form inputs, schedule items, chat input, and modals.",
-    "contrast_standard": "All body copy must meet APCA / WCAG AA 4.5:1 ratio over glass panels."
-  },
-  "general_guidelines": [
-    "All interactive elements must include descriptive data-testid attributes.",
-    "Keep site language strictly in Romanian for UI strings.",
-    "Never use pure black background without subtle depth and blue/cyan ambient glow.",
-    "Ensure video player controls remain responsive on touch devices."
+  "universal_guidelines_for_main_agent": [
+    "Ensure Romanian language UI labels across all pages ('Ascultă acum', 'Ultimele lansări', 'Program TV', 'Piese populare', etc.).",
+    "Keep audio playback continuous during router navigation using a global persistent state.",
+    "Do NOT add heavy WebGL background canvas loops or heavy smooth-scroll libraries that tank FPS.",
+    "Mobile touch targets must be at least 44px by 44px with smooth bottom dock navigation.",
+    "Use 'sonner' for toast notifications."
   ]
-},
-path: "/app/design_guidelines.json"
-}@
+}

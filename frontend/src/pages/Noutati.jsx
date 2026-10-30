@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Play, Pause, Clapperboard, Music2, Sparkles, Megaphone, ArrowRight, Eye, Youtube, Instagram, AudioLines, BadgeCheck, Heart, MessageCircle, Tv } from "lucide-react";
+import { Play, Pause, Clapperboard, Music2, Sparkles, Megaphone, ArrowRight, Eye, Youtube, Instagram, AudioLines, BadgeCheck, Heart, MessageCircle, Tv, Flame, Library, Newspaper, Users, Radio } from "lucide-react";
 import api, { mediaUrl } from "@/lib/api";
 import { useRadio } from "@/context/RadioContext";
 import CeENou from "@/components/CeENou";
 import StoryModal from "@/components/StoryModal";
 import TvBroadcast from "@/components/TvBroadcast";
-import TvGuide, { NextPremiereCard } from "@/components/TvGuide";
+import { NextPremiereCard } from "@/components/TvGuide";
 
 const PAYPAL_URL = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=A8F6WTGW3RU94";
 const DISCORD_URL = "https://discord.gg/jhCDSq7vqu";
@@ -32,34 +32,44 @@ function timeAgo(iso) {
   return `acum ${d} zile`;
 }
 
-// Prima pagină — hero cinematic cu transmisia TV live, countdown premieră, apoi secțiuni editoriale
+// Prima pagină — editorial de platformă muzicală: lansare în evidență, lansări, populare, clipuri, TV live, colecții
 export default function Noutati() {
   const [tracks, setTracks] = useState([]);
   const [storyOpen, setStoryOpen] = useState(false);
   const [videos, setVideos] = useState([]);
-  const [ytVideos, setYtVideos] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [changes, setChanges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { liveInfo } = useRadio();
 
   useEffect(() => {
     Promise.all([
       api.get("/tracks").catch(() => ({ data: [] })),
       api.get("/videos").catch(() => ({ data: [] })),
-      api.get("/youtube/videos").catch(() => ({ data: [] })),
       api.get("/tv/schedule").catch(() => ({ data: [] })),
       fetch("/changelog.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-    ]).then(([tr, vr, yt, sc, cl]) => {
+    ]).then(([tr, vr, sc, cl]) => {
       setTracks(tr.data || []);
       setVideos(vr.data || []);
-      setYtVideos((yt.data || []).filter((v) => v.channel === "Everest Manele"));
       setSchedule(sc.data || []);
       if (cl?.changes?.length) setChanges([{ version: cl.version, built: cl.built, changes: cl.changes }]);
       setLoading(false);
     });
   }, []);
 
-  // feed unificat, cel mai recent primul
+  const latestTrack = tracks[0] || null;
+  const latestReleases = tracks.slice(0, 6);
+  const popular = useMemo(() => [...tracks].sort((a, b) => (b.plays || 0) - (a.plays || 0)).slice(0, 5), [tracks]);
+  const recentVideos = videos.slice(0, 4);
+  const collections = useMemo(() => {
+    const groups = {};
+    tracks.forEach((t) => {
+      const key = (t.playlist || "").trim();
+      if (key) (groups[key] = groups[key] || []).push(t);
+    });
+    return Object.entries(groups).map(([name, list]) => ({ name, list }));
+  }, [tracks]);
+
   const feed = useMemo(() => {
     const items = [
       ...changes.map((c) => ({ kind: "anunt", date: c.built || "", id: `v${c.version}`, title: `Actualizare site · v${c.version}`, list: c.changes })),
@@ -69,42 +79,107 @@ export default function Noutati() {
     return items.sort((a, b) => Date.parse(b.date || 0) - Date.parse(a.date || 0)).slice(0, 20);
   }, [changes, tracks, videos]);
 
-  // clipuri editoriale: întâi cele încărcate (playerul intern), apoi Everest Manele
-  const editorial = useMemo(
-    () => [
-      ...videos.map((v) => ({ ...v, uploaded: true })),
-      ...ytVideos.map((v) => ({ ...v, uploaded: false })),
-    ],
-    [videos, ytVideos]
-  );
-  const [featured, ...restClips] = editorial;
-  const recentTracks = useMemo(() => tracks.slice(0, 8), [tracks]);
-
   return (
     <div data-testid="noutati-page" className="relative">
-      {/* ============ HERO BROADCAST — transmisia TV live, piesa centrală a paginii ============ */}
-      <section className="max-w-[1400px] mx-auto px-4 sm:px-8 pt-8 sm:pt-12">
-        <div className="flex flex-wrap items-end justify-between gap-5 rv">
+      {/* ============ HERO — lansarea în evidență, editorial ============ */}
+      <section className="max-w-[1240px] mx-auto px-4 sm:px-8 pt-10 sm:pt-16">
+        <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] gap-10 items-center rv">
           <div>
-            <p className="sec-kicker"><Tv size={12} /> Everest Music · Emisiune continuă</p>
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-tight mt-3 leading-[1.04]">
-              BIOXIC <span className="text-[var(--flame)]">TV</span> — live acum
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="sec-kicker">{latestTrack ? "Lansare în evidență" : "Everest Music"}</p>
+              <Link to="/tv" className="live-badge !py-1.5 !px-3 !text-[9px]" data-testid="hero-live-badge">
+                <span className="live-dot" /> TV Live · 24/7
+              </Link>
+            </div>
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl tracking-tight mt-5 leading-[1.04]">
+              {latestTrack ? latestTrack.title : <>Muzică direct <span className="text-[var(--flame)]">din seif</span></>}
             </h1>
-            <p className="text-[var(--text-2)] text-sm sm:text-base mt-4 max-w-xl leading-relaxed">
-              Manele video non-stop, premiere care se aud întâi aici și chatul comunității — totul într-un singur loc.
+            <p className="text-[var(--text-2)] text-sm sm:text-base mt-5 max-w-xl leading-relaxed">
+              {latestTrack
+                ? `${latestTrack.artist || "BIOXIC"} · cea mai nouă piesă din arhivă. Apasă play și o asculți chiar acum — radioul live continuă după.`
+                : "Remixuri, mashup-uri și manele produse de BIOXIC — cu radio live 24/7, premiere și o comunitate care ascultă împreună."}
             </p>
+            <div className="flex flex-wrap items-center gap-3 mt-7">
+              {latestTrack && <HeroPlayButton track={latestTrack} list={tracks} />}
+              <Link to="/muzica" className="btn-steel !h-12" data-testid="hero-explore">Explorează muzica</Link>
+              {liveInfo?.listeners > 0 && (
+                <span className="text-[10px] font-mono-x uppercase tracking-[0.2em] text-[var(--text-3)] inline-flex items-center gap-1.5">
+                  <Radio size={11} className="text-[var(--live)]" /> {liveInfo.listeners} ascultă acum
+                </span>
+              )}
+            </div>
           </div>
-          <span className="live-badge" data-testid="hero-live-badge">
-            <span className="live-dot" /> În direct · 24/7
-          </span>
+          {/* coperta piesei în evidență — mare, cu reflexie discretă */}
+          {latestTrack && (
+            <div className="relative rv rv-d1" data-testid="hero-cover">
+              <div className="ob-card p-3 rotate-1 hover:rotate-0 transition-transform duration-500">
+                <img
+                  src={mediaUrl(latestTrack.cover_url) || "/logo-alt.png"}
+                  alt={latestTrack.title}
+                  className={`w-full aspect-square rounded-2xl ${latestTrack.cover_url ? "object-cover" : "object-contain p-14"}`}
+                />
+              </div>
+              <div className="reflection mx-3 !h-16"><img src={mediaUrl(latestTrack.cover_url) || "/logo-alt.png"} alt="" aria-hidden="true" /></div>
+            </div>
+          )}
         </div>
+      </section>
 
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-6 mt-8 rv">
+      {/* ============ ULTIMELE LANSĂRI ============ */}
+      {latestReleases.length > 0 && (
+        <section className="max-w-[1240px] mx-auto px-4 sm:px-8 mt-16 sm:mt-20 cv-auto" data-testid="home-tracks">
+          <SectionHead kicker="Proaspete din seif" title="Ultimele lansări" to="/muzica" linkLabel="Toată muzica" tid="home-tracks-all" />
+          <div className="ytc-row mt-7" data-lenis-prevent>
+            {latestReleases.map((t) => <HomeTrackCard key={t.id} t={t} />)}
+          </div>
+        </section>
+      )}
+
+      {/* ============ PIESE POPULARE ============ */}
+      {popular.length > 0 && (
+        <section className="max-w-[1240px] mx-auto px-4 sm:px-8 mt-16 sm:mt-20 cv-auto" data-testid="home-popular">
+          <SectionHead kicker="Cele mai ascultate" title="Piese populare" to="/muzica" linkLabel="Discografia" tid="home-popular-all" />
+          <div className="ob-card mt-7 divide-y divide-[var(--edge)]">
+            {popular.map((t, i) => <PopularRow key={t.id} t={t} i={i} />)}
+          </div>
+        </section>
+      )}
+
+      {/* ============ VIDEOCLIPURI RECENTE ============ */}
+      {recentVideos.length > 0 && (
+        <section className="max-w-[1240px] mx-auto px-4 sm:px-8 mt-16 sm:mt-20 cv-auto" data-testid="home-clips">
+          <SectionHead kicker="Pe ecran" title="Videoclipuri recente" to="/clipuri" linkLabel="Toate clipurile" tid="home-clips-all" />
+          <div className="grid sm:grid-cols-2 gap-5 mt-7">
+            {recentVideos.map((v, i) => (
+              <Link key={v.id} to={`/clipuri/${v.id}`} className={`ed-card group rv rv-d${Math.min(i, 3)}`} data-testid={`home-clip-${v.id}`}>
+                <span className="relative block aspect-video overflow-hidden bg-black">
+                  <img src={mediaUrl(v.thumb_url) || "/logo-alt.png"} alt={v.title} loading="lazy" className="w-full h-full object-cover" />
+                  <span className="absolute inset-0 bg-gradient-to-t from-[rgba(4,6,11,.85)] via-transparent to-transparent" />
+                  <span className="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <span className="knob !w-12 !h-12" style={{ color: "var(--flame)" }}><Play size={16} fill="currentColor" /></span>
+                  </span>
+                  <span className="absolute bottom-0 left-0 right-0 p-4">
+                    <span className="block text-sm font-semibold leading-snug line-clamp-2">{v.title}</span>
+                    <span className="flex items-center gap-1.5 text-[9px] font-mono-x uppercase tracking-widest text-[var(--text-2)] mt-1.5">
+                      <Eye size={10} /> {v.views || 0} vizualizări
+                    </span>
+                  </span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ============ BIOXIC TV LIVE — playerul real, încastrat ============ */}
+      <section className="max-w-[1240px] mx-auto px-4 sm:px-8 mt-16 sm:mt-20" data-testid="home-tv">
+        <SectionHead kicker="Emisiune continuă" title="BIOXIC TV — live acum" to="/tv" linkLabel="Pagina TV" tid="home-tv-all" />
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-6 mt-7 rv">
           <TvBroadcast />
           <aside className="flex flex-col gap-5">
             <NextPremiereCard schedule={schedule} />
             <div className="ob-card p-6 flex-1 flex flex-col">
-              <p className="sec-kicker">Susține emisiunea</p>
+              <p className="sec-kicker">Susține proiectul</p>
               <p className="text-sm text-[var(--text-2)] mt-3 leading-relaxed flex-1">
                 Fiecare donație înseamnă o piesă nouă. Comunitatea e pe Discord, la o tastă distanță.
               </p>
@@ -121,105 +196,56 @@ export default function Noutati() {
         </div>
       </section>
 
-      {/* ============ GHID TV SĂPTĂMÂNAL ============ */}
-      <section className="max-w-[1400px] mx-auto px-4 sm:px-8 mt-16 sm:mt-20">
-        <TvGuide schedule={schedule} />
+      {/* ============ ALBUME ȘI COLECȚII ============ */}
+      <section className="max-w-[1240px] mx-auto px-4 sm:px-8 mt-16 sm:mt-20 cv-auto" data-testid="home-collections">
+        <SectionHead kicker="Arhiva organizată" title="Albume și colecții" to="/proiecte" linkLabel="Toate proiectele" tid="home-collections-all" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-7">
+          {(collections.length ? collections.slice(0, 3) : []).map((c, i) => (
+            <Link key={c.name} to="/proiecte" className={`ed-card group p-5 rv rv-d${Math.min(i, 3)}`} data-testid={`home-collection-${i}`}>
+              <span className="grid place-items-center w-14 h-14 rounded-2xl border border-[var(--edge)] bg-black/25 mb-4" style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.06)" }}>
+                <Library size={20} className="text-[var(--flame)]" />
+              </span>
+              <span className="block font-display text-lg leading-tight">{c.name}</span>
+              <span className="block text-[10px] font-mono-x uppercase tracking-[0.18em] text-[var(--text-3)] mt-2">{c.list.length} piese</span>
+            </Link>
+          ))}
+          <Link to="/proiecte" className="ed-card group p-5 rv" data-testid="home-collection-all">
+            <span className="grid place-items-center w-14 h-14 rounded-2xl border border-[var(--edge)] bg-black/25 mb-4" style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.06)" }}>
+              <Music2 size={20} className="text-[var(--flame)]" />
+            </span>
+            <span className="block font-display text-lg leading-tight">Discografia completă</span>
+            <span className="block text-[10px] font-mono-x uppercase tracking-[0.18em] text-[var(--text-3)] mt-2">{tracks.length} piese · {videos.length} clipuri</span>
+          </Link>
+        </div>
       </section>
 
-      {/* ============ CLIPURI — editorial, carduri mari ============ */}
-      {editorial.length > 0 && (
-        <section className="max-w-[1400px] mx-auto px-4 sm:px-8 mt-16 sm:mt-20 cv-auto" data-testid="home-clips">
-          <div className="flex flex-wrap items-end justify-between gap-4 rv">
-            <div>
-              <p className="sec-kicker"><Clapperboard size={12} /> Videoclipuri</p>
-              <h2 className="sec-title mt-2.5">Pe ecran, acum</h2>
-            </div>
-            <Link to="/clipuri" className="btn-ghost rounded-full px-5 py-2.5 text-[10px] font-mono-x uppercase tracking-widest inline-flex items-center gap-2" data-testid="home-clips-all">
-              Toate clipurile <ArrowRight size={12} />
-            </Link>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-5 mt-7">
-            {/* clipul principal — mare, cinematic */}
-            {featured && (
-              <Link
-                to={featured.uploaded ? `/clipuri/${featured.id}` : "/clipuri"}
-                className="ed-card group rv"
-                data-testid={`home-clip-featured-${featured.id}`}
-              >
-                <span className="relative block aspect-video overflow-hidden bg-black">
-                  <img
-                    src={featured.uploaded ? mediaUrl(featured.thumb_url) || "/logo-alt.png" : featured.thumbnail}
-                    alt={featured.title}
-                    loading="eager"
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute inset-0 bg-gradient-to-t from-[rgba(4,6,11,.92)] via-transparent to-transparent" />
-                  <span className="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <span className="tv-bigplay-btn !w-16 !h-16"><Play size={22} fill="currentColor" className="ml-1" /></span>
-                  </span>
-                  <span className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
-                    <span className="ytc-badge !static">{featured.uploaded ? "BIOXIC" : "EVEREST"}</span>
-                    <span className="block font-display text-lg sm:text-2xl leading-tight mt-2.5 line-clamp-2">{featured.title}</span>
-                    <span className="flex items-center gap-1.5 text-[10px] font-mono-x uppercase tracking-widest text-[var(--text-2)] mt-2">
-                      <Eye size={11} /> {featured.views || 0} vizualizări
-                    </span>
-                  </span>
-                </span>
+      {/* ============ ACCES RAPID ============ */}
+      <section className="max-w-[1240px] mx-auto px-4 sm:px-8 mt-16 sm:mt-20 cv-auto" data-testid="home-quick">
+        <p className="sec-kicker rv">Acces rapid</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+          {[
+            { to: "/muzica", label: "Muzică & Radio", sub: "Radioul live 24/7", icon: Music2, tid: "news-go-muzica" },
+            { to: "/clipuri", label: "Videoclipuri", sub: "Clipurile oficiale", icon: Clapperboard, tid: "news-go-video" },
+            { to: "/tv", label: "BIOXIC TV", sub: "Emisiune non-stop", icon: Tv, tid: "quick-tv" },
+            { to: "/proiecte", label: "Proiecte", sub: "Colecții & serii", icon: Library, tid: "quick-proiecte" },
+            { to: "/despre", label: "Despre BIOXIC", sub: "Povestea lui Cristi", icon: Users, tid: "quick-despre" },
+            { to: "/pareri", label: "Păreri", sub: "Ce zic fanii", icon: MessageCircle, tid: "quick-pareri" },
+            { to: "/contact", label: "Contact", sub: "Booking & susținere", icon: Heart, tid: "quick-contact" },
+            { to: "/live", label: "Camera live", sub: "Experiența imersivă", icon: Flame, tid: "quick-live" },
+          ].map((q, i) => {
+            const Icon = q.icon;
+            return (
+              <Link key={q.to} to={q.to} className={`ob-card track-card p-5 rv rv-d${i % 3}`} data-testid={q.tid}>
+                <Icon size={18} className="text-[var(--flame)]" />
+                <span className="block font-semibold text-sm mt-3">{q.label}</span>
+                <span className="block text-[11px] text-[var(--text-3)] mt-1">{q.sub}</span>
               </Link>
-            )}
-            {/* restul — grilă 2×2 */}
-            <div className="grid sm:grid-cols-2 gap-5 content-start">
-              {restClips.slice(0, 4).map((v, i) => (
-                <Link
-                  key={`${v.uploaded ? "up" : "yt"}-${v.id}`}
-                  to={v.uploaded ? `/clipuri/${v.id}` : "/clipuri"}
-                  className={`ed-card group rv rv-d${Math.min(i + 1, 3)}`}
-                  data-testid={`home-clip-${v.id}`}
-                >
-                  <span className="relative block aspect-video overflow-hidden bg-black">
-                    <img
-                      src={v.uploaded ? mediaUrl(v.thumb_url) || "/logo-alt.png" : v.thumbnail}
-                      alt={v.title}
-                      loading="lazy"
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute inset-0 bg-gradient-to-t from-[rgba(4,6,11,.85)] via-transparent to-transparent" />
-                    <span className="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="knob !w-11 !h-11" style={{ color: "var(--flame)" }}><Play size={15} fill="currentColor" /></span>
-                    </span>
-                    <span className="absolute bottom-0 left-0 right-0 p-3.5">
-                      <span className="block text-[13px] font-semibold leading-snug line-clamp-2">{v.title}</span>
-                    </span>
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+            );
+          })}
+        </div>
+      </section>
 
-      {/* ============ PIESE RECENTE — carduri cu cover mare, play instant ============ */}
-      {recentTracks.length > 0 && (
-        <section className="max-w-[1400px] mx-auto px-4 sm:px-8 mt-16 sm:mt-20 cv-auto" data-testid="home-tracks">
-          <div className="flex flex-wrap items-end justify-between gap-4 rv">
-            <div>
-              <p className="sec-kicker"><Music2 size={12} /> Proaspete din seif</p>
-              <h2 className="sec-title mt-2.5">Piese recente</h2>
-            </div>
-            <Link to="/muzica" className="btn-ghost rounded-full px-5 py-2.5 text-[10px] font-mono-x uppercase tracking-widest inline-flex items-center gap-2" data-testid="home-tracks-all">
-              Toată muzica <ArrowRight size={12} />
-            </Link>
-          </div>
-          <div className="ytc-row mt-7" data-lenis-prevent>
-            {recentTracks.map((t) => (
-              <HomeTrackCard key={t.id} t={t} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ============ BIO — deck oficial cu poză, badge verificat, socialuri ============ */}
+      {/* ============ BIO — pe scurt ============ */}
       <section className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-16 sm:mt-24" data-testid="bio-section">
         <div className="artist-banner rv" data-testid="hero-banner">
           <img src="/artist.jpg" alt="BIOXIC — Everest Music" loading="lazy" />
@@ -228,7 +254,7 @@ export default function Noutati() {
               <p className="badge-engraved !text-[9px]">Artist oficial · Everest Music</p>
               <p className="font-display text-2xl sm:text-3xl mt-2">Sunet din seif.<br />Direct la oameni.</p>
             </div>
-            <Link to="/contact" className="btn-steel !h-10 !px-5 !text-[10px]" data-testid="banner-contact-cta">Booking & Contact</Link>
+            <Link to="/despre" className="btn-steel !h-10 !px-5 !text-[10px]" data-testid="banner-about-cta">Povestea completă</Link>
           </div>
         </div>
 
@@ -264,11 +290,11 @@ export default function Noutati() {
       {/* de la ultima vizită */}
       <CeENou />
 
-      {/* ============ FEED DE NOUTĂȚI ============ */}
+      {/* ============ FEED ============ */}
       <section className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-14 sm:mt-16" data-testid="news-feed">
         <header className="flex items-end justify-between gap-4 rv">
           <div>
-            <p className="sec-kicker">Feed actualizat</p>
+            <p className="sec-kicker"><Newspaper size={12} /> Feed actualizat</p>
             <h2 className="sec-title mt-2.5">Ultimele mișcări</h2>
           </div>
         </header>
@@ -283,33 +309,9 @@ export default function Noutati() {
           </div>
         ) : (
           <div className="grid gap-3.5 mt-8">
-            {feed.map((it, i) => (
-              <FeedRow key={`${it.kind}-${it.id}`} it={it} i={i} />
-            ))}
+            {feed.map((it, i) => <FeedRow key={`${it.kind}-${it.id}`} it={it} i={i} />)}
           </div>
         )}
-      </section>
-
-      {/* ============ linkuri rapide ============ */}
-      <section className="max-w-[1100px] mx-auto px-4 sm:px-8 mt-14 sm:mt-16 cv-auto">
-        <div className="grid sm:grid-cols-2 gap-5">
-          <Link to="/muzica" className="ob-card track-card p-6 flex items-center gap-5 rv" data-testid="news-go-muzica">
-            <span className="knob !w-14 !h-14 shrink-0" style={{ color: "var(--flame)" }}><Music2 size={20} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-display text-lg">Muzică & Radio</span>
-              <span className="block text-xs text-[var(--text-2)] mt-1">Discografia completă + radioul live 24/7.</span>
-            </span>
-            <ArrowRight size={16} className="text-[var(--text-3)]" />
-          </Link>
-          <Link to="/clipuri" className="ob-card track-card p-6 flex items-center gap-5 rv rv-d1" data-testid="news-go-video">
-            <span className="knob !w-14 !h-14 shrink-0" style={{ color: "var(--flame)" }}><Clapperboard size={20} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-display text-lg">Video</span>
-              <span className="block text-xs text-[var(--text-2)] mt-1">Clipurile oficiale, în playerul nostru.</span>
-            </span>
-            <ArrowRight size={16} className="text-[var(--text-3)]" />
-          </Link>
-        </div>
       </section>
 
       {storyOpen && <StoryModal onClose={() => setStoryOpen(false)} />}
@@ -317,7 +319,60 @@ export default function Noutati() {
   );
 }
 
-// card de piesă pentru banda orizontală de pe prima pagină — cover mare, play instant
+function SectionHead({ kicker, title, to, linkLabel, tid }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-4 rv">
+      <div>
+        <p className="sec-kicker">{kicker}</p>
+        <h2 className="sec-title mt-2.5">{title}</h2>
+      </div>
+      <Link to={to} className="btn-ghost rounded-full px-5 py-2.5 text-[10px] font-mono-x uppercase tracking-widest inline-flex items-center gap-2" data-testid={tid}>
+        {linkLabel} <ArrowRight size={12} />
+      </Link>
+    </div>
+  );
+}
+
+// butonul de play al hero-ului — pornește piesa în evidență
+function HeroPlayButton({ track, list }) {
+  const { current, mode, playing, playTrack, toggle } = useRadio();
+  const isCurrent = current?.id === track.id && mode === "track";
+  const isPlayingThis = isCurrent && playing;
+  return (
+    <button onClick={() => (isCurrent ? toggle() : playTrack(track, list))} className="btn-flame !h-12 !px-8" data-testid="hero-play" aria-label={`Redă ${track.title}`}>
+      {isPlayingThis ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
+      {isPlayingThis ? "Pauză" : "Ascultă acum"}
+    </button>
+  );
+}
+
+// rând de piesă populară — număr mare, cover, titlu, redări reale, play
+function PopularRow({ t, i }) {
+  const { current, mode, playing, playTrack, toggle, queue } = useRadio();
+  const isCurrent = current?.id === t.id && mode === "track";
+  const isPlayingThis = isCurrent && playing;
+  return (
+    <button
+      onClick={() => (isCurrent ? toggle() : playTrack(t, queue.length ? queue : undefined))}
+      className="w-full flex items-center gap-4 sm:gap-5 px-4 sm:px-6 py-4 text-left hover:bg-white/[0.03] transition-colors group"
+      data-testid={`popular-row-${t.id}`}
+      aria-label={`Redă ${t.title}`}
+    >
+      <span className="font-display font-bold text-2xl w-8 text-center tabular-nums" style={{ color: i === 0 ? "var(--flame)" : "var(--text-3)" }}>{i + 1}</span>
+      <img src={mediaUrl(t.cover_url) || "/logo-alt.png"} alt="" className="w-12 h-12 rounded-xl object-cover border border-[var(--edge)]" loading="lazy" />
+      <span className="min-w-0 flex-1">
+        <span className={`block text-sm font-semibold truncate ${isCurrent ? "text-[var(--flame)]" : ""}`}>{t.title}</span>
+        <span className="block text-[9.5px] font-mono-x uppercase tracking-[0.16em] text-[var(--text-3)] mt-0.5">{t.artist || "BIOXIC"}</span>
+      </span>
+      <span className="hidden sm:inline text-[10px] font-mono-x uppercase tracking-widest text-[var(--text-3)] tabular-nums">{t.plays || 0} redări</span>
+      <span className="knob knob-sm shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={isPlayingThis ? { opacity: 1, color: "var(--flame)" } : {}}>
+        {isPlayingThis ? <Pause /> : <Play />}
+      </span>
+    </button>
+  );
+}
+
+// card de piesă pentru banda orizontală — cover mare, play instant
 function HomeTrackCard({ t }) {
   const { current, mode, playing, playTrack, toggle } = useRadio();
   const isCurrent = current?.id === t.id && mode === "track";

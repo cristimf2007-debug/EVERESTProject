@@ -34,6 +34,10 @@ export function RadioProvider({ children }) {
   const [current, setCurrent] = useState(null);
   const [queue, setQueue] = useState([]); // piesele pentru redare on-demand (ordinea din /piese)
   const [trackIdx, setTrackIdx] = useState(-1);
+  const [shuffle, setShuffle] = useState(false);
+  const [repeat, setRepeat] = useState("off"); // off | all | one
+  const shuffleRef = useRef(false);
+  const repeatRef = useRef("off");
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.85);
@@ -194,14 +198,24 @@ export function RadioProvider({ children }) {
 
   const next = useCallback(() => {
     if (modeRef.current !== "track" || trackIdx < 0) return;
+    if (shuffleRef.current && queue.length > 1) {
+      let i = trackIdx;
+      while (i === trackIdx) i = Math.floor(Math.random() * queue.length);
+      playTrack(queue[i]);
+      return;
+    }
     const nxt = queue[trackIdx + 1];
     if (nxt) {
       playTrack(nxt);
+    } else if (repeatRef.current === "all" && queue.length > 0) {
+      playTrack(queue[0]); // repeat all → se reia coada de la început
     } else {
       // sfârșit de listă → revine la radio, NU reia aceeași piesă la infinit
       backToLiveRef.current?.();
     }
   }, [queue, trackIdx, playTrack]);
+  const nextRef = useRef(next);
+  nextRef.current = next;
 
   const prev = useCallback(() => {
     if (modeRef.current !== "track" || trackIdx < 0) return;
@@ -247,6 +261,17 @@ export function RadioProvider({ children }) {
 
   const toggleMute = useCallback(() => setMuted((m) => !m), []);
 
+  const toggleShuffle = useCallback(() => {
+    setShuffle((s) => { shuffleRef.current = !s; return !s; });
+  }, []);
+  const cycleRepeat = useCallback(() => {
+    setRepeat((r) => {
+      const n = r === "off" ? "all" : r === "all" ? "one" : "off";
+      repeatRef.current = n;
+      return n;
+    });
+  }, []);
+
   // ---------- EVENIMENTE AUDIO (legate o singură dată, pe elementul persistent) ----------
 
   const onLoaded = () => {
@@ -267,8 +292,19 @@ export function RadioProvider({ children }) {
   };
   const onTime = () => { if (audioRef.current) setProgress(audioRef.current.currentTime); };
   const onEnded = () => {
-    if (modeRef.current === "track") next();
-    else syncLive(); // live: serverul a trecut la următoarea; syncLive realiniază
+    if (modeRef.current === "track") {
+      if (repeatRef.current === "one" && currentRef.current) {
+        // repeat one → aceeași piesă de la capăt
+        const audio = audioRef.current;
+        if (audio) {
+          audio.currentTime = 0;
+          setProgress(0);
+          audio.play().catch(() => setStatus("error"));
+        }
+        return;
+      }
+      nextRef.current();
+    } else syncLive(); // live: serverul a trecut la următoarea; syncLive realiniază
   };
   const onError = () => {
     // link semnat expirat (pauză lungă) → cerem unul proaspăt și reiem o singură dată
@@ -289,6 +325,7 @@ export function RadioProvider({ children }) {
   return (
     <RadioContext.Provider value={{
       mode, status, playing, liveInfo, current, queue, trackIdx, progress, duration, volume, muted, listeners,
+      shuffle, repeat, toggleShuffle, cycleRepeat,
       play, pause, stop, toggle, next, prev, seek, setVolume, toggleMute, playTrack, backToLive, syncLive,
       audioRef, expectedPosition,
     }}>

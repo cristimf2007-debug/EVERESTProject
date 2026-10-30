@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Newspaper, Disc3, Clapperboard, Mail, LogIn, LogOut, Search, ShieldCheck, Settings, CircleUserRound, ChevronDown, Tv } from "lucide-react";
+import { Newspaper, Disc3, Clapperboard, Mail, LogIn, LogOut, Search, ShieldCheck, Settings, CircleUserRound, ChevronDown, Tv, Library } from "lucide-react";
 import { toast } from "sonner";
 import api, { getSid, mediaUrl } from "@/lib/api";
 import { useRadio } from "@/context/RadioContext";
@@ -42,6 +42,8 @@ const TABS = [
   { to: "/muzica", label: "Muzică & Radio", tid: "muzica", dot: "muzica" },
   { to: "/clipuri", label: "Video", tid: "video", dot: "video" },
   { to: "/tv", label: "TV", tid: "tv", dot: null },
+  { to: "/proiecte", label: "Proiecte", tid: "proiecte", dot: null, wide: true },
+  { to: "/despre", label: "Despre", tid: "despre", dot: null, wide: true },
   { to: "/contact", label: "Contact", tid: "contact", dot: null },
 ];
 
@@ -50,6 +52,7 @@ const MTABS = [
   { to: "/muzica", label: "Muzică", tid: "muzica", icon: Disc3, dot: "muzica" },
   { to: "/clipuri", label: "Video", tid: "video", icon: Clapperboard, dot: "video" },
   { to: "/tv", label: "TV", tid: "tv", icon: Tv, dot: null },
+  { to: "/proiecte", label: "Proiecte", tid: "proiecte", icon: Library, dot: null },
   { to: "/contact", label: "Contact", tid: "contact", icon: Mail, dot: null },
 ];
 
@@ -192,7 +195,7 @@ export default function ChannelHeader() {
         {/* bara full-width: linkuri stânga · logo centrat · linkuri + acțiuni dreapta */}
         <div className={`hdr-bar pointer-events-auto ${scrolled ? "scrolled" : ""}`}>
           <nav className="hidden lg:flex items-center gap-1 flex-1" aria-label="Navigație principală">
-            {TABS.slice(0, 2).map((t) => (
+            {TABS.slice(0, 3).map((t) => (
               <Link key={t.to} to={t.to} data-testid={`tab-${t.tid}`} className={`hdr-link ${isActiveTab(t.to, location.pathname) ? "active" : ""}`}>
                 {t.label}
                 {t.dot && dots[t.dot] > 0 && <span className="tab-dot" aria-label={`${dots[t.dot]} noutăți`} />}
@@ -207,8 +210,8 @@ export default function ChannelHeader() {
 
           <div className="flex items-center gap-1.5 sm:gap-2 flex-1 justify-end">
             <nav className="hidden lg:flex items-center gap-1 mr-1" aria-label="Navigație secundară">
-              {TABS.slice(2).map((t) => (
-                <Link key={t.to} to={t.to} data-testid={`tab-${t.tid}`} className={`hdr-link ${isActiveTab(t.to, location.pathname) ? "active" : ""}`}>
+              {TABS.slice(3).map((t) => (
+                <Link key={t.to} to={t.to} data-testid={`tab-${t.tid}`} className={`hdr-link ${t.wide ? "hidden xl:inline-flex" : ""} ${isActiveTab(t.to, location.pathname) ? "active" : ""}`}>
                   {t.label}
                   {t.dot && dots[t.dot] > 0 && <span className="tab-dot" aria-label={`${dots[t.dot]} noutăți`} />}
                 </Link>

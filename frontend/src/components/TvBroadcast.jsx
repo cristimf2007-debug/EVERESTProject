@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { Play, Pause, Volume2, VolumeX, Maximize, SkipForward, Tv } from "lucide-react";
 import { useRadio } from "@/context/RadioContext";
@@ -8,178 +8,220 @@ export const TV_STREAM_URL = "https://stream.tequilamusic.net/hls/tequila_tv.m3u
 const LOGO_MS = 2000;   // logo-ul oficial alb, exact 2 secunde
 const MAX_PROMOS = 4;   // maximum 4 clipuri în secvența de deschidere
 
-// Playerul TV cinematic — folosit și în hero-ul de pe prima pagină, și pe /tv.
-// Secvența de deschidere: logo oficial (2s) → max 4 clipuri în ordine → revine automat la streamul live.
-// Performanță: streamul HLS NU se încarcă decât după ce utilizatorul apasă play.
-export default function TvBroadcast() {
-  const stageRef = useRef(null);
-  const liveRef = useRef(null);
-  const introRef = useRef(null);
-  const hlsRef = useRef(null);
-  const timersRef = useRef([]);
-  const introDone = useRef(false);
-  const mutedRef = useRef(false);
-  const promosRef = useRef([]);
-  const { pause: pauseRadio } = useRadio();
+/* ============================================================
+   SINGLETON TV — nodul video trăiește la nivel de modul și este
+   mutat între pagini (appendChild NU oprește redarea), deci
+   transmisia live continuă când schimbi pagina sau revii pe /tv.
+   Secvența: logo oficial 2s → max 4 clipuri în ordine → live HLS.
+   HLS NU se încarcă decât după ce utilizatorul apasă play.
+   ============================================================ */
+const TV = {
+  node: null, hls: null, promos: null, timers: [],
+  state: { stage: "idle", playing: false, muted: false, promoIdx: 0, promoCount: 0, err: "" },
+  listeners: new Set(),
+  radioPause: null, // injectat de componentă (pause-ul radioului)
+};
 
-  const [stage, setStage] = useState("idle"); // idle | logo | promo | live
-  const [promoIdx, setPromoIdx] = useState(0);
-  const [promoCount, setPromoCount] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const [err, setErr] = useState("");
+function emit() { TV.listeners.forEach((f) => f()); }
+function setTV(patch) { Object.assign(TV.state, patch); emit(); }
 
-  // clipurile secvenței: cele încărcate de artist, în ordinea urcării, max 4
-  useEffect(() => {
-    api.get("/videos")
-      .then((r) => {
-        const list = (r.data || []).filter((v) => v.video_url).slice().reverse().slice(0, MAX_PROMOS);
-        promosRef.current = list;
-        setPromoCount(list.length);
-      })
-      .catch(() => {});
-  }, []);
+function getPark() {
+  let p = document.getElementById("tv-park");
+  if (!p) {
+    p = document.createElement("div");
+    p.id = "tv-park";
+    p.style.cssText = "position:fixed;left:-99999px;top:0;width:16px;height:9px;overflow:hidden;pointer-events:none;";
+    document.body.appendChild(p);
+  }
+  return p;
+}
 
-  const clearTimers = () => { timersRef.current.forEach(clearTimeout); timersRef.current = []; };
+function liveVideo() { return TV.node?.querySelector("video[data-role='live']"); }
+function introVideo() { return TV.node?.querySelector("video[data-role='intro']"); }
 
-  const goLive = useCallback(() => {
-    clearTimers();
-    introRef.current?.pause();
-    setStage("live");
-    const v = liveRef.current;
-    if (!v) return;
-    if (Hls.isSupported()) {
-      if (!hlsRef.current) {
-        const hls = new Hls({ liveSyncDurationCount: 3, maxLiveSyncPlaybackRate: 1.5 });
-        hls.on(Hls.Events.LEVEL_LOADED, () => setErr(""));
-        hls.on(Hls.Events.ERROR, (_e, data) => {
-          if (!data?.fatal) return;
-          if (data.details === "bufferAddCodecError") {
-            setErr("Browserul nu poate decoda streamul (H.264). Deschide în Chrome, Safari sau Edge actualizat.");
-            return;
-          }
-          setErr("Semnalul TV a picat o clipă — reîncercăm automat…");
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
-          else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
-        });
-        hls.loadSource(TV_STREAM_URL);
-        hls.attachMedia(v);
-        hlsRef.current = hls;
-      } else {
-        hlsRef.current.startLoad(-1); // salt la marginea live
-      }
-    } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
-      if (!v.src) v.src = TV_STREAM_URL; // Safari — HLS nativ
+function goLive() {
+  TV.timers.forEach(clearTimeout); TV.timers = [];
+  introVideo()?.pause();
+  setTV({ stage: "live", err: "" });
+  const v = liveVideo();
+  if (!v) return;
+  if (Hls.isSupported()) {
+    if (!TV.hls) {
+      const hls = new Hls({ liveSyncDurationCount: 3, maxLiveSyncPlaybackRate: 1.5 });
+      hls.on(Hls.Events.LEVEL_LOADED, () => setTV({ err: "" }));
+      hls.on(Hls.Events.ERROR, (_e, data) => {
+        if (!data?.fatal) return;
+        if (data.details === "bufferAddCodecError") {
+          setTV({ err: "Browserul nu poate decoda streamul (H.264). Deschide în Chrome, Safari sau Edge actualizat." });
+          return;
+        }
+        setTV({ err: "Semnalul TV a picat o clipă — reîncercăm automat…" });
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
+        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+      });
+      hls.loadSource(TV_STREAM_URL);
+      hls.attachMedia(v);
+      TV.hls = hls;
     } else {
-      setErr("Browserul tău nu suportă streamul TV.");
-      return;
+      TV.hls.startLoad(-1); // salt la marginea live
     }
-    v.muted = mutedRef.current;
-    v.play().catch(() => setErr("Apasă încă o dată pentru pornire."));
-  }, []);
+  } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
+    if (!v.src) v.src = TV_STREAM_URL; // Safari — HLS nativ
+  } else {
+    setTV({ err: "Browserul tău nu suportă streamul TV." });
+    return;
+  }
+  v.muted = TV.state.muted;
+  v.play().catch(() => setTV({ err: "Apasă încă o dată pentru pornire." }));
+}
 
-  const advancePromo = useCallback(() => {
-    const next = promoIdx + 1;
-    if (next < promosRef.current.length) setPromoIdx(next);
-    else { introDone.current = true; goLive(); }
-  }, [promoIdx, goLive]);
-
-  // promo: încarcă și pornește clipul curent la schimbarea etapei/indexului
-  useEffect(() => {
-    if (stage !== "promo") return;
-    const v = introRef.current;
-    const p = promosRef.current[promoIdx];
-    if (!v || !p) { introDone.current = true; goLive(); return; }
-    const src = mediaUrl(p.video_url);
-    if (v.dataset.src !== src) { v.src = src; v.dataset.src = src; }
-    v.muted = mutedRef.current;
-    v.play().catch(() => { introDone.current = true; goLive(); });
-  }, [stage, promoIdx, goLive]);
-
-  const start = useCallback(() => {
-    pauseRadio(); // niciodată două surse audio simultan
-    if (introDone.current) { goLive(); return; }
-    setErr("");
-    setStage("logo");
-    timersRef.current.push(setTimeout(() => {
-      if (promosRef.current.length) { setPromoIdx(0); setStage("promo"); }
-      else { introDone.current = true; goLive(); }
-    }, LOGO_MS));
-  }, [pauseRadio, goLive]);
-
-  const skipIntro = useCallback(() => {
-    introDone.current = true;
+function advancePromo() {
+  const next = TV.state.promoIdx + 1;
+  if (next < (TV.promos?.length || 0)) {
+    setTV({ promoIdx: next });
+    playPromo();
+  } else {
+    TV.state.introDone = true;
     goLive();
-  }, [goLive]);
+  }
+}
 
-  const toggle = useCallback(() => {
-    if (stage === "idle") return start();
-    if (stage === "logo") return skipIntro();
-    const v = stage === "promo" ? introRef.current : liveRef.current;
-    if (!v) return;
-    if (v.paused) {
-      if (stage === "live" && hlsRef.current) hlsRef.current.startLoad(-1);
-      v.play().catch(() => setErr("Apasă încă o dată pentru pornire."));
-    } else v.pause();
-  }, [stage, start, skipIntro]);
+function playPromo() {
+  const v = introVideo();
+  const p = TV.promos?.[TV.state.promoIdx];
+  if (!v || !p) { TV.state.introDone = true; goLive(); return; }
+  const src = mediaUrl(p.video_url);
+  if (v.dataset.src !== src) { v.src = src; v.dataset.src = src; }
+  v.muted = TV.state.muted;
+  v.play().catch(() => { TV.state.introDone = true; goLive(); });
+}
 
-  const toggleMute = () => {
-    const nv = !mutedRef.current;
-    mutedRef.current = nv;
-    setMuted(nv);
-    if (liveRef.current) liveRef.current.muted = nv;
-    if (introRef.current) introRef.current.muted = nv;
+function startTV() {
+  TV.radioPause?.(); // niciodată două surse audio simultan
+  if (TV.state.introDone) { goLive(); return; }
+  setTV({ stage: "logo", err: "" });
+  TV.timers.push(setTimeout(() => {
+    if (TV.promos?.length) { setTV({ stage: "promo", promoIdx: 0 }); playPromo(); }
+    else { TV.state.introDone = true; goLive(); }
+  }, LOGO_MS));
+}
+
+function skipIntro() {
+  TV.state.introDone = true;
+  goLive();
+}
+
+function toggleTV() {
+  const st = TV.state.stage;
+  if (st === "idle") return startTV();
+  if (st === "logo") return skipIntro();
+  const v = st === "promo" ? introVideo() : liveVideo();
+  if (!v) return;
+  if (v.paused) {
+    if (st === "live" && TV.hls) TV.hls.startLoad(-1);
+    v.play().catch(() => setTV({ err: "Apasă încă o dată pentru pornire." }));
+  } else v.pause();
+}
+
+function toggleMuteTV() {
+  const nv = !TV.state.muted;
+  setTV({ muted: nv });
+  const lv = liveVideo(); const iv = introVideo();
+  if (lv) lv.muted = nv;
+  if (iv) iv.muted = nv;
+}
+
+// creează nodul persistent o singură dată
+function ensureNode() {
+  if (TV.node) return TV.node;
+  const node = document.createElement("div");
+  node.style.cssText = "position:absolute;inset:0;";
+  const lv = document.createElement("video");
+  lv.dataset.role = "live";
+  lv.playsInline = true;
+  lv.setAttribute("data-testid", "tv-video");
+  const iv = document.createElement("video");
+  iv.dataset.role = "intro";
+  iv.playsInline = true;
+  iv.setAttribute("data-testid", "tv-intro-video");
+  node.appendChild(lv);
+  node.appendChild(iv);
+  // starea „playing" se derivează din video-ul activ — imună la ordinea evenimentelor play/pause
+  const syncPlaying = () => {
+    const st = TV.state.stage;
+    const v = st === "promo" ? iv : st === "live" ? lv : null;
+    setTV({ playing: v ? !v.paused : false });
   };
+  TV.syncPlaying = syncPlaying;
+  [lv, iv].forEach((v) => { v.addEventListener("play", syncPlaying); v.addEventListener("pause", syncPlaying); });
+  iv.addEventListener("ended", advancePromo);
+  iv.addEventListener("error", advancePromo);
+  // radioul/piesa pornește → TV-ul tace și revine la overlay-ul de play
+  window.addEventListener("bioxic:audio-play", () => {
+    lv.pause(); iv.pause();
+    TV.timers.forEach(clearTimeout); TV.timers = [];
+    setTV({ stage: "idle" });
+  });
+  TV.node = node;
+  // clipurile secvenței: cele încărcate de artist, în ordinea urcării, max 4
+  api.get("/videos")
+    .then((r) => {
+      TV.promos = (r.data || []).filter((v) => v.video_url).slice().reverse().slice(0, MAX_PROMOS);
+      setTV({ promoCount: TV.promos.length });
+    })
+    .catch(() => { TV.promos = []; });
+  return node;
+}
+
+// Playerul TV cinematic — aceeași instanță pe homepage și /tv (redare continuă la navigare)
+export default function TvBroadcast() {
+  const hostRef = useRef(null);
+  const shellRef = useRef(null);
+  const { pause: pauseRadio } = useRadio();
+  const [st, setSt] = useState(TV.state);
+
+  useEffect(() => {
+    TV.radioPause = pauseRadio;
+    const node = ensureNode();
+    hostRef.current?.appendChild(node); // adoptare: mutarea NU oprește redarea
+    const sub = () => setSt({ ...TV.state });
+    TV.listeners.add(sub);
+    setSt({ ...TV.state });
+    TV.syncPlaying?.(); // realiniază starea cu realitatea elementului după adoptare
+    // vizibilitatea videourilor după etapă
+    const lv = liveVideo(); const iv = introVideo();
+    [lv, iv].forEach((v) => v?.classList.add("tv-fade"));
+    return () => {
+      TV.listeners.delete(sub);
+      // parcăm nodul — redarea continuă în fundal, nu o distrugem
+      if (node.parentNode) getPark().appendChild(node);
+    };
+  }, [pauseRadio]);
+
+  // mascarea videourilor după etapă
+  useEffect(() => {
+    const lv = liveVideo(); const iv = introVideo();
+    if (lv) lv.classList.toggle("tv-hidden", st.stage !== "live");
+    if (iv) iv.classList.toggle("tv-hidden", st.stage !== "promo");
+  }, [st.stage]);
 
   const fullscreen = () => {
     if (document.fullscreenElement) document.exitFullscreen();
-    else stageRef.current?.requestFullscreen?.();
+    else shellRef.current?.requestFullscreen?.();
   };
 
-  // radioul/piesa pornește → TV-ul tace și revine la overlay-ul de play
-  useEffect(() => {
-    const onAudio = () => {
-      liveRef.current?.pause();
-      introRef.current?.pause();
-      clearTimers();
-      setStage((s) => (s === "idle" ? s : "idle"));
-    };
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
-    const lv = liveRef.current;
-    const iv = introRef.current;
-    [lv, iv].forEach((v) => { v?.addEventListener("play", onPlay); v?.addEventListener("pause", onPause); });
-    window.addEventListener("bioxic:audio-play", onAudio);
-    return () => {
-      [lv, iv].forEach((v) => { v?.removeEventListener("play", onPlay); v?.removeEventListener("pause", onPause); });
-      window.removeEventListener("bioxic:audio-play", onAudio);
-      clearTimers();
-      hlsRef.current?.destroy();
-      hlsRef.current = null;
-    };
-  }, []);
-
-  const activePromo = promosRef.current[promoIdx];
+  const activePromo = TV.promos?.[st.promoIdx];
 
   return (
-    <div className="tv-shell" data-testid="tv-stage" ref={stageRef}>
+    <div className="tv-shell" data-testid="tv-stage" ref={shellRef}>
       <div className="tv-ambient" aria-hidden="true" />
       <div className="tv-screen">
-        {/* streamul live HLS */}
-        <video ref={liveRef} className={`tv-fade ${stage === "live" ? "" : "tv-hidden"}`} playsInline data-testid="tv-video" />
-        {/* clipurile din secvența de deschidere */}
-        <video
-          ref={introRef}
-          className={`tv-fade ${stage === "promo" ? "" : "tv-hidden"}`}
-          playsInline
-          data-testid="tv-intro-video"
-          onEnded={advancePromo}
-          onError={advancePromo}
-        />
+        {/* aici se montează nodul singleton cu cele două video-uri */}
+        <div ref={hostRef} className="absolute inset-0" data-testid="tv-host" />
 
         {/* overlay idle — poster artist + play mare */}
-        {stage === "idle" && (
-          <button className="tv-bigplay" onClick={toggle} aria-label="Pornește TV" data-testid="tv-bigplay">
+        {st.stage === "idle" && (
+          <button className="tv-bigplay" onClick={toggleTV} aria-label="Pornește TV" data-testid="tv-bigplay">
             <img src="/artist.jpg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover opacity-25" style={{ maskImage: "linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent)" }} />
             <span className="tv-bigplay-btn relative"><Play size={32} fill="currentColor" className="ml-1.5" /></span>
             <span className="absolute bottom-8 left-0 right-0 font-mono-x text-[10px] uppercase tracking-[0.3em] text-[var(--text-2)]">
@@ -189,7 +231,7 @@ export default function TvBroadcast() {
         )}
 
         {/* etapa 1 — logo-ul oficial alb, exact 2 secunde */}
-        {stage === "logo" && (
+        {st.stage === "logo" && (
           <div className="tv-logo-stage" data-testid="tv-logo-intro">
             <img src="/logo.png" alt="BIOXIC" />
             <span className="tv-logo-bar" aria-hidden="true"><i /></span>
@@ -197,10 +239,10 @@ export default function TvBroadcast() {
         )}
 
         {/* etapa 2 — clipurile, cu chip de etapă și skip elegant */}
-        {stage === "promo" && (
+        {st.stage === "promo" && (
           <>
             <span className="tv-chip absolute top-3.5 left-3.5 z-[6] max-w-[70%]" data-testid="tv-promo-chip">
-                Intro {promoIdx + 1}/{promoCount}{activePromo?.title ? ` · ${activePromo.title}` : ""}
+              Intro {st.promoIdx + 1}/{st.promoCount}{activePromo?.title ? ` · ${activePromo.title}` : ""}
             </span>
             <button
               onClick={skipIntro}
@@ -214,29 +256,29 @@ export default function TvBroadcast() {
         )}
 
         {/* badge LIVE — doar când streamul chiar rulează */}
-        {stage === "live" && playing && (
+        {st.stage === "live" && st.playing && (
           <span className="live-badge absolute top-4 left-4 z-[6]" data-testid="tv-live-badge">
             <span className="live-dot" /> În direct
           </span>
         )}
 
-        {err && (
+        {st.err && (
           <p className="tv-chip absolute top-3.5 left-1/2 -translate-x-1/2 z-[8] !text-[var(--gold)] !border-[rgba(255,194,75,.4)]" data-testid="tv-error">
-            {err}
+            {st.err}
           </p>
         )}
 
         {/* bara de control din sticlă — plutitoare, apare la hover / când e pe pauză / pe touch */}
-        {stage !== "logo" && (
-          <div className={`tv-controls ${!playing ? "tv-paused" : ""}`} data-testid="tv-controls">
-            <button onClick={toggle} className="knob" style={{ color: "var(--flame)" }} aria-label={playing ? "Pauză TV" : "Pornește TV"} data-testid="tv-toggle">
-              {playing ? <Pause fill="currentColor" /> : <Play fill="currentColor" className="ml-0.5" />}
+        {st.stage !== "logo" && (
+          <div className={`tv-controls ${!st.playing ? "tv-paused" : ""}`} data-testid="tv-controls">
+            <button onClick={toggleTV} className="knob" style={{ color: "var(--flame)" }} aria-label={st.playing ? "Pauză TV" : "Pornește TV"} data-testid="tv-toggle">
+              {st.playing ? <Pause fill="currentColor" /> : <Play fill="currentColor" className="ml-0.5" />}
             </button>
-            <button onClick={toggleMute} className="knob knob-sm" aria-label={muted ? "Cu sunet" : "Fără sunet"} data-testid="tv-mute">
-              {muted ? <VolumeX /> : <Volume2 />}
+            <button onClick={toggleMuteTV} className="knob knob-sm" aria-label={st.muted ? "Cu sunet" : "Fără sunet"} data-testid="tv-mute">
+              {st.muted ? <VolumeX /> : <Volume2 />}
             </button>
             <span className="hidden sm:flex items-center gap-2 font-mono-x text-[10px] uppercase tracking-widest text-[var(--text-3)]">
-              <Tv size={12} /> {stage === "promo" ? `Intro ${promoIdx + 1}/${promoCount}` : "1080p · AAC · live edge"}
+              <Tv size={12} /> {st.stage === "promo" ? `Intro ${st.promoIdx + 1}/${st.promoCount}` : "1080p · AAC · live edge"}
             </span>
             <button onClick={fullscreen} className="knob knob-sm ml-auto" aria-label="Tot ecranul" data-testid="tv-fullscreen">
               <Maximize />
