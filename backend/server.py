@@ -19,6 +19,9 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+import security as sec
+sec.init_security(db)
+
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)  # fără Swagger/docs expuse
 api_router = APIRouter(prefix="/api")
 
@@ -1119,6 +1122,21 @@ ALLOWED_IMG = {".jpg", ".jpeg", ".png", ".webp"}
 MIME = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg", ".m4a": "audio/mp4",
         ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
 
+# verificare magic-bytes: extensia declarată trebuie să coincidă cu conținutul real
+_UPLOAD_MAGIC = {
+    ".png": lambda h: h.startswith(b"\x89PNG"),
+    ".jpg": lambda h: h.startswith(b"\xff\xd8\xff"),
+    ".jpeg": lambda h: h.startswith(b"\xff\xd8\xff"),
+    ".webp": lambda h: h[:4] == b"RIFF" and h[8:12] == b"WEBP",
+    ".wav": lambda h: h[:4] == b"RIFF" and h[8:12] == b"WAVE",
+    ".ogg": lambda h: h.startswith(b"OggS"),
+    ".mp3": lambda h: h.startswith(b"ID3") or h[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"),
+    ".m4a": lambda h: b"ftyp" in h[4:12],
+    ".mp4": lambda h: b"ftyp" in h[4:12],
+    ".mov": lambda h: b"ftyp" in h[4:12],
+    ".webm": lambda h: h.startswith(b"\x1a\x45\xdf\xa3"),
+}
+
 async def save_upload(file: UploadFile, sub: str, allowed: set) -> str:
     ext = Path(file.filename).suffix.lower()
     if ext not in allowed:
@@ -1126,6 +1144,9 @@ async def save_upload(file: UploadFile, sub: str, allowed: set) -> str:
     content = await file.read()
     if len(content) > 100 * 1024 * 1024:
         raise HTTPException(400, "Fișier prea mare (max 100MB)")
+    check = _UPLOAD_MAGIC.get(ext)
+    if check and len(content) >= 12 and not check(content[:16]):
+        raise HTTPException(400, f"Fișierul nu pare a fi un {ext} valid — încărcarea a fost refuzată")
     path = f"{APP_NAME}/uploads/{sub}/{uuid.uuid4().hex}{ext}"
     ct = MIME.get(ext, "application/octet-stream")
     try:
@@ -1650,6 +1671,13 @@ CHAT_BAD_WORDS = {"muie", "pula", "pizda", "coaie", "fut", "futu-ti", "cacat", "
 
 @app.websocket("/api/ws/chat")
 async def chat_ws(ws: WebSocket):
+    # IP banat automat de WAF (scanere/flood) → refuzăm conexiunea
+    ws_ip = ws.headers.get("x-forwarded-for", "").split(",")[0].strip() or (ws.client.host if ws.client else "?")
+    if await sec.is_ip_banned(ws_ip):
+        await ws.accept()
+        await ws.send_text(json.dumps({"type": "banned"}))
+        await ws.close(code=4001)
+        return
     fan = await resolve_fan_cookies(ws.cookies)
     # cont banat → refuzăm conexiunea cu mesaj explicit (clientul nu mai reîncearcă)
     if fan and await is_banned_user(fan):
@@ -1842,6 +1870,9 @@ class ModerateInput(BaseModel):
     name: str = ""
     email: str = ""
 
+class UnbanIpInput(BaseModel):
+    ip: str
+
 
 @api_router.post("/admin/panel/moderate")
 async def panel_moderate(m: ModerateInput, request: Request, admin=Depends(get_current_admin)):
@@ -1882,6 +1913,24 @@ async def panel_moderate(m: ModerateInput, request: Request, admin=Depends(get_c
         raise HTTPException(400, "Acțiune necunoscută")
 
     await log_activity("moderation", admin["email"], f"{action} → {label}", client_ip(request))
+    return {"ok": True}
+
+# ---------- MONITORIZARE SECURITATE (WAF) ----------
+
+@api_router.get("/admin/panel/security")
+async def panel_security(admin=Depends(get_current_admin)):
+    events = await db.security_events.find({}, {"_id": 0}).sort("ts", -1).to_list(100)
+    bans = await db.security_bans.find({}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return {"stats": sec.stats(), "events": events, "bans": bans}
+
+@api_router.post("/admin/panel/security/unban")
+async def panel_security_unban(b: UnbanIpInput, request: Request, admin=Depends(get_current_admin)):
+    ip = b.ip.strip()[:60]
+    if not ip:
+        raise HTTPException(400, "IP lipsă")
+    await db.security_bans.delete_many({"ip": ip})
+    sec.invalidate_ban_cache()
+    await log_activity("moderation", admin["email"], f"IP deblocat manual: {ip}", client_ip(request))
     return {"ok": True}
 
 # ---------- PĂRERI (review-uri de la fani) ----------
@@ -2052,63 +2101,12 @@ async def startup():
 
 app.include_router(api_router)
 
-# ---------- SECURITATE: headere HTTP + rate limit global API ----------
-
-_RATE: dict = {}  # ip -> [timestamps]
-RATE_LIMIT = 120  # cereri / minut / IP
-RATE_WINDOW = 60
-
-# limită strictă pentru rutele de autentificare (anti brute-force la nivel de rețea)
-_AUTH_STRICT_PATHS = {"/api/auth/login", "/api/fans/login", "/api/fans/register",
-                      "/api/auth/forgot-password", "/api/auth/reset-password"}
-_AUTH_RATE: dict = {}
-AUTH_RATE_LIMIT = 10  # cereri POST / minut / IP pe rutele de auth
+# ---------- SECURITATE: WAF-lite + anti-flood + anti-bot + headere (modulul security.py) ----------
+# Protecție externă: filtrare cereri, ban-uri IP, rate limiting — sistemul de conturi rămâne neatins.
 
 @app.middleware("http")
 async def security_headers_and_rate_limit(request: Request, call_next):
-    path = request.url.path
-    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
-    now_ts = time.time()
-    # rate limit strict pe auth (încercări de login/register)
-    if path in _AUTH_STRICT_PATHS and request.method == "POST":
-        hits = [t for t in _AUTH_RATE.get(ip, []) if now_ts - t < RATE_WINDOW]
-        if len(hits) >= AUTH_RATE_LIMIT:
-            return JSONResponse({"detail": "Prea multe încercări de autentificare. Reîncearcă într-un minut."}, status_code=429)
-        hits.append(now_ts)
-        _AUTH_RATE[ip] = hits
-        if len(_AUTH_RATE) > 5000:
-            _AUTH_RATE.clear()
-    # rate limit global (fără /files — streamingul audio face multe cereri Range)
-    if path.startswith("/api/") and not path.startswith("/api/files/"):
-        hits = [t for t in _RATE.get(ip, []) if now_ts - t < RATE_WINDOW]
-        if len(hits) >= RATE_LIMIT:
-            return JSONResponse({"detail": "Prea multe cereri. Reîncearcă într-un minut."}, status_code=429)
-        hits.append(now_ts)
-        _RATE[ip] = hits
-        if len(_RATE) > 5000:
-            _RATE.clear()
-    resp = await call_next(request)
-    resp.headers["X-Frame-Options"] = "DENY"
-    resp.headers["X-Content-Type-Options"] = "nosniff"
-    resp.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    resp.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    resp.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    if path.startswith("/api/"):
-        resp.headers["X-Robots-Tag"] = "noindex, nofollow"
-    if path.startswith(("/api/auth/", "/api/fans/", "/api/admin/")):
-        resp.headers["Cache-Control"] = "no-store"
-    resp.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self'; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com; "
-        "img-src 'self' data: blob: https:; "
-        "media-src 'self' blob: https://stream.tequilamusic.net; "
-        "connect-src 'self' ws: wss: https://stream.tequilamusic.net; "
-        "frame-src https://www.youtube.com https://www.youtube-nocookie.com; "
-        "object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
-    )
-    return resp
+    return await sec.security_middleware(request, call_next)
 
 # CORS strict: doar domeniul site-ului (nu *)
 _cors = os.environ.get('CORS_ORIGINS', '')

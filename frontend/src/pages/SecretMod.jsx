@@ -43,6 +43,7 @@ export default function SecretMod() {
   const [actType, setActType] = useState("");
   const [query, setQuery] = useState("");
   const [loadingAct, setLoadingAct] = useState(false);
+  const [secData, setSecData] = useState(null);
 
   const loadOverview = useCallback(() => {
     api.get("/admin/panel/overview").then((r) => setOverview(r.data)).catch(() => {});
@@ -57,6 +58,16 @@ export default function SecretMod() {
       .catch(() => {})
       .finally(() => setLoadingAct(false));
   }, [actType, query]);
+  const loadSecurity = useCallback(() => {
+    api.get("/admin/panel/security").then((r) => setSecData(r.data)).catch(() => {});
+  }, []);
+  const unbanIp = async (ip) => {
+    try {
+      await api.post("/admin/panel/security/unban", { ip });
+      toast.success(`IP deblocat: ${ip}`);
+      loadSecurity();
+    } catch { toast.error("Deblocarea a eșuat."); }
+  };
 
   useEffect(() => {
     api.get("/auth/me")
@@ -69,9 +80,10 @@ export default function SecretMod() {
     loadOverview();
     loadUsers();
     loadActivity("", "");
-    const t = setInterval(loadOverview, 15000); // „live" — se reîmprospătează singur
+    loadSecurity();
+    const t = setInterval(() => { loadOverview(); loadSecurity(); }, 15000); // „live" — se reîmprospătează singur
     return () => clearInterval(t);
-  }, [authed, loadOverview, loadUsers, loadActivity]);
+  }, [authed, loadOverview, loadUsers, loadActivity, loadSecurity]);
 
   const login = async (e) => {
     e.preventDefault();
@@ -169,7 +181,7 @@ export default function SecretMod() {
 
       {/* taburi */}
       <div className="seg-control mb-6" data-testid="mod-tabs">
-        {[["users", "Utilizatori", Users], ["activity", "Activitate", Activity], ["logs", "Loguri", ScrollText]].map(([k, label, Icon]) => (
+        {[["users", "Utilizatori", Users], ["activity", "Activitate", Activity], ["logs", "Loguri", ScrollText], ["security", "Securitate", ShieldCheck]].map(([k, label, Icon]) => (
           <button key={k} className={`seg-link ${tab === k ? "active" : ""}`} onClick={() => setTab(k)} data-testid={`mod-tab-${k}`}>
             <Icon size={13} /> {label}
           </button>
@@ -270,6 +282,71 @@ export default function SecretMod() {
                 </div>
               ))}
           </div>
+        </div>
+      )}
+
+      {/* SECURITATE: starea WAF-ului, ban-uri automate, jurnal de evenimente */}
+      {tab === "security" && (
+        <div data-testid="mod-security">
+          {!secData ? (
+            <p className="text-[var(--text-3)] text-xs font-mono-x uppercase tracking-widest animate-pulse py-4">Se încarcă starea de securitate…</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6" data-testid="mod-sec-stats">
+                {[
+                  { label: "Cereri / min", val: secData.stats.rpm, tid: "sec-rpm" },
+                  { label: "Blocate azi", val: secData.stats.blocked_today, tid: "sec-blocked" },
+                  { label: "Semnături WAF", val: secData.stats.waf_hits, tid: "sec-waf" },
+                  { label: "Ban-uri active", val: secData.stats.banned_now, tid: "sec-bans" },
+                  { label: "Total ban-uri", val: secData.stats.bans_total, tid: "sec-bans-total" },
+                  { label: "Mod atac", val: secData.stats.attack_mode ? "ACTIV" : "liniște", tid: "sec-attack", alert: secData.stats.attack_mode },
+                ].map((c) => (
+                  <div key={c.tid} className="ob-card p-4" data-testid={c.tid}>
+                    <p className="text-[9px] font-mono-x uppercase tracking-[0.14em] text-[var(--text-3)]">{c.label}</p>
+                    <p className={`stat-num !text-2xl mt-2 ${c.alert ? "!text-[var(--live)]" : ""}`}>{c.val}</p>
+                  </div>
+                ))}
+              </div>
+
+              <h3 className="font-display text-lg mt-2 mb-3">IP-uri blocate automat</h3>
+              {secData.bans.length === 0 ? (
+                <p className="text-sm text-[var(--text-3)] py-2 mb-6">Nicio blocare activă — trafic curat.</p>
+              ) : (
+                <div className="space-y-1.5 mb-6" data-testid="mod-sec-bans">
+                  {secData.bans.map((b) => (
+                    <div key={b.ip} className="glass rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1" data-testid={`mod-ban-${b.ip}`}>
+                      <span className="font-mono-x text-xs font-bold text-[var(--live)]">{b.ip}</span>
+                      <span className="text-[11px] text-[var(--text-2)] flex-1 min-w-0 truncate">{b.reason}</span>
+                      <span className="text-[10px] font-mono-x text-[var(--text-3)] shrink-0">până la {fmtTs(b.until)}</span>
+                      <button onClick={() => unbanIp(b.ip)} className="btn-ghost rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest shrink-0" data-testid={`mod-unban-${b.ip}`}>
+                        Deblochează
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <h3 className="font-display text-lg mt-2 mb-3">Evenimente recente de securitate</h3>
+              {secData.events.length === 0 ? (
+                <p className="text-sm text-[var(--text-3)] py-2">Niciun eveniment — nimic suspect detectat.</p>
+              ) : (
+                <div className="space-y-1.5" data-testid="mod-sec-events">
+                  {secData.events.map((e) => (
+                    <div key={e.id} className="glass rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1" data-testid={`mod-event-${e.id}`}>
+                      <span className={`hdr-badge shrink-0 ${e.kind === "ban" || e.kind === "attack_mode" ? "vip" : "fan"}`}
+                        style={e.kind === "ban" || e.kind === "attack_mode" ? { color: "var(--live)", border: "1px solid rgba(var(--live-rgb),.5)", background: "transparent" } : {}}>
+                        {e.kind}
+                      </span>
+                      <span className="font-mono-x text-[11px] text-[var(--text-2)] shrink-0">{e.ip}</span>
+                      <span className="text-[11px] text-[var(--text-2)] flex-1 min-w-0 truncate">{e.detail}</span>
+                      <span className="text-[10px] font-mono-x text-[var(--text-3)] shrink-0 truncate max-w-[180px]">{e.path}</span>
+                      <span className="text-[10px] font-mono-x text-[var(--text-3)] shrink-0">{fmtTs(e.ts)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
