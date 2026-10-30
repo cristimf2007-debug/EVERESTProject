@@ -187,7 +187,7 @@ export default function VideoPlayer({ video, onEnded, seekApi }) {
         ref={glowRef}
         aria-hidden="true"
         className="absolute -inset-6 rounded-3xl pointer-events-none transition-opacity duration-700"
-        style={{ background: "radial-gradient(ellipse at 50% 60%, rgba(255,122,26,.22), transparent 70%)", filter: "blur(10px)" }}
+        style={{ background: "radial-gradient(ellipse at 50% 60%, rgba(45,216,240,.22), transparent 70%)", filter: "blur(10px)" }}
       />
       <div className="relative rounded-2xl overflow-hidden border border-[var(--line)] bg-black group/vp">
         <video

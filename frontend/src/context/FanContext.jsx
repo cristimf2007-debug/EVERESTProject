@@ -25,7 +25,7 @@ export function FanProvider({ children }) {
   useEffect(() => {
     // CRITICAL: dacă revenim din OAuth, AuthCallback face schimbul de sesiune — sărim verificarea
     if (window.location.hash?.includes("session_id=")) return;
-    api.get("/fans/me").then((r) => setMe(r.data)).catch(() => setMe(false));
+    api.get("/fans/me").then((r) => setMe(r.data?.user_id ? r.data : false)).catch(() => setMe(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

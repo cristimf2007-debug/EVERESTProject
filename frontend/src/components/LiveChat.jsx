@@ -15,7 +15,7 @@ const MAX_LEN = 200;
 const BACKOFF = [1000, 2000, 5000, 10000];
 const EMOJI_SET = ["😂", "🔥", "❤️", "🎃", "💀", "👑", "🙌", "💯"];
 
-const NAME_COLORS = ["#FF7A1A", "#8cc7a8", "#bfe3ff", "#f0a4c0", "#ffd28c", "#a8e6cf", "#e3b8ff"];
+const NAME_COLORS = ["#2DD8F0", "#8cc7a8", "#bfe3ff", "#f0a4c0", "#ffd28c", "#a8e6cf", "#7dd3fc"];
 const nameColor = (name) => {
   let h = 0;
   for (let i = 0; i < (name || "").length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
@@ -73,10 +73,11 @@ const ChatRow = memo(function ChatRow({ m, myName, onReply, onLike, liked }) {
   }
   const color = nameColor(m.name);
   const isMention = myName && (m.text || "").toLowerCase().includes(`@${myName.toLowerCase()}`);
+  const own = !!myName && m.name === myName;
   let touchX = null;
   return (
     <div
-      className={`chat-msg group relative flex items-start gap-2.5 rounded-xl px-2 py-1.5 transition-colors hover:bg-white/[0.03] ${m.pending ? "opacity-50" : ""} ${isMention ? "mention-hi" : ""}`}
+      className={`chat-msg group relative flex items-start gap-3 rounded-xl px-1.5 py-1.5 transition-colors ${m.pending ? "opacity-50" : ""} ${isMention ? "mention-hi" : ""}`}
       data-testid={`chat-message-${m.id}`}
       onTouchStart={(e) => { touchX = e.touches[0].clientX; }}
       onTouchEnd={(e) => {
@@ -85,10 +86,10 @@ const ChatRow = memo(function ChatRow({ m, myName, onReply, onLike, liked }) {
         touchX = null;
       }}
     >
-      <Avatar picture={m.picture} name={m.name} />
-      <div className="min-w-0 flex-1 chat-bubble" style={{ "--bc": color }}>
+      <span className="pt-1 shrink-0"><Avatar picture={m.picture} name={m.name} size={32} /></span>
+      <div className={`min-w-0 flex-1 msg-bubble px-4 py-2.5 ${own ? "msg-own" : ""}`}>
         <div className="flex items-baseline gap-2">
-          <span className="text-[12px] font-semibold" style={{ color }}>
+          <span className="text-[12.5px] font-bold" style={{ color }}>
             {m.name}
             <span className="text-[11px]" title={(m.name || "").toLowerCase() === "bioxic" ? "BIOXIC" : "Halloween 2026"}>{badgeFor(m.name)}</span>
           </span>
@@ -423,7 +424,7 @@ export default function LiveChat({ inRoom = false }) {
 
       <section className={shellClass} data-testid="chat-container">
         {/* header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--edge)] bg-black/25 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--edge)] bg-black/25 shrink-0">
           <div className="flex items-center gap-2.5">
             <span className="w-2 h-2 rounded-full bg-[var(--live)] live-dot" />
             <h3 className="font-display text-sm font-bold uppercase tracking-[0.2em]">Chat live</h3>
@@ -447,12 +448,15 @@ export default function LiveChat({ inRoom = false }) {
 
         {/* mesaje — bule de lumină: fără chenare, linie fină în culoarea userului, fade spre sus */}
         <div ref={listRef} onScroll={onScroll} role="log" aria-live="polite" aria-label="Mesaje chat live"
-          className={`chat-scroll ${inRoom ? "flex-1 min-h-0" : "h-72 sm:h-80 max-lg:h-auto max-lg:flex-1 max-lg:min-h-[38vh]"} chat-list-mask overflow-y-auto px-4 py-4 space-y-1 relative`}
+          className={`chat-scroll ${inRoom ? "flex-1 min-h-0" : "h-[380px] sm:h-[460px] max-lg:h-auto max-lg:flex-1 max-lg:min-h-[42vh]"} chat-list-mask overflow-y-auto px-4 py-4 space-y-1.5 relative`}
           data-testid="chat-messages" data-lenis-prevent>
           {messages.length === 0 && (
-            <div className="text-center pt-24">
-              <p className="font-display text-sm font-bold uppercase tracking-widest text-[var(--text-2)]">Liniște pe frecvență</p>
-              <p className="text-xs text-[var(--text-3)] mt-1.5">Fii primul care spune ceva.</p>
+            <div className="grid place-items-center justify-items-center pt-16 pb-10 text-center" data-testid="chat-empty">
+              <span className="grid place-items-center w-16 h-16 rounded-full border border-[rgba(var(--flame-rgb),.3)] bg-[rgba(var(--flame-rgb),.06)]" style={{ boxShadow: "0 0 44px -8px rgba(var(--flame-rgb),.35), inset 0 1px 0 rgba(255,255,255,.08)" }}>
+                <MessageCircle size={22} className="text-[var(--flame)]" />
+              </span>
+              <p className="font-display text-base font-bold mt-4">Liniște pe frecvență</p>
+              <p className="text-xs text-[var(--text-3)] mt-1.5 max-w-[240px] leading-relaxed">Fii primul care spune ceva — conversația e live pentru toți fanii.</p>
             </div>
           )}
           {messages.map((m) => (
@@ -521,7 +525,7 @@ export default function LiveChat({ inRoom = false }) {
         )}
 
         {/* input */}
-        <div className="border-t border-[var(--edge)] p-3.5 bg-black/25 shrink-0">
+        <div className="border-t border-[var(--edge)] p-4 bg-black/25 shrink-0">
           {blocked && (
             <p className="text-[11px] font-mono-x uppercase tracking-widest text-[var(--live)] mb-2" data-testid="chat-blocked">{blocked}</p>
           )}
@@ -553,13 +557,13 @@ export default function LiveChat({ inRoom = false }) {
                 onChange={onInputChange}
                 placeholder="Scrie ceva… sau /cere o piesă"
                 maxLength={MAX_LEN}
-                className="input-recessed flex-1 !rounded-full px-4 py-2.5 text-sm outline-none"
+                className="input-recessed flex-1 !rounded-2xl px-5 py-3.5 text-sm outline-none"
               />
               {text.length > 160 && (
-                <span className="absolute right-14 -top-5 text-[9px] font-mono-x text-[var(--text-3)]" data-testid="chat-char-counter">{MAX_LEN - text.length}</span>
+                <span className="absolute right-16 -top-5 text-[9px] font-mono-x text-[var(--text-3)]" data-testid="chat-char-counter">{MAX_LEN - text.length}</span>
               )}
-              <button data-testid="chat-send-button" className="btn-flame !h-10 !w-10 !p-0 shrink-0" aria-label="Trimite">
-                <Send size={15} />
+              <button data-testid="chat-send-button" className="btn-flame !h-12 !w-12 !p-0 !rounded-2xl shrink-0" aria-label="Trimite">
+                <Send size={16} />
               </button>
             </form>
           ) : (
@@ -571,9 +575,9 @@ export default function LiveChat({ inRoom = false }) {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Numele tău de fan…"
                   maxLength={24}
-                  className="input-recessed flex-1 !rounded-full px-4 py-2.5 text-sm outline-none"
+                  className="input-recessed flex-1 !rounded-2xl px-5 py-3.5 text-sm outline-none"
                 />
-                <button data-testid="chat-name-save" className="btn-flame !h-10 !px-5 !text-[10px]">Intră</button>
+                <button data-testid="chat-name-save" className="btn-flame !h-12 !px-6 !text-[10px] !rounded-2xl">Intră</button>
               </div>
               <button type="button" data-testid="chat-login-link" onClick={() => setLoginOpen(true)}
                 className="w-full flex items-center justify-center gap-1.5 text-[10px] font-mono-x uppercase tracking-widest text-[var(--text-3)] hover:text-[var(--flame)] transition-colors">

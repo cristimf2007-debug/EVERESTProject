@@ -151,8 +151,8 @@ export default function LiveRoom() {
       canvas.height = 1920;
       const ctx = canvas.getContext("2d");
       const bg = ctx.createLinearGradient(0, 0, 0, 1920);
-      bg.addColorStop(0, "#0B0E14");
-      bg.addColorStop(1, "#07090e");
+      bg.addColorStop(0, "#0B1120");
+      bg.addColorStop(1, "#05070C");
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, 1080, 1920);
       const gl = ctx.createRadialGradient(540, 1920, 0, 540, 1920, 950);
@@ -165,7 +165,7 @@ export default function LiveRoom() {
       ctx.translate(540, 700);
       ctx.beginPath();
       ctx.arc(0, 0, 370, 0, 7);
-      ctx.fillStyle = "#0a0a0b";
+      ctx.fillStyle = "#080b12";
       ctx.shadowColor = `rgba(${acc.r},${acc.g},${acc.b},.5)`;
       ctx.shadowBlur = 120;
       ctx.fill();
@@ -194,7 +194,7 @@ export default function LiveRoom() {
       ctx.restore();
       // texte
       ctx.textAlign = "center";
-      ctx.fillStyle = "#F2F0EB";
+      ctx.fillStyle = "#F1F5F9";
       ctx.font = "800 84px 'Plus Jakarta Sans', sans-serif";
       const words = (track.title || "BIOXIC").toUpperCase().split(" ");
       let line = "";
@@ -208,7 +208,7 @@ export default function LiveRoom() {
       ctx.fillStyle = `rgb(${acc.r},${acc.g},${acc.b})`;
       ctx.fillText("ASCULT ACUM · BIOXIC.RO", 540, y + 210);
       ctx.font = "500 26px 'JetBrains Mono', monospace";
-      ctx.fillStyle = "#A3A0A8";
+      ctx.fillStyle = "#9AA8BF";
       ctx.fillText("LIVE 24/7 · LIMITED 2026", 540, y + 260);
 
       const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
@@ -257,8 +257,8 @@ export default function LiveRoom() {
     >
       {/* fundal din culorile coverului, blurat și întunecat, mișcare lentă */}
       <div className="room-blob blob-a" style={{ background: `radial-gradient(circle, rgba(${acc.r},${acc.g},${acc.b},.34), transparent 62%)`, left: "-22%", top: "-28%" }} aria-hidden="true" />
-      <div className="room-blob blob-b" style={{ background: "radial-gradient(circle, rgba(157,78,221,.26), transparent 60%)", right: "-26%", bottom: "-32%" }} aria-hidden="true" />
-      <div ref={dimRef} className="absolute inset-0 transition-opacity duration-300" style={{ background: "rgba(7,9,14,.55)", opacity: 0.55 }} aria-hidden="true" />
+      <div className="room-blob blob-b" style={{ background: "radial-gradient(circle, rgba(56,120,190,.24), transparent 60%)", right: "-26%", bottom: "-32%" }} aria-hidden="true" />
+      <div ref={dimRef} className="absolute inset-0 transition-opacity duration-300" style={{ background: "rgba(5,7,12,.55)", opacity: 0.55 }} aria-hidden="true" />
       {hypeFlash && <div className="hype-flash" data-testid="hype-flash" aria-hidden="true" />}
 
       <div className="relative z-10 h-full flex flex-col">

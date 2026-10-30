@@ -235,7 +235,7 @@ export default function SpectrumVinyl({ cover, title, accent, onKick, onBpm }) {
     <div className="relative" style={{ width: "min(62vw, 320px)", aspectRatio: "1/1" }} data-testid="spectrum-vinyl">
       {/* glow care pulsează pe bas */}
       <div ref={glowRef} aria-hidden="true" className="absolute -inset-16 rounded-full pointer-events-none transition-opacity duration-300"
-        style={{ background: "radial-gradient(circle, rgba(255,122,26,.3), transparent 62%)", opacity: 0.6 }} />
+        style={{ background: "radial-gradient(circle, rgba(45,216,240,.3), transparent 62%)", opacity: 0.6 }} />
       {/* canvas spectrum */}
       <canvas ref={canvasRef} className="absolute pointer-events-none" style={{ inset: "-20%", width: "140%", height: "140%" }} aria-hidden="true" data-testid="spectrum-canvas" />
       {/* discul — rotație + puls via JS (inerție) */}

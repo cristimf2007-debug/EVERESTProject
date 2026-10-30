@@ -65,9 +65,9 @@ export default function LiveWave({ onLevel }) {
         const bh = Math.max(2 * dpr, v * h * 0.9);
         const x = i * gap + (gap - bw) / 2;
         const played = i / bars < 0.4;
-        ctx.fillStyle = played ? "#FF7A1A" : "#232327";
+        ctx.fillStyle = played ? "#2DD8F0" : "#232327";
         if (played) {
-          ctx.shadowColor = "rgba(255,122,26,.55)";
+          ctx.shadowColor = "rgba(45,216,240,.55)";
           ctx.shadowBlur = 6 * dpr;
         }
         ctx.beginPath();

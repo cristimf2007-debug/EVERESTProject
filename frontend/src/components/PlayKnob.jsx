@@ -16,7 +16,7 @@ export default function PlayKnob({ pct = 0, playing, loading, onToggle, ringRef,
           stroke="var(--flame)" strokeWidth="2.5" strokeLinecap="round"
           strokeDasharray={C}
           strokeDashoffset={C * (1 - pct)}
-          style={{ filter: "drop-shadow(0 0 6px rgba(255,122,26,.7))", transition: "stroke-dashoffset .3s linear" }}
+          style={{ filter: "drop-shadow(0 0 6px rgba(45,216,240,.7))", transition: "stroke-dashoffset .3s linear" }}
         />
       </svg>
       <button

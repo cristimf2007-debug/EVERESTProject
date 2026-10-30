@@ -1,136 +1,165 @@
 {
-  "project_name": "BIOXIC 24/7 Live Radio & YouTube Channel Experience",
-  "theme": "Dark Nightclub & Underground YouTube Radio Hybrid",
-  "emotional_tone": "Underground, High Energy, Electric, Authentic Manele/Remix Nightlife",
+  "project_identity": {
+    "name": "EVEREA TV / BIOXIC",
+    "tagline": "24/7 Live HLS Broadcast & Music Hub",
+    "design_archetype": "Architectural 3D Liquid Glass & Cinematic Dark Tech",
+    "primary_emotion": "Immersive, high-end broadcasting studio elegance with tactile glass depth",
+    "language": "Romanian (ro-RO)",
+    "file_extension_convention": ".js / .jsx (CRA JS Environment)"
+  },
+  "theme_strategy": {
+    "mode": "Dark Theme (Pure Deep Void + Midnight Cyan Refraction)",
+    "rationale": "Music streaming & 24/7 video broadcasting platforms require low-ambient distraction, high image contrast, and vibrant broadcast highlights. Dark backdrop allows glass refractions and neon live indicators to pop effortlessly.",
+    "color_palette": {
+      "background": {
+        "void_black": "#07090E",
+        "deep_midnight": "#0B0F19",
+        "surface_graphite": "#121824",
+        "surface_card_base": "rgba(18, 24, 36, 0.65)"
+      },
+      "brand_accents": {
+        "cyan_laser": "#00F0FF",
+        "cyan_glow": "rgba(0, 240, 255, 0.25)",
+        "teal_deep": "#0A2540",
+        "live_red": "#FF3B30",
+        "live_red_glow": "rgba(255, 59, 48, 0.35)",
+        "gold_accent": "#FFB800"
+      },
+      "text": {
+        "primary": "#F1F5F9",
+        "secondary": "#94A3B8",
+        "muted": "#64748B",
+        "accent_highlight": "#38BDF8"
+      },
+      "forbidden_colors": [
+        "#7351B7 (AI Purple)",
+        "#1B93A4 (Generic Flat Teal)",
+        "#000000 (Flat pure black without depth or tint)",
+        "Heavy purple-pink gradients"
+      ]
+    }
+  },
+  "glass_system_recipes": {
+    "principles": "Layered translucent surfaces with explicit physical depth, high contrast text legibility, 1px specular inner borders, and subtle top lighting.",
+    "level_1_background_panels": {
+      "bg": "rgba(11, 15, 25, 0.75)",
+      "backdrop_filter": "blur(20px) saturate(160%)",
+      "border": "1px solid rgba(255, 255, 255, 0.08)",
+      "box_shadow": "0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
+    },
+    "level_2_interactive_cards": {
+      "bg": "rgba(18, 24, 36, 0.60)",
+      "backdrop_filter": "blur(16px) saturate(180%)",
+      "border": "1px solid rgba(255, 255, 255, 0.12)",
+      "hover_bg": "rgba(24, 32, 48, 0.75)",
+      "hover_border": "1px solid rgba(0, 240, 255, 0.4)",
+      "hover_box_shadow": "0 12px 30px rgba(0, 240, 255, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.2)"
+    },
+    "level_3_modals_and_floating_bars": {
+      "bg": "rgba(7, 9, 14, 0.85)",
+      "backdrop_filter": "blur(24px) saturate(200%)",
+      "border": "1px solid rgba(255, 255, 255, 0.15)",
+      "box_shadow": "0 30px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.25)"
+    },
+    "video_player_control_bar": {
+      "bg": "rgba(11, 15, 25, 0.80)",
+      "backdrop_filter": "blur(20px)",
+      "border": "1px solid rgba(0, 240, 255, 0.2)",
+      "box_shadow": "0 10px 30px rgba(0, 0, 0, 0.6)"
+    }
+  },
   "typography": {
-    "font_families": {
-      "heading": "'Barlow Condensed', 'Bebas Neue', sans-serif",
-      "body": "'DM Sans', 'Inter', sans-serif",
-      "mono": "'JetBrains Mono', monospace"
+    "heading_font": "Outfit / Syne (Display, Bold / SemiBold)",
+    "body_font": "Plus Jakarta Sans / Inter (Clean Sans, High Readability)",
+    "hierarchy": {
+      "hero_h1": "text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight",
+      "section_h2": "text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight",
+      "card_h3": "text-lg sm:text-xl font-medium tracking-normal",
+      "body_text": "text-base font-normal leading-relaxed text-slate-300",
+      "caption_label": "text-xs font-semibold uppercase tracking-widest text-cyan-400"
     },
-    "scale": {
-      "hero_h1": "text-4xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tight",
-      "section_h2": "text-2xl sm:text-3xl lg:text-4xl font-extrabold uppercase tracking-tight",
-      "card_h3": "text-lg sm:text-xl font-bold tracking-normal",
-      "subtitle": "text-sm sm:text-base text-cyan-300/80 font-mono tracking-wider uppercase",
-      "body": "text-sm sm:text-base font-normal leading-relaxed text-slate-300",
-      "label": "text-xs font-mono tracking-widest uppercase text-slate-400"
+    "anti_patterns": [
+      "No default Inter for main H1 titles",
+      "No text size exceeding text-6xl",
+      "No transparent text on low-contrast glass"
+    ]
+  },
+  "layout_blueprints": {
+    "navigation_header": {
+      "desktop": "Fixed top horizontal glass header (height: 72px) with official white transparent logo, primary links (Acasă, TV Broadcast, Muzică, Videoclipuri, Program TV, Chat Live), user avatar/login CTA, and search bar.",
+      "mobile": "Sticky top bar with logo & live badge + bottom glass navigation dock or sliding glass drawer."
+    },
+    "homepage": {
+      "structure": [
+        "1. Large Hero Broadcast Section (Cinematic 16:9 HLS Live Player, LIVE red pulse badge, next-premiere countdown timer, quick play/mute CTA, overlay metadata).",
+        "2. Weekly TV Schedule Bar (Horizontal scroll timeline with status indicators: În Direct, Urmează, Premieră).",
+        "3. Editorial Video Cards Grid (Responsive bento grid, 16:9 cards, play overlay on hover, track title, artist).",
+        "4. Upcoming Premieres & Countdown Cards (Glass cards with real-time countdown clock).",
+        "5. Recent Audio Tracks & Radio Stream Quick Deck."
+      ]
+    },
+    "tv_page": {
+      "route": "/tv",
+      "layout": "2-column layout on desktop (3:1 ratio). Main cinematic TV player taking 75% width with floating glass controls, advertising 2s white logo intro sequence, right column spacious live chat container."
+    },
+    "live_chat": {
+      "container": "Wide central conversation column (min-width: 340px, comfortable message padding p-4). Translucent glass message bubbles with clear contrast between user and assistant/system messages. Large premium input bar with send CTA and emoji picker."
+    },
+    "music_page": {
+      "route": "/muzica",
+      "layout": "Radio live stream player banner + seekable audio track list with cover artwork + synchronized lyrics interactive modal overlay."
+    },
+    "video_hub": {
+      "route": "/clipuri",
+      "layout": "Bento grid video library with categories, search, YouTube-style lightbox player with comments & related clips."
+    },
+    "live_room": {
+      "route": "/live",
+      "layout": "Full-screen dark room with interactive vinyl spectrum visualizer + floating chat overlay + stream stats."
+    },
+    "fan_login_modal": {
+      "design": "Centered glass panel over blurred backdrop. Email/Password inputs with sharp focus rings, Google OAuth button, white transparent logo at header."
+    },
+    "persistent_player": {
+      "position": "Fixed bottom dock bar (h-20) with track artwork, play/pause, seek timeline, volume control, lyrics toggle, and minimize option."
     }
   },
-  "colors": {
-    "background": {
-      "primary": "#050811",
-      "secondary": "#0a0f1d",
-      "card": "#0f172a",
-      "surface_glass": "rgba(15, 23, 42, 0.85)",
-      "overlay_dark": "rgba(5, 8, 17, 0.75)"
+  "media_assets": {
+    "hero_artist_background": "https://images.unsplash.com/photo-1768885512012-0c47ad00870c?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "concert_neon_lighting": "https://images.unsplash.com/photo-1768885514740-d64d25ac9a64?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "artist_portrait_drummer": "https://images.pexels.com/photos/8041266/pexels-photo-8041266.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "artist_portrait_teal": "https://images.pexels.com/photos/3021552/pexels-photo-3021552.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+  },
+  "component_specifications": {
+    "buttons": {
+      "primary": "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(0,240,255,0.3)] transition-all duration-300 active:scale-95",
+      "secondary_glass": "bg-white/10 hover:bg-white/20 border border-white/15 text-white font-medium px-5 py-2.5 rounded-xl backdrop-blur-md transition-all duration-200"
     },
-    "accents": {
-      "ice_cyan": "#00F0FF",
-      "electric_amber": "#FFB800",
-      "live_red": "#FF2A54",
-      "deep_blue": "#0A2540",
-      "subtle_border": "rgba(0, 240, 255, 0.15)",
-      "subtle_border_hover": "rgba(0, 240, 255, 0.4)"
+    "badges": {
+      "live_now": "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/50 text-red-400 text-xs font-bold uppercase tracking-wider animate-pulse",
+      "upcoming_premiere": "inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 text-xs font-semibold"
     },
-    "text": {
-      "primary": "#FFFFFF",
-      "secondary": "#94A3B8",
-      "muted": "#64748B",
-      "live_glow": "#FF2A54"
+    "cards": {
+      "video_card": "group relative overflow-hidden rounded-2xl bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,240,255,0.15)]",
+      "schedule_card": "p-4 rounded-xl bg-slate-900/40 border border-white/5 hover:bg-slate-800/60 transition-colors"
     }
   },
-  "layout_and_spacing": {
-    "container_padding": "px-4 sm:px-8 lg:px-12 py-6 sm:py-10",
-    "section_gap": "gap-8 sm:gap-12",
-    "bento_grid": "grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-6 md:gap-8",
-    "border_radius": "rounded-xl border border-cyan-500/15 backdrop-blur-md"
+  "micro_interactions_and_motion": {
+    "hover_depth": "Translate-Y -4px with glowing cyan shadow expansion on interactive cards",
+    "entrance_animation": "Fade-in with slide-up y: 20px, duration 0.4s ease-out",
+    "reduced_motion": "Respect prefers-reduced-motion media query by disabling parallax and heavy CSS transforms, maintaining static crisp glass panels.",
+    "performance_rule": "No global mouse-move canvas listeners; use CSS transform GPU layers (will-change: transform) for high-framerate playback."
   },
-  "key_components": {
-    "youtube_channel_header": {
-      "description": "YouTube-style channel header with banner backdrop, avatar logo, sub count, 'Abonează-te' action button, and tab navigation.",
-      "path": "src/components/Navbar.jsx or channel header section in App.js",
-      "elements": [
-        "Banner background with dark concert crowd atmosphere",
-        "BIOXIC avatar with glowing cyan ring",
-        "Abonează-te button with hover pulse and counter badge",
-        "Navigation Tabs: Live 24/7 (Home), Piese (Tracks), Despre (About)"
-      ]
-    },
-    "live_247_hero": {
-      "description": "Hero experience for continuous 24/7 live synchronized radio stream.",
-      "path": "src/pages/Live.jsx",
-      "elements": [
-        "Animated audio visualizer / equalizer bars",
-        "Pulsing red 'LIVE · 24/7' status pill with listener counter",
-        "Album art visualizer with vinyl rotation on audio playing",
-        "Now Playing metadata + Up Next track teaser",
-        "Interactive volume, play/pause, sync button"
-      ]
-    },
-    "persistent_mini_player": {
-      "description": "Floating persistent audio player docked at the bottom of the screen across all page navigations.",
-      "path": "src/components/PlayerBar.jsx",
-      "elements": [
-        "Non-stop stream audio engine",
-        "Compact track thumbnail + Title + Duration progress bar",
-        "Play/Pause toggle + Next Track + Volume dial",
-        "Mobile responsive drawer with full touch controls"
-      ]
-    },
-    "track_cards_grid": {
-      "description": "Grid of uploaded tracks (Piese) mimicking YouTube video cards.",
-      "path": "src/pages/Muzica.jsx",
-      "elements": [
-        "Track artwork container with hover play overlay button",
-        "Play counter, duration badge, release date",
-        "Direct play action (switches radio focus or queues track)"
-      ]
-    },
-    "admin_upload_only": {
-      "description": "Simplified single-purpose Admin portal strictly for uploading music (MP3/WAV) + cover art.",
-      "path": "src/pages/Admin.jsx",
-      "elements": [
-        "Drag & drop audio uploader",
-        "Cover image selector with preview",
-        "Track title input & upload button",
-        "Track list management with delete action"
-      ]
-    }
+  "testing_and_accessibility": {
+    "data_testid_convention": "kebab-case mandatory on all buttons, links, player controls, form inputs, schedule items, chat input, and modals.",
+    "contrast_standard": "All body copy must meet APCA / WCAG AA 4.5:1 ratio over glass panels."
   },
-  "image_urls": {
-    "channel_banner": "https://images.pexels.com/photos/5610120/pexels-photo-5610120.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "concert_crowd_bg": "https://images.pexels.com/photos/8448566/pexels-photo-8448566.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "vinyl_record_art": "https://images.pexels.com/photos/27383804/pexels-photo-27383804.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "neon_sound_wave": "https://images.unsplash.com/photo-1761270635735-2526a20eb881?crop=entropy&cs=srgb&fm=jpg&q=85",
-    "record_neon_sign": "https://images.unsplash.com/photo-1580397424400-2f12fdf0b3e7?crop=entropy&cs=srgb&fm=jpg&q=85"
-  },
-  "motion_and_effects": {
-    "smooth_transitions": "transition-all duration-300 ease-out",
-    "hover_lift": "hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(0,240,255,0.25)]",
-    "pulsing_live_badge": "animate-pulse bg-red-500/20 text-red-500 border border-red-500/40",
-    "equalizer_bars": "flex items-end gap-1 h-6 (staggered CSS height keyframes)"
-  },
-  "instructions_to_main_agent": [
-    "Focus purely on building a dark, ultra-sleek 24/7 radio experience with a YouTube channel layout structure.",
-    "Ensure all interactive buttons, links, inputs, and track cards have strict 'data-testid' attributes (e.g. data-testid='radio-play-button', data-testid='channel-subscribe-button', data-testid='track-card-01').",
-    "The persistent PlayerBar component MUST NOT break audio state when navigating between tabs (Live, Piese, Despre).",
-    "Do NOT use light backgrounds, transparent header dropdowns without backdrop blur, or generic AI slop artwork.",
-    "Admin section (/admin) must ONLY be an upload form for music audio and cover artwork, plus track list management.",
-    "Use JavaScript (.js and .jsx) files in src/ for component development."
-  ],
-  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
-    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
-    "Do not make generic centered layouts, simplistic gradients, and uniform styling.",
-    "Create depth through layered design elements with z-index hierarchy.",
-    "Use glass-morphism effects with backdrop filters (12-24px blur).",
-    "You MUST NOT apply universal transition (e.g., transition: all). Add transitions for specific interactive elements like button, input excluding transforms.",
-    "You MUST NOT center align the app container, i.e., do not add .App { text-align: center; } in the css file.",
-    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
-    "NEVER use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 etc for icons.",
-    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations.",
-    "Use 2-3x more spacing than feels comfortable.",
-    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
-    "All interactive and key informational elements MUST include a data-testid attribute."
+  "general_guidelines": [
+    "All interactive elements must include descriptive data-testid attributes.",
+    "Keep site language strictly in Romanian for UI strings.",
+    "Never use pure black background without subtle depth and blue/cyan ambient glow.",
+    "Ensure video player controls remain responsive on touch devices."
   ]
-}
+},
+path: "/app/design_guidelines.json"
+}@

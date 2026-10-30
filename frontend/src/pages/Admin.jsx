@@ -28,6 +28,7 @@ export default function Admin() {
   const [tvTime, setTvTime] = useState("");
   const [tvTitle, setTvTitle] = useState("");
   const [tvNote, setTvNote] = useState("");
+  const [tvDay, setTvDay] = useState(""); // "" = în fiecare zi; 0=Luni … 6=Duminică
   const audioInputRef = useRef(null);
   const coverInputRef = useRef(null);
 
@@ -39,7 +40,10 @@ export default function Admin() {
 
   useEffect(() => {
     api.get("/auth/me")
-      .then((r) => { setMe(r.data); loadTracks(); loadChat(); loadContacts(); loadReviews(); loadTv(); })
+      .then((r) => {
+        if (!r.data?.email) { setMe(false); return; }
+        setMe(r.data); loadTracks(); loadChat(); loadContacts(); loadReviews(); loadTv();
+      })
       .catch(() => setMe(false));
   }, []);
 
@@ -165,6 +169,18 @@ export default function Admin() {
     } catch (err) { toast.error(formatApiError(err)); }
   };
 
+  // copertă: schimbare per piesă, fără reîncărcarea piesei
+  const changeCover = async (t, file) => {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("cover", file);
+    try {
+      await api.post(`/admin/tracks/${t.id}/cover`, fd);
+      toast.success("Coperta a fost schimbată.");
+      loadTracks();
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
   // versuri: salvare per piesă — butonul de lyrics apare automat pe site când piesa are text
   const saveLyrics = async (t) => {
     try {
@@ -179,8 +195,8 @@ export default function Admin() {
   const addTv = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/admin/tv/schedule", { time: tvTime, title: tvTitle, note: tvNote });
-      setTvTime(""); setTvTitle(""); setTvNote("");
+      await api.post("/admin/tv/schedule", { time: tvTime, title: tvTitle, note: tvNote, day: tvDay === "" ? null : Number(tvDay) });
+      setTvTime(""); setTvTitle(""); setTvNote(""); setTvDay("");
       loadTv();
       toast.success("Emisiune adăugată în programul TV.");
     } catch (err) { toast.error(formatApiError(err)); }
@@ -340,7 +356,11 @@ export default function Admin() {
       <div className="grid gap-2 mt-5" data-testid="admin-track-list">
         {tracks.map((t) => (
           <div key={t.id} className="glass rounded-xl px-4 py-3 flex items-center gap-4 flex-wrap">
-            <img src={mediaUrl(t.cover_url) || "/logo-alt.png"} alt="" className="w-10 h-10 rounded-lg object-cover" />
+            <label className="relative cursor-pointer group shrink-0" title="Schimbă coperta" data-testid={`admin-track-cover-${t.id}`}>
+              <img src={mediaUrl(t.cover_url) || "/logo-alt.png"} alt="" className="w-10 h-10 rounded-lg object-cover border border-[var(--edge)] group-hover:opacity-50 transition-opacity" />
+              <span className="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity text-[var(--accent)]"><ImageIcon size={13} /></span>
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => { changeCover(t, e.target.files?.[0]); e.target.value = ""; }} />
+            </label>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold truncate">{t.title}</p>
               <p className="text-[10px] font-mono-x uppercase tracking-widest text-[var(--muted)]">{t.plays || 0} redări</p>
@@ -390,6 +410,22 @@ export default function Admin() {
         <Tv size={18} /> Program TV ({tvProg.length})
       </h2>
       <form onSubmit={addTv} className="glass rounded-2xl p-5 mt-5 flex flex-wrap gap-3 items-center" data-testid="admin-tv-form">
+        <select
+          value={tvDay}
+          onChange={(e) => setTvDay(e.target.value)}
+          className="rounded-lg bg-[var(--bg2)] border border-[var(--border)] px-3 py-2 text-xs outline-none focus:border-[var(--border-hi)] transition-colors"
+          data-testid="admin-tv-day"
+          aria-label="Ziua emisiunii"
+        >
+          <option value="">În fiecare zi</option>
+          <option value="0">Luni</option>
+          <option value="1">Marți</option>
+          <option value="2">Miercuri</option>
+          <option value="3">Joi</option>
+          <option value="4">Vineri</option>
+          <option value="5">Sâmbătă</option>
+          <option value="6">Duminică</option>
+        </select>
         <input
           value={tvTime}
           onChange={(e) => setTvTime(e.target.value)}
@@ -421,6 +457,7 @@ export default function Admin() {
         {tvProg.map((s) => (
           <div key={s.id} className="glass rounded-xl px-4 py-3 flex items-center gap-3" data-testid={`admin-tv-row-${s.id}`}>
             <span className="font-mono-x text-xs font-bold text-[var(--amber)]">{s.time}</span>
+            <span className="text-[10px] font-mono-x uppercase tracking-widest text-[var(--faint)] shrink-0">{s.day != null ? ["Lu","Ma","Mi","Jo","Vi","Sâ","Du"][s.day] : "Zilnic"}</span>
             <span className="text-sm flex-1 min-w-0 truncate">{s.title}{s.note ? <span className="text-[var(--muted)]"> · {s.note}</span> : ""}</span>
             <button onClick={() => delTv(s.id)} className="btn-ghost rounded-full w-9 h-9 grid place-items-center hover:!text-[var(--live)]" aria-label={`Șterge ${s.title}`} data-testid={`admin-tv-del-${s.id}`}>
               <Trash2 size={15} />

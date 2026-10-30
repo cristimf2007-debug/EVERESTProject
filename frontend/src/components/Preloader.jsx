@@ -41,7 +41,7 @@ export default function Preloader() {
         src="/logo.png"
         alt="BIOXIC"
         className="preloader-logo"
-        style={{ opacity: 0.2 + n * 0.008, filter: `drop-shadow(0 0 ${10 + n * 0.5}px rgba(255,122,26,${0.15 + n * 0.004}))` }}
+        style={{ opacity: 0.2 + n * 0.008, filter: `drop-shadow(0 0 ${10 + n * 0.5}px rgba(45,216,240,${0.15 + n * 0.004}))` }}
       />
       <p className="preloader-count" data-testid="preloader-count">{String(n).padStart(3, "0")}</p>
       <p className="preloader-tag">Obsidian · Limited 2026</p>

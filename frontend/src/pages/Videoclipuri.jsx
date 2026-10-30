@@ -69,7 +69,7 @@ function ChannelCard({ v, onPlayYt }) {
   const cat = catOf(v);
   const inner = (
     <>
-      <span className="relative block aspect-video overflow-hidden rounded-xl bg-black">
+      <span className="relative block aspect-video overflow-hidden rounded-2xl bg-black border border-[var(--edge)]" style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.06), 0 16px 34px -20px rgba(0,0,0,.85)" }}>
         {v.uploaded && !v.thumb_url ? (
           <video
             src={`${mediaUrl(v.video_url)}#t=0.5`}

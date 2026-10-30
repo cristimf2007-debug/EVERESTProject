@@ -60,7 +60,7 @@ export default function SecretMod() {
 
   useEffect(() => {
     api.get("/auth/me")
-      .then(() => setAuthed(true))
+      .then((r) => setAuthed(!!r.data?.email))
       .catch(() => setAuthed(false));
   }, []);
 

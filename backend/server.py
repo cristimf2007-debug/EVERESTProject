@@ -141,7 +141,10 @@ async def login(input: LoginInput, request: Request, response: Response):
     return {"token": token, "user": {"email": email, "role": user.get("role", "admin")}}
 
 @api_router.get("/auth/me")
-async def auth_me(admin=Depends(get_current_admin)):
+async def auth_me(request: Request):
+    admin = await get_current_admin_optional(request)
+    if not admin:
+        return {"user": None}
     return {"email": admin["email"], "role": admin.get("role", "admin")}
 
 @api_router.post("/auth/logout")
@@ -416,6 +419,21 @@ async def get_current_fan(request: Request) -> dict:
     except jwt.InvalidTokenError:
         raise HTTPException(401, "Sesiune invalidă")
 
+
+# Variante „opționale" pentru sondele de sesiune: întorc None în loc de 401,
+# ca vizitatorii nelogați să nu primească erori roșii în consolă.
+async def get_current_admin_optional(request: Request):
+    try:
+        return await get_current_admin(request)
+    except HTTPException:
+        return None
+
+async def get_current_fan_optional(request: Request):
+    try:
+        return await get_current_fan(request)
+    except HTTPException:
+        return None
+
 @api_router.post("/fans/register")
 async def fan_register(f: FanRegister, request: Request, response: Response):
     email = f.email.lower().strip()
@@ -426,12 +444,24 @@ async def fan_register(f: FanRegister, request: Request, response: Response):
         raise HTTPException(400, "Adresa de email nu pare validă")
     if len(f.password) < 6:
         raise HTTPException(400, "Parola trebuie să aibă minimum 6 caractere")
+    # anti-spam: maxim 5 conturi noi / oră / IP
+    ip = client_ip(request)
+    reg_key = f"reg:{ip}"
+    ra = await db.login_attempts.find_one({"identifier": reg_key})
+    if ra and ra.get("count", 0) >= 5:
+        locked_until = ra.get("locked_until")
+        if locked_until and datetime.fromisoformat(locked_until) > datetime.now(timezone.utc):
+            raise HTTPException(429, "Prea multe conturi create de pe această rețea. Reîncearcă mai târziu.")
     if await db.users.find_one({"email": email}):
         raise HTTPException(400, "Există deja un cont cu acest email. Încearcă să te autentifici.")
     user_id = f"user_{uuid.uuid4().hex[:12]}"
     await db.users.insert_one({"user_id": user_id, "email": email, "name": name,
                                "password_hash": hash_password(f.password), "role": "fan",
                                "created_at": datetime.now(timezone.utc).isoformat()})
+    await db.login_attempts.update_one(
+        {"identifier": reg_key},
+        {"$inc": {"count": 1}, "$set": {"locked_until": (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()}},
+        upsert=True)
     token = create_fan_token(user_id, email)
     response.set_cookie("fan_token", token, httponly=True, secure=True, samesite="lax", max_age=604800, path="/")
     await log_activity("register", f"{name} <{email}>", "Cont nou de fan", client_ip(request))
@@ -440,9 +470,21 @@ async def fan_register(f: FanRegister, request: Request, response: Response):
 @api_router.post("/fans/login")
 async def fan_login(f: FanLogin, request: Request, response: Response):
     email = f.email.lower().strip()
+    ip = client_ip(request)
+    identifier = f"fan:{ip}:{email}"
+    attempts = await db.login_attempts.find_one({"identifier": identifier})
+    if attempts and attempts.get("count", 0) >= 5:
+        locked_until = attempts.get("locked_until")
+        if locked_until and datetime.fromisoformat(locked_until) > datetime.now(timezone.utc):
+            raise HTTPException(429, "Prea multe încercări. Reîncearcă în 15 minute.")
     user = await db.users.find_one({"email": email, "role": "fan"})
     if not user or not user.get("password_hash") or not verify_password(f.password, user["password_hash"]):
+        await db.login_attempts.update_one(
+            {"identifier": identifier},
+            {"$inc": {"count": 1}, "$set": {"locked_until": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()}},
+            upsert=True)
         raise HTTPException(401, "Email sau parolă greșită")
+    await db.login_attempts.delete_one({"identifier": identifier})
     if await is_banned_user(user):
         raise HTTPException(403, "Contul a fost suspendat")
     token = create_fan_token(user["user_id"], email)
@@ -451,7 +493,10 @@ async def fan_login(f: FanLogin, request: Request, response: Response):
     return {"token": token, "user": fan_out(user)}
 
 @api_router.get("/fans/me")
-async def fan_me(fan=Depends(get_current_fan)):
+async def fan_me(request: Request):
+    fan = await get_current_fan_optional(request)
+    if not fan:
+        return {"user": None}
     return fan_out(fan)
 
 @api_router.post("/fans/logout")
@@ -857,11 +902,12 @@ class TvScheduleInput(BaseModel):
     time: str   # „HH:MM"
     title: str
     note: str = ""
+    day: Optional[int] = None  # 0=Luni … 6=Duminică; lipsă = în fiecare zi
 
 
 @api_router.get("/tv/schedule")
 async def tv_schedule():
-    return await db.tv_schedule.find({}, {"_id": 0}).sort("time", 1).to_list(100)
+    return await db.tv_schedule.find({}, {"_id": 0}).sort([("day", 1), ("time", 1)]).to_list(200)
 
 
 @api_router.post("/admin/tv/schedule")
@@ -871,7 +917,9 @@ async def tv_schedule_add(s: TvScheduleInput, admin=Depends(get_current_admin)):
         raise HTTPException(400, "Ora trebuie să fie în format HH:MM (ex. 21:30)")
     if not s.title.strip():
         raise HTTPException(400, "Titlul emisiunii lipsește")
-    doc = {"id": str(uuid.uuid4()), "time": time_s, "title": s.title.strip()[:100], "note": s.note.strip()[:200]}
+    if s.day is not None and not (0 <= s.day <= 6):
+        raise HTTPException(400, "Ziua trebuie să fie între 0 (Luni) și 6 (Duminică)")
+    doc = {"id": str(uuid.uuid4()), "time": time_s, "title": s.title.strip()[:100], "note": s.note.strip()[:200], "day": s.day}
     await db.tv_schedule.insert_one(doc)
     return {k: v for k, v in doc.items() if k != "_id"}  # fără _id (ObjectId) — JSON safe
 
@@ -1144,6 +1192,17 @@ async def update_track(track_id: str, request: Request, admin=Depends(get_curren
     if not t:
         raise HTTPException(404, "Piesa nu există")
     return t
+
+@api_router.post("/admin/tracks/{track_id}/cover")
+async def update_track_cover(track_id: str, cover: UploadFile = File(...), admin=Depends(get_current_admin)):
+    if not cover.filename:
+        raise HTTPException(400, "Fișierul de copertă lipsește")
+    cover_url = await save_upload(cover, "covers", ALLOWED_IMG)
+    res = await db.tracks.update_one({"id": track_id}, {"$set": {"cover_url": cover_url}})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Piesa nu există")
+    await log_activity("admin", admin["email"], f"Copertă schimbată pentru piesa {track_id}", "")
+    return {"cover_url": cover_url}
 
 @api_router.delete("/admin/tracks/{track_id}")
 async def delete_track(track_id: str, admin=Depends(get_current_admin)):
@@ -1999,12 +2058,28 @@ _RATE: dict = {}  # ip -> [timestamps]
 RATE_LIMIT = 120  # cereri / minut / IP
 RATE_WINDOW = 60
 
+# limită strictă pentru rutele de autentificare (anti brute-force la nivel de rețea)
+_AUTH_STRICT_PATHS = {"/api/auth/login", "/api/fans/login", "/api/fans/register",
+                      "/api/auth/forgot-password", "/api/auth/reset-password"}
+_AUTH_RATE: dict = {}
+AUTH_RATE_LIMIT = 10  # cereri POST / minut / IP pe rutele de auth
+
 @app.middleware("http")
 async def security_headers_and_rate_limit(request: Request, call_next):
+    path = request.url.path
+    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
+    now_ts = time.time()
+    # rate limit strict pe auth (încercări de login/register)
+    if path in _AUTH_STRICT_PATHS and request.method == "POST":
+        hits = [t for t in _AUTH_RATE.get(ip, []) if now_ts - t < RATE_WINDOW]
+        if len(hits) >= AUTH_RATE_LIMIT:
+            return JSONResponse({"detail": "Prea multe încercări de autentificare. Reîncearcă într-un minut."}, status_code=429)
+        hits.append(now_ts)
+        _AUTH_RATE[ip] = hits
+        if len(_AUTH_RATE) > 5000:
+            _AUTH_RATE.clear()
     # rate limit global (fără /files — streamingul audio face multe cereri Range)
-    if request.url.path.startswith("/api/") and not request.url.path.startswith("/api/files/"):
-        ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
-        now_ts = time.time()
+    if path.startswith("/api/") and not path.startswith("/api/files/"):
         hits = [t for t in _RATE.get(ip, []) if now_ts - t < RATE_WINDOW]
         if len(hits) >= RATE_LIMIT:
             return JSONResponse({"detail": "Prea multe cereri. Reîncearcă într-un minut."}, status_code=429)
@@ -2018,6 +2093,10 @@ async def security_headers_and_rate_limit(request: Request, call_next):
     resp.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     resp.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     resp.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    if path.startswith("/api/"):
+        resp.headers["X-Robots-Tag"] = "noindex, nofollow"
+    if path.startswith(("/api/auth/", "/api/fans/", "/api/admin/")):
+        resp.headers["Cache-Control"] = "no-store"
     resp.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "script-src 'self'; "

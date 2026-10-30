@@ -63,7 +63,7 @@ function Comments({ videoId, onSeek }) {
   const load = () => api.get(`/videos/${videoId}/comments`, { params: { sort } }).then((r) => setItems(r.data || [])).catch(() => {});
 
   useEffect(() => { load(); }, [videoId, sort]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { api.get("/auth/me").then((r) => setMe(r.data)).catch(() => {}); }, []);
+  useEffect(() => { api.get("/auth/me").then((r) => setMe(r.data?.email ? r.data : null)).catch(() => {}); }, []);
 
   const submit = async (e) => {
     e.preventDefault();

@@ -40,6 +40,7 @@ function AuthCallback() {
       // flow OAuth propriu: cookie-urile de sesiune sunt deja setate de backend la callback
       api.get("/fans/me")
         .then((r) => {
+          if (!r.data?.user_id) throw new Error("no session");
           setMe(r.data);
           toast.success(`Bine ai venit, ${r.data.name}!`);
         })
@@ -120,6 +121,20 @@ function ShellInner({ location }) {
     mo.observe(document.body, { childList: true, subtree: true });
     return () => { clearTimeout(t); io.disconnect(); mo.disconnect(); };
   }, [location.pathname]);
+
+  // fallback global: orice imagine din /api/files care lipsește pe server (ex. fișier nemigrat)
+  // e înlocuită cu logo-ul, fără erori vizibile în pagină
+  useEffect(() => {
+    const onImgError = (e) => {
+      const t = e.target;
+      if (t?.tagName === "IMG" && !t.dataset.fbk && (t.src.includes("/api/files/") || t.src.includes("media/image"))) {
+        t.dataset.fbk = "1";
+        t.src = "/logo-alt.png";
+      }
+    };
+    window.addEventListener("error", onImgError, true);
+    return () => window.removeEventListener("error", onImgError, true);
+  }, []);
 
   return (
     <>

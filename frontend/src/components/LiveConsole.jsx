@@ -36,7 +36,7 @@ export default function LiveConsole() {
       el.style.transform = `scale(${1 + level * 0.12})`;
     }
     const ring = ringRef.current;
-    if (ring) ring.style.filter = `drop-shadow(0 0 ${6 + level * 12}px rgba(255,122,26,${0.5 + level * 0.5}))`;
+    if (ring) ring.style.filter = `drop-shadow(0 0 ${6 + level * 12}px rgba(45,216,240,${0.5 + level * 0.5}))`;
   }, []);
 
   if (!track) {
@@ -68,7 +68,7 @@ export default function LiveConsole() {
                 ref={haloRef}
                 aria-hidden="true"
                 className="absolute -inset-10 rounded-full pointer-events-none"
-                style={{ background: "radial-gradient(circle, rgba(255,122,26,.26), transparent 65%)", opacity: 0.3 }}
+                style={{ background: "radial-gradient(circle, rgba(45,216,240,.22), transparent 65%)", opacity: 0.3 }}
               />
               <Vinyl cover={track.cover_url} title={track.title} spinning={playing && !!onAir} />
               <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 glass rounded-full px-4 py-2">

@@ -131,7 +131,7 @@ export default function ChannelHeader() {
 
   // dacă există sesiune de admin (cookie httpOnly), meniul arată „Panou admin"
   useEffect(() => {
-    api.get("/auth/me").then(() => setIsAdmin(true)).catch(() => {});
+    api.get("/auth/me").then((r) => setIsAdmin(!!r.data?.email)).catch(() => {});
   }, []);
 
   useEffect(() => {
