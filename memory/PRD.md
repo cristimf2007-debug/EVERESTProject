@@ -1,6 +1,18 @@
-# BIOXIC — Site oficial (Radio Live 24/7) · OBSIDIAN GLASS (cyan)
+# BIOXIC — Site oficial (Radio Live 24/7 + TV) · LIQUID GLASS BROADCAST
 
-## Concept curent (actualizat 24 oct 2026, runda „glass + super-admin")
+## Runda „EVEREA TV — redesign total + securitate" (30 oct 2026)
+- **Redesign vizual complet**: sistem nou în index.css — negru profund #05070C + midnight blue + cyan #2DD8F0 + live #FF3B5C; fonturi Syne (display) + Plus Jakarta Sans (body) + JetBrains Mono; sticlă 3D pe 3 niveluri (backdrop-filter doar pe plutitoare; fallback solid la @supports); fără canvas global/efecte pointer; cyan peste tot (orange eliminat din toate componentele)
+- **Hero cinematic pe homepage**: playerul TV real (TvBroadcast.jsx, partajat cu /tv) cu badge LIVE, countdown premieră (TvGuide.jsx: NextPremiereCard + Countdown), card susținere PayPal/Discord; sub: ghid TV săptămânal, clipuri editoriale (featured mare + grid), piese recente (carduri orizontale cu play), bio, feed
+- **Secvență de deschidere TV** (la primul play): logo alb oficial exact 2s → max 4 clipuri uploadate în ordinea urcării → revine automat la live HLS; buton „Sari la LIVE"; HLS se încarcă DOAR după click (perf)
+- **Ghid TV săptămânal**: TvScheduleInput are câmp opțional `day` (0=Lu..6=Du, null=zilnic); taburi pe zile cu stări În direct/Urmează/Premieră/Terminat; admin are select de zi
+- **Chat redesenat**: bule de sticlă (msg-bubble, propriile cu tentă cyan msg-own), suprafață mai mare (380→460px), empty state cu icon, input mare
+- **Login modal cinematic** (login-bg + login-panel, logo alb o singură dată)
+- **Securitate înaltă**: /api/auth/me + /api/fans/me întorc 200 {user:null} la nelogați (zero zgomot 401 în consolă); lockout fan login (5 eșecuri → 15 min, 429); register max 5/h/IP; rate limit strict 10 POST/min/IP pe rutele auth; Cache-Control no-store pe /api/auth|fans|admin; X-Robots-Tag noindex pe /api; fallback global imagine (App.js) → /logo-alt.png pentru fișiere lipsă
+- **Fix live (bioxic.ro)**: piesa 22ed4cee avea cover_url spre un fișier inexistent pe prod (404) → golit prin PATCH live admin; endpoint nou POST /api/admin/tracks/{id}/cover (ajunge pe live la următorul deploy) + buton „schimbă coperta" în /admin
+- Erorile ap.emergent.sh ERR_BLOCKED_BY_CLIENT = adblockerul userului, nu se pot repara din cod
+- Teste: /app/test_reports/iteration_9.json — 9/9 backend, 100% frontend, consolă curată
+
+## Concept anterior (24 oct 2026, runda „glass + super-admin")
 Site-comunitate pentru artistul BIOXIC / Everest Music (Cristi, 19 ani, Focșani). Temă: deep obsidian (#07090e), glassmorphism 3D ușor, accent cyan #00F0FF (+ roșu live #FF0055). Fonturi: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (etichete). Performanță întâi: zero canvas global, zero efecte pointer-follow, blur doar pe suprafețe plutitoare.
 Feature central: **RADIO LIVE 24/7 sincronizat** — NU pornește singur; doar la click explicit; buton mute în player bar.
 Regulă de aur: backend-ul rămâne neatins la rebuild-uri vizuale.
