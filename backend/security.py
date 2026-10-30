@@ -18,6 +18,7 @@ Straturi:
 import asyncio
 import logging
 import time
+import uuid
 from datetime import datetime, timezone, timedelta
 from urllib.parse import unquote
 
@@ -127,7 +128,7 @@ def log_event(kind: str, ip: str, path: str, detail: str, action: str):
     """Jurnal de securitate — NICIODATĂ parole, token-uri, cookie-uri sau body."""
     if _db is None:
         return
-    doc = {"id": f"se_{int(time.time() * 1000)}_{ip[-6:]}", "ts": _now_iso(),
+    doc = {"id": f"se_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}", "ts": _now_iso(),
            "ip": ip, "kind": kind, "path": path[:200], "detail": detail[:300], "action": action}
     async def _w():
         try:

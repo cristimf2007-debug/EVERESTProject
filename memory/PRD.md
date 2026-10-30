@@ -1,5 +1,21 @@
 # BIOXIC — Site oficial (Radio Live 24/7 + TV) · LIQUID GLASS BROADCAST
 
+## Runda „Securitate avansată WAF" (30 oct 2026, seara)
+- **Modul nou `/app/backend/security.py`** — WAF-lite consolidat, fără atingerea sistemului de conturi:
+  - ban-uri IP persistente în Mongo `security_bans` (6 strike-uri/h → 30 min; loopback niciodată penalizat; cache 30s)
+  - filtru WAF: path probing (/api/.env, wp-admin, phpmyadmin…) → 403 + 2 strike; UA scanere (sqlmap/nikto/nmap/nuclei…) → 403; semnături SQLi/XSS/RCE/traversal/php:// în path+query → 400
+  - cap body 1MB pentru API-uri non-upload (413); uploadurile admin/avatar își păstrează limita de 100MB
+  - concurență max 40/IP (exceptând /api/files + /api/ws); anti-spam: contact/subscribe/reviews 5/min, comentarii 10/min
+  - detectare scanere după rafale de 404 (>20 în 2 min → strike-uri); „attack mode": >900 RPM global → limita globală coboară la 40/min timp de 5 min
+  - jurnal `security_events` (fără parole/token-uri/cookie-uri/body) cu retenție 7 zile; headere extra: COOP/CORP/X-Permitted-Cross-Domain-Policies, Server fără versiuni
+  - WS chat refuză IP-urile banate (cod 4001, mesaj `banned`)
+- **Uploaduri**: verificare magic-bytes în `save_upload` (un .png fals cu text → 400; formate reale trec)
+- **Monitorizare**: GET /api/admin/panel/security {stats, events, bans} + POST /api/admin/panel/security/unban {ip}; tab nou „Securitate" în /secret-mod (statistici live, ban-uri cu deblocare manuală, evenimente)
+- **Analiza de vulnerabilități făcută**: serve_file sigur (lookup DB + linkuri semnate, fără path traversal), chat XSS-safe (React escape, fără linkify), regex-uri escapate (re.escape), CORS strict, dependențe recente (fastapi 0.110.1, pyjwt 2.15.1, bcrypt 4.1.3, pymongo 4.18.2)
+- DDoS volumetric = nivel de platformă/ingress (nu se poate din codul aplicației)
+- Teste: /app/test_reports/iteration_10.json — 11/11 WAF + 9/9 auth-hardening, 100% frontend; rollback: /app/backups/server.py.bak-20261030-192201 + checkpoint-urile platformei
+- NOTĂ preview: tot traficul de test împarte un singur IP de ieșire → testele de login trebuie distanțate ~60s (limita 10 POST/min/IP pe auth funcționează!)
+
 ## Runda „EVEREA TV — redesign total + securitate" (30 oct 2026)
 - **Redesign vizual complet**: sistem nou în index.css — negru profund #05070C + midnight blue + cyan #2DD8F0 + live #FF3B5C; fonturi Syne (display) + Plus Jakarta Sans (body) + JetBrains Mono; sticlă 3D pe 3 niveluri (backdrop-filter doar pe plutitoare; fallback solid la @supports); fără canvas global/efecte pointer; cyan peste tot (orange eliminat din toate componentele)
 - **Hero cinematic pe homepage**: playerul TV real (TvBroadcast.jsx, partajat cu /tv) cu badge LIVE, countdown premieră (TvGuide.jsx: NextPremiereCard + Countdown), card susținere PayPal/Discord; sub: ghid TV săptămânal, clipuri editoriale (featured mare + grid), piese recente (carduri orizontale cu play), bio, feed

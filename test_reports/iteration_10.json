@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 10 — Full regression on the new WAF-lite security layer (backend/security.py) without touching the account system. Backend: 11/11 WAF tests pass via loopback (test_waf_security.py) covering legit traffic, probe path blocking (/api/.env, /wp-admin → 403), scanner UA (sqlmap/1.7 → 403), XSS/SQLi/traversal in query → 400, 2MB body on /api/contact → 413, legit special chars (Gută & Manuel) → 200, admin security endpoint auth-gated, comments 10/min rate limit → 429, security headers (X-Frame-Options, X-Content-Type-Options, HSTS, X-Robots-Tag, CSP, Server without versions). 9/9 batch9 auth-hardening tests still pass (test_batch9_hardening.py): /api/auth/me + /api/fans/me unauth → 200 {user:null}, no-store+noindex on /api/auth/*, admin login+cookie, TV schedule CRUD with day_of_week, admin schedule auth-guard, fan register bad-email, fan 5-fail lockout 429, strict auth 10 POST/min middleware. GET /api/admin/panel/security as admin returns {stats:{rpm,blocked_today,waf_hits,bans_total,banned_now,tracked_ips,attack_mode}, events:[50], bans:[]} — verified via curl + browser. Frontend (desktop 1920x1080): admin logs into /secret-mod and mod-tab-security tab renders all 6 stat cards (sec-rpm, sec-blocked, sec-waf, sec-bans, sec-bans-total, sec-attack), mod-sec-events populated with 50 rows (currently rate_auth events from this test session), mod-sec-bans container hidden since no active bans and 'Nicio blocare activă — trafic curat' empty-state shown — correct. Public pages regression: / shows noutati-page+hero-live-badge+home-clips+home-tracks with 0 console errors; /tv shows tv-stage+tv-bigplay+tv-guide+tv-chat with 0 console errors; /muzica audio.paused=True (no autoplay); /clipuri renders. Mobile 375px: / and /tv scrollWidth==clientWidth, no horizontal overflow. Overall success: backend 20/20 (100%), frontend 100% of in-scope flows.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "SecretMod — Securitate tab events list", "issue": "React console warning: 'Encountered two children with the same key' for mod-sec-events rows (sample id 'se_1793388880235_.0.0.1'). Backend's security.py event-id generation can produce colliding ids when many events share the same timestamp+last-octet; the UI then keys by e.id and duplicates. Non-blocking (events still render) but noisy and could drop a row.", "selector": "[data-testid=\"mod-sec-events\"] [data-testid^=\"mod-event-\"]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_waf_security.py",
+    "/app/backend/tests/test_batch9_hardening.py",
+    "/app/test_reports/pytest/iter10_waf.xml",
+    "/app/test_reports/pytest/iter10_batch9.xml"
+  ],
+  "action_items": [
+    "Optional (LOW): make security_events id globally unique in security.py (e.g., add uuid4 or a monotonic counter) so React keys on mod-sec-events never collide; alternatively key by (e.id + idx) in SecretMod.jsx."
+  ],
+  "critical_code_review_comments": [
+    "security.py middleware correctly layers probe-path 403 + scanner UA 403 + payload signatures 400 + body cap 413 + per-endpoint anti-spam 429 + global 120/min + strict auth 10 POST/min — all 11 regression tests green.",
+    "Loopback exemption works as designed: WAF tests via localhost:8001 never ban, so pytest reruns are safe. Shared preview-ingress egress IP (35.193.209.116) accumulates auth strikes — tests must space ~60s apart as noted.",
+    "Admin security endpoint stats match live counters (rpm=14, blocked_today=42, waf_hits=12 observed) and events journal does not leak passwords/tokens/bodies — verified by curl inspection.",
+    "Account system is 100% untouched — admin login (cristimf2007@gmail.com) + fan login lockout + register throttle + /auth/me and /fans/me graceful 200{user:null} all still pass unchanged.",
+    "Minor nit: event ids like 'se_<ts>_<ip-tail>' may collide (duplicate React keys). Harmless for stats but visible in console; fix is one-line (append uuid4 hex or array index).",
+    "Save_upload magic-byte sniffing was NOT re-exercised in this iteration to honour the explicit 'do not leave test covers' constraint — behaviour is covered by existing unit expectations and server.py _UPLOAD_MAGIC was reviewed statically."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (20/20 across WAF + batch9)", "frontend": "100% of in-scope flows"},
+  "test_credentials": "Super admin cristimf2007@gmail.com / mfcristi2007! (verified). Fan sectest1793387538@test.ro / parola123 (not re-exercised to avoid tripping the strict auth 10/min — admin flows + public pages were sufficient).",
+  "seed_data_creation": "Only ephemeral TEST_batch9_<hex> schedule rows created inside test_tv_schedule_add_list_delete_cleanup and immediately deleted by the same test. GET /api/tv/schedule remains clean. No cover changes were performed on track 41c88d44 or any other track.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "test_waf_security.py uses API_BASE=http://localhost:8001 (loopback) so it never gets banned. test_batch9_hardening.py uses REACT_APP_BACKEND_URL and shares the preview egress IP — if you run them together, do WAF first then wait ~60s before batch9 (that is what this iteration did; both green). The 'Securitate' tab in /secret-mod is wired to GET /api/admin/panel/security and POST /api/admin/panel/security/unban with the UnbanIpInput body shape {ip}. Known minor: duplicate React keys on mod-sec-events when backend emits same (timestamp,ip-suffix) — reported as LOW action item.",
+  "rca_of_the_issue": "Duplicate-key React warning on Securitate events list — root cause: security.py builds event ids from timestamp+partial IP, which can collide when multiple events in the same request get the same ts+suffix. Mitigation: append uuid4().hex[:6] to the id, or in SecretMod.jsx key the map by `${e.id}-${idx}`. Non-blocking."
+}
