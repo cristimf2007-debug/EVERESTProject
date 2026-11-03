@@ -1330,6 +1330,11 @@ async def radio_heartbeat(request: Request):
         upsert=True)
     return {"listeners": await active_listeners()}
 
+# cine e pe site ACUM — chat online + ascultători radio (public, pentru indicatorul „online")
+@api_router.get("/online")
+async def online_now():
+    return {"chat": ws_manager.count, "radio": await active_listeners()}
+
 @api_router.post("/admin/radio/skip")
 async def radio_skip(admin=Depends(get_current_admin)):
     tracks = await radio_queue()

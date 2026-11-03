@@ -1,128 +1,158 @@
 {
-  "project_name": "BIOXIC Music Platform Redesign",
-  "version": "2.0.0",
-  "design_philosophy": {
-    "archetype": "THE PERFORMANCE PRO / MATURE HI-FI MUSIC PLATFORM",
-    "core_concept": "Editorial Spotify/TIDAL fusion with tactile 3D control elements, organic anthracite dark surfaces, and discrete BIOXIC cyan signal accents.",
-    "anti_patterns_banned": [
-      "No sci-fi robots or futuristic space slop",
-      "No excessive neon cyan gradients or glowing webgl grids",
-      "No full-screen blur transparent glass over readable text",
-      "No generic AI-generated filler photos or fake artist images",
-      "No non-functional buttons or cramped mobile target areas",
-      "No Inter font on headlines or H1 font sizes above text-6xl"
+  "project_identity": {
+    "name": "BIOXIC — Official Artist & Producer Website",
+    "tagline": "Music Producer & Founder of Everest Manele Label (Focșani, Romania)",
+    "aesthetic_direction": "Modern Minimalist Luxury + Editorial Design + Tactile 3D Physicality",
+    "theme_mode": "Light Editorial Luxury (Parchment Ivory, Onyx Charcoal, Warm Sepia, Terracotta & Muted Gold accents)",
+    "brand_pillars": [
+      "Editorial High-Fashion Magazine Layouts",
+      "Tactile 3D Physicality with Realistic Depth & Natural Shadows",
+      "Asymmetric Swiss Grid Hierarchy with Generous Breathing Room",
+      "Zero AI-Slop / Zero SF Neon / Authenticity First"
     ]
   },
   "typography": {
-    "font_families": {
-      "display": "'Syne', sans-serif",
-      "body": "'Plus Jakarta Sans', sans-serif",
-      "mono": "'JetBrains Mono', monospace"
+    "headings": {
+      "family": "'Syne', 'Playfair Display', 'Cormorant Garamond', sans-serif",
+      "weights": "700, 800",
+      "letter_spacing": "-0.03em",
+      "h1_hero": "text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05]",
+      "h2_section": "text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-[1.15]",
+      "h3_card": "text-xl sm:text-2xl font-bold tracking-tight"
     },
-    "hierarchy": {
-      "hero_title": "text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.02]",
-      "section_title": "text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-[1.1]",
-      "subsection_title": "text-xl sm:text-2xl font-semibold tracking-tight",
-      "card_title": "text-base sm:text-lg font-semibold tracking-normal",
-      "body_text": "text-sm sm:text-base font-normal leading-relaxed text-slate-300",
-      "caption_mono": "font-mono text-xs tracking-widest uppercase text-slate-400"
+    "body": {
+      "family": "'Plus Jakarta Sans', 'Inter', sans-serif",
+      "weights": "400, 500, 600",
+      "line_height": "leading-relaxed",
+      "scale": "text-base sm:text-lg"
+    },
+    "mono_labels": {
+      "family": "'JetBrains Mono', monospace",
+      "weights": "500, 600",
+      "letter_spacing": "0.18em to 0.28em",
+      "case": "uppercase",
+      "scale": "text-[10px] sm:text-[11px]"
     }
   },
-  "colors": {
-    "mode": "dark",
-    "base_neutrals": {
-      "void_bg": "#05070C",
-      "obsidian": "#090D16",
-      "obsidian_elevated": "#0D1320",
-      "anthracite_surface": "#131C2C",
-      "edge_subtle": "rgba(148, 163, 184, 0.12)",
-      "edge_highlight": "rgba(148, 163, 184, 0.26)"
-    },
-    "text_colors": {
-      "primary": "#F1F5F9",
-      "secondary": "#9AA8BF",
-      "muted": "#5E6C84"
-    },
-    "brand_accents": {
-      "cyan_primary": "#2DD8F0",
-      "cyan_deep": "#0E7C93",
-      "cyan_glow": "rgba(45, 216, 240, 0.35)",
-      "live_red": "#FF3B5C",
-      "gold_amber": "#FFC24B"
+  "color_palette": {
+    "theme_type": "Light Editorial Luxury",
+    "background_base": "#FBF9F5",
+    "surface_cards": "#FFFFFF",
+    "surface_elevated": "#F4F0EA",
+    "text_primary": "#18181B",
+    "text_secondary": "#52525B",
+    "text_muted": "#8A8A93",
+    "border_subtle": "rgba(24, 24, 27, 0.08)",
+    "border_medium": "rgba(24, 24, 27, 0.16)",
+    "accent_primary": "#C85A32",
+    "accent_primary_rgb": "200, 90, 50",
+    "accent_secondary": "#C59B27",
+    "accent_live": "#D9383A",
+    "css_variables_override": {
+      "--void": "#FBF9F5",
+      "--obsidian": "#FFFFFF",
+      "--obsidian-2": "#F4F0EA",
+      "--steel": "#EBE6DD",
+      "--edge": "rgba(24, 24, 27, 0.08)",
+      "--edge-hi": "rgba(24, 24, 27, 0.18)",
+      "--text": "#18181B",
+      "--text-2": "#52525B",
+      "--text-3": "#8A8A93",
+      "--flame": "#C85A32",
+      "--flame-deep": "#9E3C1B",
+      "--flame-rgb": "200, 90, 50",
+      "--live": "#D9383A",
+      "--gold": "#C59B27",
+      "--site-bg": "#FBF9F5",
+      "--glass-3-bg": "rgba(251, 249, 245, 0.88)"
     }
   },
-  "surfaces_and_effects": {
-    "tactile_3d_buttons": {
-      "btn_flame": "bg-gradient-to-b from-[#6FE7F7] via-[#2DD8F0] to-[#0E7C93] text-[#032530] font-mono text-xs font-semibold uppercase tracking-wider h-12 px-7 rounded-full shadow-[0_16px_42px_-14px_rgba(45,216,240,0.5),inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-2px_6px_rgba(0,0,0,0.22)] active:translate-y-[1px] active:scale-[0.98] transition-transform duration-150",
-      "btn_steel": "bg-gradient-to-b from-white/10 to-white/2 border border-slate-400/25 text-slate-100 font-mono text-xs font-semibold uppercase tracking-wider h-12 px-6 rounded-full shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_12px_26px_-16px_rgba(0,0,0,0.8)] hover:border-[#2DD8F0]/50 hover:-translate-y-[1px] active:translate-y-[1px] active:scale-[0.98]",
-      "knob_control": "w-11 h-11 rounded-full border border-slate-400/25 bg-gradient-to-b from-white/10 to-white/2 flex items-center justify-center text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_10px_20px_-12px_rgba(0,0,0,0.9)] hover:text-[#2DD8F0] hover:border-[#2DD8F0]/50 active:scale-95 transition-all duration-150"
+  "3d_button_architecture": {
+    "concept": "Realistic 3D physical volume with subtle top light sheen, natural soft ambient depth, and tactile click compression",
+    "transition_duration": "150ms to 250ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+    "btn_primary_recipe": {
+      "class": "btn-flame",
+      "normal_state": "bg-gradient-to-b from-[#E06D44] via-[#C85A32] to-[#9E3C1B] text-white shadow-[0_12px_28px_-8px_rgba(200,90,50,0.45),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-2px_4px_rgba(0,0,0,0.25)] border border-[#B34D27] rounded-full font-mono text-xs uppercase tracking-widest font-semibold px-7 h-12 inline-flex items-center justify-center gap-2",
+      "hover_state": "hover:-translate-y-[2px] hover:shadow-[0_18px_36px_-6px_rgba(200,90,50,0.55),inset_0_1px_0_rgba(255,255,255,0.5)]",
+      "active_state": "active:translate-y-[1px] active:scale-[0.98] active:shadow-[0_4px_12px_-2px_rgba(200,90,50,0.4),inset_0_2px_4px_rgba(0,0,0,0.3)]"
     },
-    "cards": {
-      "ob_card": "bg-gradient-to-b from-slate-400/8 via-slate-400/2 to-[#0B101B]/70 border border-slate-400/15 rounded-[20px] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_50px_-28px_rgba(0,0,0,0.85)] overflow-hidden relative"
+    "btn_secondary_recipe": {
+      "class": "btn-steel",
+      "normal_state": "bg-gradient-to-b from-[#FFFFFF] to-[#F0ECE1] text-[#18181B] border border-black/15 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_-2px_3px_rgba(0,0,0,0.05)] rounded-full font-mono text-[11px] uppercase tracking-widest font-semibold px-6 h-12 inline-flex items-center justify-center gap-2",
+      "hover_state": "hover:-translate-y-[2px] hover:border-black/30 hover:shadow-[0_14px_28px_-8px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,1)]",
+      "active_state": "active:translate-y-[1px] active:scale-[0.98] active:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1),inset_0_2px_3px_rgba(0,0,0,0.1)]"
     },
-    "glassmorphism": {
-      "floating_surfaces": "backdrop-blur-[20px] backdrop-saturate-[160%] bg-[#070A11]/86 border border-slate-400/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_32px_64px_-30px_rgba(0,0,0,0.9)]"
+    "knob_recipe": {
+      "class": "knob",
+      "normal_state": "w-11 h-11 rounded-full border border-black/15 bg-gradient-to-b from-[#FFFFFF] to-[#EBE6DD] text-[#18181B] shadow-[0_6px_16px_-4px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] flex items-center justify-center",
+      "hover_state": "hover:-translate-y-[1px] hover:border-[#C85A32] hover:text-[#C85A32] hover:shadow-[0_10px_22px_-4px_rgba(200,90,50,0.25)]",
+      "active_state": "active:scale-[0.95]"
     }
   },
-  "page_layouts": {
-    "homepage": {
-      "hero_section": "Editorial hero showcase with featured music release or live video, high-contrast typography, 3D listen CTA, and official imagery",
-      "sections": [
-        "Recomandări BIOXIC (Featured releases & curated highlights)",
-        "Ultimele Lansări (Recent singles with vinyl deck hover effect)",
-        "Piese Populare (Stream deck table with track numbers, length, and playback trigger)",
-        "Videoclipuri Recente (Video hub grid with HD video preview cards)",
-        "BIOXIC TV Live Entry (Interactive banner leading to live channel with viewer count)",
-        "Albume și Colecții (Grid of square album artwork collections)",
-        "Acces Rapid (Quick links grid to all sections)"
-      ]
+  "layout_and_spacing": {
+    "spacing_scale": "Tailwind standard p-4, p-6, p-8, p-12, p-16, p-24, p-32",
+    "grid_modes": {
+      "bento_portfolio": "grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-8 lg:gap-10",
+      "news_feed": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8",
+      "editorial_split": "grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center"
     },
-    "player_bar": {
-      "type": "Persistent bottom bar",
-      "elements": [
-        "Rotating track cover artwork",
-        "Title, artist name, elapsed time",
-        "3D play/pause knob",
-        "Next / Previous track controls",
-        "Interactive progress seekbar with cyan indicator",
-        "Volume control knob + slider",
-        "Queue / Lyrics toggle drawer"
-      ]
+    "card_padding": "Internal padding p-6 sm:p-8 on all bordered cards to prevent text collision with card edges"
+  },
+  "components": {
+    "header": {
+      "style": "Floating glassmorphic navigation bar with backdrop-blur-xl bg-[#FBF9F5]/85 border-b border-black/10 shadow-sm z-50 sticky top-0",
+      "logo": "Official logo (/logo.png or /logo-alt.png), height 36px-40px, subtle hover lift",
+      "nav_links": "Editorial uppercase mono links (Despre, Portofoliu, Noutăți, Contact & Booking) with active pill indicators"
     },
-    "tv_page": {
-      "layout": "Cinematic 16:9 video player frame with ambient glow, live chat sidebar, weekly TV schedule timetable tabs, premiere countdown timer"
+    "hero_section": {
+      "type": "Editorial Luxury Cover Spread",
+      "image_asset": "/artist.jpg",
+      "image_rules": "Real photo of BIOXIC, high-contrast portrait orientation, rounded 24px-32px border, soft physical drop shadow, top border light sheen",
+      "copy": "H1: BIOXIC — Music Producer & Founder of Everest Manele. Subtitle: Crafting defining soundscapes from Focșani to the world stage.",
+      "ctas": "Primary: 'Rezervări & Booking' (3D Flame button) | Secondary: 'Ascultă Proiectele' (3D Steel button)"
     },
-    "about_page": {
-      "layout": "Magazine-editorial spread with high-res studio photography, artist bio story, diskography milestones, discreet numerical statistics"
+    "despre_section": {
+      "type": "Editorial Storytelling & Focșani Roots",
+      "content": "Authentic biography of 19-year-old producer BIOXIC, founder of Everest Manele label. Focus on innovation, production quality, independent spirit.",
+      "highlights": "Bento statistics grid: 19 Years Old | Focșani Roots | Everest Manele Founder | 100M+ Total Streams"
+    },
+    "portofoliu_section": {
+      "type": "Everest Manele Label Releases & Production Catalog",
+      "cards": "Editorial cards with vinyl rotation detail on hover, release metadata, producer credits, track preview triggers"
+    },
+    "noutati_section": {
+      "type": "Official News & Press Feed",
+      "cards": "Minimalist article cards, date stamps, category badges, subtle hover elevation"
+    },
+    "contact_booking_section": {
+      "type": "Tactile Booking & Contact Suite",
+      "form_inputs": "Recessed tactile input fields (input-recessed) with light inset shadow and warm focused glow",
+      "integrations": "Official booking email, Discord link, PayPal support, direct WhatsApp / phone contact info"
+    },
+    "footer": {
+      "type": "Giant Luxury Editorial Statement",
+      "typography": "Massive background brand wordmark 'BIOXIC' in light neutral gradient, copyright info, Everest Manele label links, social media handles"
     }
   },
   "media_assets": {
-    "images": [
-      {
-        "category": "Studio Audio Console / Album Cover",
-        "url": "https://images.unsplash.com/photo-1790042200763-d715bb455b9a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHw0fHxtdXNpYyUyMGFydGlzdCUyMHN0dWRpbyUyMGRhcmslMjBhZXN0aGV0aWMlMjBhbGJ1bSUyMGNvdmVyJTIwaGlwJTIwaG9wJTIwZWxlY3Ryb25pY3xlbnwwfHx8fDE3OTMzODk0Njd8MA&ixlib=rb-4.1.0&q=85",
-        "usage": "Hero featured album / studio mixing console banner"
-      },
-      {
-        "category": "Artist Profile Portrait",
-        "url": "https://images.unsplash.com/photo-1611019430706-d584dab5814c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHwzfHxtdXNpYyUyMGFydGlzdCUyMHN0dWRpbyUyMGRhcmslMjBhZXN0aGV0aWMlMjBhbGJ1bSUyMGNvdmVyJTIwaGlwJTIwaG9wJTIwZWxlY3Ryb25pY3xlbnwwfHx8fDE3OTMzODk0Njd8MA&ixlib=rb-4.1.0&q=85",
-        "usage": "About section artist portrait & BIOXIC profile image"
-      },
-      {
-        "category": "Live Performance / TV Hub Banner",
-        "url": "https://images.unsplash.com/photo-1652809096869-55b40bd14ac1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHwyfHxtdXNpYyUyMGFydGlzdCUyMHN0dWRpbyUyMGRhcmslMjBhZXN0aGV0aWMlMjBhbGJ1bSUyMGNvdmVyJTIwaGlwJTIwaG9wJTIwZWxlY3Ryb25pY3xlbnwwfHx8fDE3OTMzODk0Njd8MA&ixlib=rb-4.1.0&q=85",
-        "usage": "BIOXIC TV stream preview thumbnail"
-      }
-    ]
+    "allowed_images": [
+      "/artist.jpg",
+      "/logo.png",
+      "/logo-alt.png"
+    ],
+    "rules": "ONLY use real existing assets in public folder (/artist.jpg, /logo.png, /logo-alt.png). NEVER use stock photos or fake external artist imagery."
   },
-  "testing_requirements": {
-    "data_testid_policy": "All interactive elements (buttons, links, volume slider, play/pause controls, menu toggles, search input, track rows) MUST have clear kebab-case data-testid attributes (e.g. data-testid='player-play-button', data-testid='track-row-1')."
+  "accessibility_and_quality": {
+    "testing": "All interactive elements (buttons, links, form inputs, navigation items, player controls) MUST include kebab-case data-testid attributes (e.g. data-testid=\"booking-submit-button\").",
+    "reduced_motion": "Support prefers-reduced-motion media query by disabling continuous animations or spinning vinyls.",
+    "contrast": "Ensure minimum 4.5:1 text contrast for body copy and 3:1 for large display headers against #FBF9F5 background.",
+    "file_type_rule": "The codebase uses .js / .jsx React files (CRA single index.css + Tailwind)."
   },
-  "universal_guidelines_for_main_agent": [
-    "Ensure Romanian language UI labels across all pages ('Ascultă acum', 'Ultimele lansări', 'Program TV', 'Piese populare', etc.).",
-    "Keep audio playback continuous during router navigation using a global persistent state.",
-    "Do NOT add heavy WebGL background canvas loops or heavy smooth-scroll libraries that tank FPS.",
-    "Mobile touch targets must be at least 44px by 44px with smooth bottom dock navigation.",
-    "Use 'sonner' for toast notifications."
+  "instructions_to_main_agent": [
+    "1. Replace dark color variables in index.css with the Light Editorial Luxury palette token values provided.",
+    "2. Implement 3D physical button styles (btn-flame, btn-steel, knob) with explicit 150-250ms transitions, subtle top highlights, and press down transform.",
+    "3. Restructure the homepage and secondary views into a clean, editorial luxury layout for artist BIOXIC and Everest Manele label.",
+    "4. Maintain data-testid attributes across all interactive components for test verification.",
+    "5. Use only the real local images /artist.jpg, /logo.png, /logo-alt.png."
   ]
 }
