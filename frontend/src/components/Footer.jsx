@@ -10,7 +10,7 @@ const LINKS = [
   { to: "/clipuri", label: "Clipuri", tid: "clipuri" },
   { to: "/pareri", label: "Păreri", tid: "pareri" },
   { to: "/despre", label: "Despre", tid: "despre" },
-  { to: "/despre", label: "Contact", tid: "contact" },
+  { to: "/contact", label: "Contact", tid: "contact" },
   { to: "/admin", label: "Admin", tid: "admin" },
 ];
 

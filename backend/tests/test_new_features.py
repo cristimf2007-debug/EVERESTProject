@@ -7,7 +7,7 @@ import pytest
 import requests
 import websockets
 
-BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or "https://bioxic-ai.preview.emergentagent.com").rstrip("/")
+BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or "http://localhost:8001").rstrip("/")
 API = f"{BASE_URL}/api"
 WS_URL = BASE_URL.replace("http", "ws") + "/api/ws/chat"
 ADMIN = {"email": "admin@bioxic.ro", "password": "bioxic2024"}

@@ -1,11 +1,10 @@
 import React from "react";
 
-// Buton PayPal oficial (hosted button A8F6WTGW3RU94) — formular direct, fără script extern,
-// deci trece prin CSP și nu adaugă nimic de încărcat
-export default function PayPalButton({ testid = "paypal-button", label = "Pay Now" }) {
+// Checkout exclusiv pentru Sample Pack; nu pentru donatii.
+export default function PayPalButton({ testid = "paypal-button", label = "Cumpără Sample Pack" }) {
   return (
     <form
-      action="https://www.paypal.com/ncp/payment/A8F6WTGW3RU94"
+      action="https://www.paypal.com/ncp/payment/47UXM5YBBLLPQ"
       method="post"
       target="_blank"
       rel="noreferrer"

@@ -3,7 +3,7 @@ import asyncio, json, os, pytest
 import websockets
 from pymongo import MongoClient
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://bioxic-ai.preview.emergentagent.com")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
 WS_URL = BASE_URL.replace("https://", "wss://").replace("http://", "ws://") + "/api/ws/chat"
 DB = MongoClient(os.environ.get("MONGO_URL", "mongodb://localhost:27017"))[os.environ.get("DB_NAME", "test_database")]
 

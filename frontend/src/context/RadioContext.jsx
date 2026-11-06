@@ -28,6 +28,7 @@ export function RadioProvider({ children }) {
   const offsetRef = useRef(0);        // diferența de ceas server − client (ms)
   const lastPosRef = useRef(null);    // { position, at } — ultima poziție cunoscută de la server
 
+  const [hasPlaybackIntent, setHasPlaybackIntent] = useState(false);
   const [mode, setModeState] = useState("live"); // "live" | "track"
   const [status, setStatusState] = useState("idle"); // idle | loading | playing | paused | stopped | error
   const [liveInfo, setLiveInfo] = useState(null);
@@ -88,11 +89,11 @@ export function RadioProvider({ children }) {
       setCurrent(data.track);
       currentRef.current = data.track;
       const audio = audioRef.current;
-      if (!audio) return;
+      if (!audio || !wantPlayRef.current) return;
       if (audio.getAttribute("data-track") !== data.track.id) {
         // piesă nouă la radio — schimbă sursa o singură dată
         loadSrc(data.track, data.position);
-        if (statusRef.current === "playing") audio.play().catch(() => setStatus("error"));
+
       } else if (audio.ended && (statusRef.current === "playing" || statusRef.current === "loading")) {
         // piesa live s-a terminat natural → serverul a trecut mai departe; ne aliniem fără cooldown
         lastSeekRef.current = Date.now();
@@ -146,12 +147,13 @@ export function RadioProvider({ children }) {
     const audio = audioRef.current;
     if (!audio || !current) return;
     wantPlayRef.current = true;
+    setHasPlaybackIntent(true);
     if (modeRef.current === "live") {
       setStatus("loading");
       // revenire după stop/pauză → ne realiniem la secunda live, apoi pornim
       syncLive().then(() => {
         const a = audioRef.current;
-        if (!a) return;
+        if (!a || a.readyState < 1) return;
         setStatus("playing");
         a.play().catch(() => setStatus("error"));
       });
@@ -187,6 +189,7 @@ export function RadioProvider({ children }) {
   const playTrack = useCallback((t, list) => {
     const q = list || queue;
     wantPlayRef.current = true;
+    setHasPlaybackIntent(true);
     setMode("track");
     setCurrent(t);
     currentRef.current = t;
@@ -233,11 +236,12 @@ export function RadioProvider({ children }) {
 
   const backToLive = useCallback(() => {
     wantPlayRef.current = true;
+    setHasPlaybackIntent(true);
     setMode("live");
     setTrackIdx(-1);
     syncLive().then(() => {
       const audio = audioRef.current;
-      if (audio) {
+      if (audio && audio.readyState >= 1) {
         setStatus("playing");
         audio.play().catch(() => setStatus("error"));
       }
@@ -323,7 +327,7 @@ export function RadioProvider({ children }) {
   };
 
   return (
-    <RadioContext.Provider value={{
+    <RadioContext.Provider value={{ hasPlaybackIntent,
       mode, status, playing, liveInfo, current, queue, trackIdx, progress, duration, volume, muted, listeners,
       shuffle, repeat, toggleShuffle, cycleRepeat,
       play, pause, stop, toggle, next, prev, seek, setVolume, toggleMute, playTrack, backToLive, syncLive,

@@ -1,8 +1,9 @@
 import React from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, Youtube, Instagram, Music2, AudioLines, Mail, Mountain, Package, MessageCircle } from "lucide-react";
+import { ArrowRight, Youtube, Instagram, Music2, AudioLines, Mail, Mountain, MessageCircle } from "lucide-react";
 
-const PAYPAL_URL = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=A8F6WTGW3RU94";
+const PAYPAL_URL = "https://www.paypal.com/ncp/payment/47UXM5YBBLLPQ";
 const DISCORD_URL = "https://discord.gg/jhCDSq7vqu";
 
 const SOCIALS = [
@@ -14,25 +15,25 @@ const SOCIALS = [
 
 // Homepage — introducerea în universul BIOXIC: identitate, label, sample pack, contact. Nu biografie.
 export default function Noutati() {
+  const reduceMotion = useReducedMotion();
+  const entrance = (delay = 0) => ({
+    initial: reduceMotion ? false : { opacity: 0, y: 22 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.72, delay, ease: [0.22, 1, 0.36, 1] },
+  });
+
   return (
     <div data-testid="home-page" className="relative">
       {/* ============ HERO ============ */}
-      <section className="max-w-[1240px] mx-auto px-4 sm:px-8 pt-12 sm:pt-20 pb-16">
-        <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          <div className="lg:col-span-7 rv">
-            <p className="sec-kicker" data-testid="hero-kicker">Producător muzical · Focșani, România</p>
-            <img
-              src="/logo-dark.png"
-              alt="BIOXIC"
-              className="h-20 sm:h-24 lg:h-28 w-auto mt-6 -ml-1 brand-logo-3d"
-              data-testid="hero-logo"
-            />
-            <p className="font-display text-2xl sm:text-3xl lg:text-4xl mt-4 tracking-tight" data-testid="hero-slogan">
-              No risks, <span className="text-[var(--flame)]">no hits.</span>
-            </p>
-            <p className="text-[var(--text-2)] text-sm sm:text-base leading-relaxed mt-5 max-w-md" data-testid="hero-intro">
-              Sunt Cristian Maxim — producător și fondatorul casei de discuri Everest Manele.
-              Construiesc remixuri și producții care se aud peste tot.
+      <section className="home-hero">
+        <div className="hero-composition">
+          <motion.div className="hero-story" {...entrance(0.08)}>
+            <p className="hero-eyebrow" data-testid="hero-kicker">Cristian Maxim / România — UK</p>
+            <h1 className="hero-title">BIOXIC<span className="hero-period">.</span></h1>
+            <p className="hero-manifesto" data-testid="hero-slogan">Unde rădăcinile<br />întâlnesc viitorul.</p>
+            <p className="text-[var(--text-2)] text-base sm:text-lg leading-relaxed mt-6 max-w-lg" data-testid="hero-intro">
+              Cristian Maxim este BIOXIC — producător muzical și fondatorul Everest Manele.
+              O identitate construită între România și Regatul Unit.
             </p>
             <div className="flex flex-wrap items-center gap-3.5 mt-8">
               <Link to="/despre" className="btn-flame" data-testid="hero-btn-despre">Despre mine</Link>
@@ -51,12 +52,20 @@ export default function Noutati() {
                 );
               })}
             </div>
-          </div>
-          <div className="lg:col-span-5 rv rv-d1">
-            <div className="hero-portrait aspect-[4/5] max-w-[420px] mx-auto lg:ml-auto rotate-1 hover:rotate-0 transition-transform duration-500" data-testid="hero-portrait">
-              <img src="/artist.jpg" alt="BIOXIC — Cristian Maxim" />
-            </div>
-          </div>
+          </motion.div>
+          <motion.figure className="hero-image-column" {...entrance(0.2)}>
+            <motion.div
+              className="hero-portrait"
+              data-testid="hero-portrait"
+              initial={reduceMotion ? false : { clipPath: "inset(0 0 100% 0)", scale: 1.025 }}
+              animate={{ clipPath: "inset(0 0 0% 0)", scale: 1 }}
+              transition={{ duration: 1.05, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <img src="/artist.jpg" alt="BIOXIC — Cristian Maxim" fetchPriority="high" />
+              <span className="portrait-index" aria-hidden="true">01 / BIOXIC</span>
+            </motion.div>
+            <figcaption className="hero-caption"><span>Music producer</span><span>Founder · Everest Manele</span></figcaption>
+          </motion.figure>
         </div>
       </section>
 
@@ -75,8 +84,10 @@ export default function Noutati() {
             </Link>
           </div>
           <div className="lg:col-span-7 rv rv-d1">
-            <div className="hero-portrait aspect-[16/9]" data-testid="home-label-photo">
-              <img src="/artist.jpg" alt="Everest Manele — în studio" className="!object-top" loading="lazy" />
+            <div className="label-art" data-testid="home-label-art">
+              <Mountain size={64} strokeWidth={1} aria-hidden="true" />
+              <strong>EVEREST<br />MANELE</strong>
+              <span>Label independent / BIOXIC</span>
             </div>
           </div>
         </div>
@@ -128,20 +139,6 @@ export default function Noutati() {
             </a>
           </div>
         </div>
-      </section>
-
-      {/* ============ SAMPLE PACK teaser vizual → pagina dedicată ============ */}
-      <section className="max-w-[1240px] mx-auto px-4 sm:px-8 pb-8" data-testid="home-pack-link">
-        <Link to="/sample-pack" className="news-card group flex items-center gap-5 p-6 sm:p-7 rv" data-testid="home-pack-card">
-          <span className="grid place-items-center w-14 h-14 rounded-2xl shrink-0" style={{ background: "linear-gradient(180deg,#E06D44,#9E3C1B)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.4), 0 10px 22px -8px rgba(200,90,50,.5)" }}>
-            <Package size={22} color="#fff" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-display text-lg sm:text-xl">Sample Pack Vol. 1</span>
-            <span className="block text-[11px] font-mono-x uppercase tracking-[0.18em] text-[var(--text-3)] mt-1">Everest Manele · disponibil acum</span>
-          </span>
-          <ArrowRight size={18} className="text-[var(--text-3)] group-hover:text-[var(--flame)] group-hover:translate-x-1 transition-all shrink-0" />
-        </Link>
       </section>
     </div>
   );

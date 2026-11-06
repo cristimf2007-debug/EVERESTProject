@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Phone, Mail, Music2, Instagram, Youtube, AudioLines, Send, Loader2, MessageCircle, Heart, Copy } from "lucide-react";
 import { toast } from "sonner";
 import api, { formatApiError } from "@/lib/api";
-import PayPalButton from "@/components/PayPalButton";
 
 const SOCIALS = [
   { label: "Discord", handle: "BIOXIC House", href: "https://discord.gg/jhCDSq7vqu", icon: MessageCircle, tid: "contact-discord" },
@@ -44,6 +43,8 @@ function CopyChip({ value, tid }) {
 export default function Contact() {
   const [cName, setCName] = useState("");
   const [cEmail, setCEmail] = useState("");
+  const [cSubject, setCSubject] = useState("");
+  const [cType, setCType] = useState("Colaborări muzicale");
   const [cMessage, setCMessage] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -52,9 +53,14 @@ export default function Contact() {
     if (!cName.trim() || !cEmail.trim() || !cMessage.trim()) return;
     setSending(true);
     try {
-      await api.post("/contact", { name: cName.trim(), email: cEmail.trim(), subject: "Mesaj din site", message: cMessage.trim() });
-      toast.success("Mesaj trimis!", { description: "Ajungе direct la BIOXIC — îți răspunde pe email." });
-      setCName(""); setCEmail(""); setCMessage("");
+      await api.post("/contact", {
+        name: cName.trim(),
+        email: cEmail.trim(),
+        subject: `${cType}: ${cSubject.trim()}`,
+        message: cMessage.trim(),
+      });
+      toast.success("Mesaj trimis!", { description: "Mesajul a fost confirmat de server." });
+      setCName(""); setCEmail(""); setCSubject(""); setCType("Colaborări muzicale"); setCMessage("");
     } catch (err) {
       toast.error(formatApiError(err));
     } finally {
@@ -87,8 +93,7 @@ export default function Contact() {
         <div className="ob-card p-5 rv rv-d1" data-testid="contact-card-support">
           <span className="knob !w-11 !h-11" style={{ color: "var(--flame)" }}><Heart size={16} /></span>
           <p className="font-display text-sm uppercase mt-3.5">Susține</p>
-          <p className="text-xs text-[var(--text-2)] mt-1.5">Fiecare donație înseamnă o piesă nouă.</p>
-          <div className="mt-3" data-testid="contact-paypal-wrap"><PayPalButton testid="contact-paypal" /></div>
+          <p className="text-xs text-[var(--text-2)] mt-1.5">Sprijin opțional prin transfer bancar.</p>
           <p className="text-[9px] font-mono-x uppercase tracking-[0.18em] text-[var(--text-3)] mt-3.5 mb-1.5">Transfer UK · C Maxim</p>
           <div className="flex flex-wrap gap-1.5">
             {BANK.map((b) => <CopyChip key={b.label} value={b.value} tid={b.tid} />)}
@@ -117,7 +122,7 @@ export default function Contact() {
         <form onSubmit={sendContact} className="ob-card p-5 sm:p-7 mt-6 max-w-2xl" data-testid="contact-form">
           <div className="grid sm:grid-cols-2 gap-3">
             <input
-              data-testid="contact-name"
+              aria-label="Nume" data-testid="contact-name"
               value={cName}
               onChange={(e) => setCName(e.target.value)}
               placeholder="Numele tău"
@@ -126,7 +131,7 @@ export default function Contact() {
               className="input-recessed px-4 py-3 text-sm outline-none"
             />
             <input
-              data-testid="contact-email"
+              aria-label="Email" data-testid="contact-email"
               type="email"
               value={cEmail}
               onChange={(e) => setCEmail(e.target.value)}
@@ -136,8 +141,31 @@ export default function Contact() {
               className="input-recessed px-4 py-3 text-sm outline-none"
             />
           </div>
+          <div className="grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 mt-3">
+            <input
+              aria-label="Subiect" data-testid="contact-subject"
+              value={cSubject}
+              onChange={(e) => setCSubject(e.target.value)}
+              placeholder="Subiectul mesajului"
+              maxLength={120}
+              required
+              className="input-recessed px-4 py-3 text-sm outline-none"
+            />
+            <select
+              aria-label="Tipul mesajului" data-testid="contact-type"
+              value={cType}
+              onChange={(e) => setCType(e.target.value)}
+              className="input-recessed px-4 py-3 text-sm outline-none"
+              aria-label="Tip solicitare"
+            >
+              <option>Colaborări muzicale</option>
+              <option>Parteneriate</option>
+              <option>Solicitări comerciale</option>
+              <option>Contact general</option>
+            </select>
+          </div>
           <textarea
-            data-testid="contact-message"
+            aria-label="Mesaj" data-testid="contact-message"
             value={cMessage}
             onChange={(e) => setCMessage(e.target.value)}
             placeholder="Salut BIOXIC! Am o propunere / o întrebare…"

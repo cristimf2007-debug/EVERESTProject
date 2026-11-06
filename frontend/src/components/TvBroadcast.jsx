@@ -17,7 +17,7 @@ const MAX_PROMOS = 4;   // maximum 4 clipuri în secvența de deschidere
    ============================================================ */
 const TV = {
   node: null, hls: null, promos: null, timers: [],
-  state: { stage: "idle", playing: false, muted: false, promoIdx: 0, promoCount: 0, err: "" },
+  state: { stage: "idle", playing: false, muted: false, volume: 0.8, promoIdx: 0, promoCount: 0, err: "" },
   listeners: new Set(),
   radioPause: null, // injectat de componentă (pause-ul radioului)
 };
@@ -71,6 +71,7 @@ function goLive() {
     setTV({ err: "Browserul tău nu suportă streamul TV." });
     return;
   }
+  v.volume = TV.state.volume;
   v.muted = TV.state.muted;
   v.play().catch(() => setTV({ err: "Apasă încă o dată pentru pornire." }));
 }
@@ -92,6 +93,7 @@ function playPromo() {
   if (!v || !p) { TV.state.introDone = true; goLive(); return; }
   const src = mediaUrl(p.video_url);
   if (v.dataset.src !== src) { v.src = src; v.dataset.src = src; }
+  v.volume = TV.state.volume;
   v.muted = TV.state.muted;
   v.play().catch(() => { TV.state.introDone = true; goLive(); });
 }
@@ -131,6 +133,14 @@ function toggleMuteTV() {
   if (iv) iv.muted = nv;
 }
 
+function setTVVolume(volume) {
+  const next = Math.max(0, Math.min(1, volume));
+  setTV({ volume: next });
+  const lv = liveVideo(); const iv = introVideo();
+  if (lv) lv.volume = next;
+  if (iv) iv.volume = next;
+}
+
 // creează nodul persistent o singură dată
 function ensureNode() {
   if (TV.node) return TV.node;
@@ -144,6 +154,8 @@ function ensureNode() {
   iv.dataset.role = "intro";
   iv.playsInline = true;
   iv.setAttribute("data-testid", "tv-intro-video");
+  lv.volume = TV.state.volume;
+  iv.volume = TV.state.volume;
   node.appendChild(lv);
   node.appendChild(iv);
   // starea „playing" se derivează din video-ul activ — imună la ordinea evenimentelor play/pause
@@ -277,6 +289,17 @@ export default function TvBroadcast() {
             <button onClick={toggleMuteTV} className="knob knob-sm" aria-label={st.muted ? "Cu sunet" : "Fără sunet"} data-testid="tv-mute">
               {st.muted ? <VolumeX /> : <Volume2 />}
             </button>
+            <input
+              className="tv-volume"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={st.volume}
+              onChange={(event) => setTVVolume(Number(event.target.value))}
+              aria-label="Volum TV"
+              data-testid="tv-volume"
+            />
             <span className="hidden sm:flex items-center gap-2 font-mono-x text-[10px] uppercase tracking-widest text-[var(--text-3)]">
               <Tv size={12} /> {st.stage === "promo" ? `Intro ${st.promoIdx + 1}/${st.promoCount}` : "1080p · AAC · live edge"}
             </span>

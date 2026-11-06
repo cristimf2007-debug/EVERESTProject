@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -7,19 +7,41 @@ import { formatApiError } from "@/lib/api";
 
 // Login fani — Google (principal) sau email. `blocking` = poartă obligatorie: nu se închide până nu intri în cont
 export default function LoginModal({ onClose, blocking = false }) {
-  const { loginGoogle, loginEmail, registerEmail } = useFan();
+  const { loginGoogle, loginEmail, registerEmail, authError, setAuthError } = useFan();
   const [tab, setTab] = useState("google"); // google | email
   const [mode, setMode] = useState("login"); // login | register
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const panelRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  const blockingRef = useRef(blocking);
+  onCloseRef.current = onClose;
+  blockingRef.current = blocking;
 
-  // cât e deschis, pagina din spate nu derulează
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    const previousFocus = document.activeElement;
+    panelRef.current?.querySelector("button")?.focus();
+    const onKeyDown = (event) => {
+      if (event.key === "Escape" && !blockingRef.current) onCloseRef.current?.();
+      if (event.key === "Tab" && panelRef.current) {
+        const items = [...panelRef.current.querySelectorAll("button:not(:disabled), input:not(:disabled)")];
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKeyDown);
+      previousFocus?.focus?.();
+    };
   }, []);
 
   const submitEmail = async (e) => {
@@ -33,9 +55,10 @@ export default function LoginModal({ onClose, blocking = false }) {
         await loginEmail(email.trim(), password);
       }
       toast.success("Bine ai venit în seif!");
+      setAuthError("");
       onClose?.();
     } catch (err) {
-      toast.error(formatApiError(err));
+      setAuthError(formatApiError(err));
     } finally {
       setBusy(false);
     }
@@ -45,15 +68,20 @@ export default function LoginModal({ onClose, blocking = false }) {
     <div
       className="fixed inset-0 z-[160] grid place-items-center px-4 login-bg"
       data-testid="login-modal"
-      onClick={blocking ? undefined : onClose}
+      onClick={blocking ? undefined : () => { setAuthError(""); onClose?.(); }}
+      role="presentation"
     >
       <div
+        ref={panelRef}
         className="login-panel relative w-[360px] sm:w-[420px] p-8 sm:p-9"
         style={{ animation: "player-rise .45s cubic-bezier(.2,.9,.25,1.2) both" }}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="login-modal-title"
       >
         {!blocking && (
-          <button onClick={onClose} aria-label="Închide" data-testid="login-close" className="knob knob-sm absolute top-4 right-4">
+          <button onClick={() => { setAuthError(""); onClose?.(); }} aria-label="Închide" data-testid="login-close" className="knob knob-sm absolute top-4 right-4">
             <X />
           </button>
         )}
@@ -70,7 +98,7 @@ export default function LoginModal({ onClose, blocking = false }) {
         </div>
         {blocking ? (
           <>
-            <h3 className="font-display text-2xl text-center mt-5 flex items-center justify-center gap-2" data-testid="login-gate-title">
+            <h3 id="login-modal-title" className="font-display text-2xl text-center mt-5 flex items-center justify-center gap-2" data-testid="login-gate-title">
               <Lock size={16} className="text-[var(--flame)]" /> Zonă pentru membri
             </h3>
             <p className="text-sm text-[var(--text-2)] text-center mt-2 mb-7 leading-relaxed">
@@ -79,16 +107,27 @@ export default function LoginModal({ onClose, blocking = false }) {
           </>
         ) : (
           <>
-            <h3 className="font-display text-2xl text-center mt-5">Intră în cont</h3>
-            <p className="text-sm text-[var(--text-2)] text-center mt-2 mb-7 leading-relaxed">Cont cu nume și poză de profil — apare pe chat și la păreri.</p>
+            <h3 id="login-modal-title" className="font-display text-2xl text-center mt-5">Bine ai venit la BIOXIC</h3>
+            <p className="text-sm text-[var(--text-2)] text-center mt-2 mb-5 leading-relaxed">Intră în comunitate pentru profilul tău, prieteni și conversații private.</p>
           </>
         )}
 
+        {authError && <p role="alert" className="mb-3 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">{authError}</p>}
         {tab === "google" ? (
           <>
-            <button data-testid="login-google-button" onClick={loginGoogle} className="btn-x gold w-full justify-center !py-4 text-xs font-black uppercase tracking-[0.15em]">
+            <div className="mb-6 grid grid-cols-3 gap-2 text-center">
+              {["Profil personal", "Prieteni", "Mesaje private"].map((item) => (
+                <span key={item} className="rounded-xl border border-[var(--edge)] bg-white/[.025] px-2 py-2.5 text-[10px] leading-snug text-[var(--text-2)]">{item}</span>
+              ))}
+            </div>
+            <button data-testid="login-google-button" disabled={busy} onClick={async () => {
+              setBusy(true);
+              setAuthError("");
+              try { await loginGoogle(); }
+              catch { setBusy(false); setAuthError("Nu am putut porni autentificarea Google. Încearcă din nou."); }
+            }} className="btn-x gold w-full justify-center !py-4 text-xs font-black uppercase tracking-[0.15em] disabled:opacity-60">
               <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#032530" d="M21.35 11.1H12v2.9h5.35c-.5 2.4-2.55 3.9-5.35 3.9a5.9 5.9 0 1 1 0-11.8c1.5 0 2.85.55 3.9 1.45l2.2-2.2A8.9 8.9 0 1 0 12 20.9c4.45 0 8.55-3.2 8.55-8.9 0-.3-.05-.6-.1-.9z"/></svg>
-              Continuă cu Google
+              {busy ? "Se conectează…" : "Continuă cu Google"}
             </button>
             <button data-testid="login-email-tab" onClick={() => setTab("email")} className="w-full text-center text-[11px] font-mono-x uppercase tracking-widest text-[var(--text-3)] hover:text-[var(--flame)] transition-colors mt-6">
               sau cu email →

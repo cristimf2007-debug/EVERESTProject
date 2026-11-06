@@ -1,0 +1,500 @@
+// Prisma Schema — BIOXIC (PostgreSQL)
+// Migrat de la MongoDB → PostgreSQL cu Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Utilizatori & Autentificare ----------
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique @db.VarChar(255)
+  password_hash String?  @db.Text
+  role          String   @default("fan") @db.VarChar(50) // admin | fan
+  avatar_url    String?  @db.Text
+  banner_url    String?  @db.Text
+  bio           String?  @db.Text
+  is_banned     Boolean  @default(false)
+  banned_reason String?  @db.Text
+  last_login    DateTime? @db.Timestamptz
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  sessions      UserSession[]
+  login_attempts LoginAttempt[]
+  favorites     FanFavorite[]
+  followers     Follow[] @relation("Follower")
+  following     Follow[] @relation("Following")
+  channel_subs  ChannelSub[]
+  notifications Notification[]
+  comments      Comment[]
+  video_comments VideoComment[]
+  video_likes   VideoLike[]
+  reviews       Review[]
+  banned        BannedUser[]
+  muted         MutedUser[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id            String   @id @default(uuid()) @db.Uuid
+  user_id       String   @db.Uuid
+  session_token String   @unique @db.VarChar(255)
+  expires_at    DateTime @db.Timestamptz
+  created_at    DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([session_token])
+  @@index([expires_at])
+  @@map("user_sessions")
+}
+
+model LoginAttempt {
+  id           String     @id @default(uuid()) @db.Uuid
+  identifier   String     @unique @db.VarChar(255)
+  count        Int        @default(0)
+  locked_until DateTime?  @db.Timestamptz
+  created_at   DateTime   @default(now()) @db.Timestamptz
+  updated_at   DateTime   @default(now()) @db.Timestamptz
+
+  user         User?      @relation(fields: [identifier], references: [email], onDelete: Cascade)
+
+  @@index([identifier])
+  @@map("login_attempts")
+}
+
+// ---------- Piese / Tracks ----------
+
+model Track {
+  id             String      @id @default(uuid()) @db.Uuid
+  title          String      @db.VarChar(255)
+  artist         String      @default("BIOXIC") @db.VarChar(255)
+  genre          String      @db.VarChar(100)
+  tags           Json?
+  lyrics         String?     @db.Text
+  audio_url      String?     @db.Text
+  cover_url      String?     @db.Text
+  download_enabled Boolean   @default(true)
+  plays          Int         @default(0)
+  likes          Int         @default(0)
+  duration       Int?        @default(0) // secunde
+  created_at     DateTime    @default(now()) @db.Timestamptz
+
+  comments       Comment[]
+  favorites      FanFavorite[]
+  song_requests  SongRequest[]
+  live_schedule  LiveSchedule[]
+  live           Live[]
+  radio          Radio[]
+
+  @@index([genre])
+  @@index([created_at])
+  @@map("tracks")
+}
+
+model File {
+  id               String   @id @default(uuid()) @db.Uuid
+  storage_path     String   @unique @db.VarChar(500)
+  serve_url        String   @unique @db.VarChar(500)
+  original_filename String? @db.VarChar(255)
+  content_type     String?  @db.VarChar(100)
+  size             Int?
+  is_deleted       Boolean  @default(false)
+  created_at       DateTime @default(now()) @db.Timestamptz
+
+  @@index([storage_path])
+  @@index([serve_url])
+  @@map("files")
+}
+
+// ---------- Chat ----------
+
+model Chat {
+  id        String   @id @default(uuid()) @db.Uuid
+  user_id   String?  @db.Uuid
+  username  String   @default("Anonim") @db.VarChar(100)
+  message   String   @db.Text
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@index([created_at])
+  @@map("chat")
+}
+
+// ---------- Comentarii pe piese ----------
+
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  track_id  String   @db.Uuid
+  user_id   String?  @db.Uuid
+  content   String   @db.Text
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  track  Track @relation(fields: [track_id], references: [id], onDelete: Cascade)
+  user   User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([track_id])
+  @@index([user_id])
+  @@map("comments")
+}
+
+// ---------- Recenzii ----------
+
+model Review {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String?  @db.Uuid
+  name       String   @default("Anonim") @db.VarChar(255)
+  rating     Int      @default(5)
+  comment    String?  @db.Text
+  is_approved Boolean @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([is_approved])
+  @@index([created_at])
+  @@map("reviews")
+}
+
+// ---------- Videoclipuri ----------
+
+model Video {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  video_url   String?  @db.Text
+  cover_url   String?  @db.Text
+  views       Int      @default(0)
+  likes       Int      @default(0)
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  comments    VideoComment[]
+  likes_rel   VideoLike[]
+
+  @@index([created_at])
+  @@map("videos")
+}
+
+model VideoComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  video_id  String   @db.Uuid
+  user_id   String?  @db.Uuid
+  content   String   @db.Text
+  is_pinned Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  video Video @relation(fields: [video_id], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([video_id])
+  @@index([user_id])
+  @@map("video_comments")
+}
+
+model VideoLike {
+  id        String   @id @default(uuid()) @db.Uuid
+  video_id  String   @db.Uuid
+  user_id   String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  video Video @relation(fields: [video_id], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([video_id, user_id])
+  @@index([video_id])
+  @@index([user_id])
+  @@map("video_likes")
+}
+
+// ---------- TV ----------
+
+model TvSchedule {
+  id           String   @id @default(uuid()) @db.Uuid
+  day_of_week  Int   // 0-6 (Duminică-Sâmbătă)
+  time         String   @db.VarChar(50) // HH:MM
+  title        String   @db.VarChar(255)
+  description  String?  @db.Text
+  created_at   DateTime @default(now()) @db.Timestamptz
+
+  @@index([day_of_week])
+  @@index([time])
+  @@map("tv_schedule")
+}
+
+// ---------- Anunțări ----------
+
+model Announcement {
+  id         String   @id @default(uuid()) @db.Uuid
+  title      String   @db.VarChar(255)
+  content    String   @db.Text
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@index([is_active])
+  @@index([created_at])
+  @@map("announcements")
+}
+
+// ---------- Contacte ----------
+
+model Contact {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(255)
+  email     String   @db.VarChar(255)
+  subject   String?  @db.VarChar(255)
+  message   String   @db.Text
+  is_read   Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@index([is_read])
+  @@index([created_at])
+  @@map("contacts")
+}
+
+// ---------- Newsletter ----------
+
+model Newsletter {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String   @unique @db.VarChar(255)
+  subscribed_at DateTime @default(now()) @db.Timestamptz
+
+  @@map("newsletter")
+}
+
+// ---------- Conținut site ----------
+
+model SiteContent {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique @db.VarChar(255)
+  value     String   @db.Text
+  updated_at DateTime @default(now()) @db.Timestamptz
+
+  @@map("site_content")
+}
+
+// ---------- Live / Radio ----------
+
+model Live {
+  id              String   @id @default(uuid()) @db.Uuid
+  is_live         Boolean  @default(false)
+  current_track_id String? @unique @db.Uuid
+  listeners       Int      @default(0)
+  started_at      DateTime? @db.Timestamptz
+  updated_at      DateTime @default(now()) @db.Timestamptz
+
+  current_track Track? @relation(fields: [current_track_id], references: [id], onDelete: SetNull)
+
+  @@index([is_live])
+  @@map("live")
+}
+
+model LiveSchedule {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  start_time  DateTime @db.Timestamptz
+  end_time    DateTime @db.Timestamptz
+  track_id    String?  @db.Uuid
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  track Track? @relation(fields: [track_id], references: [id], onDelete: SetNull)
+
+  @@index([start_time])
+  @@index([end_time])
+  @@map("live_schedule")
+}
+
+model Radio {
+  id             String   @id @default(uuid()) @db.Uuid
+  is_playing     Boolean  @default(false)
+  current_track_id String? @unique @db.Uuid
+  position       Int      @default(0) // secunde
+  duration       Int      @default(0) // secunde
+  queue          Json?
+  updated_at     DateTime @default(now()) @db.Timestamptz
+
+  current_track Track? @relation(fields: [current_track_id], references: [id], onDelete: SetNull)
+
+  @@map("radio")
+}
+
+model RadioListener {
+  id        String   @id @default(uuid()) @db.Uuid
+  sid       String   @unique @db.VarChar(255)
+  joined_at DateTime @default(now()) @db.Timestamptz
+
+  @@index([sid])
+  @@map("radio_listeners")
+}
+
+// ---------- Cereri piese (Live) ----------
+
+model SongRequest {
+  id          String   @id @default(uuid()) @db.Uuid
+  track_id    String   @db.Uuid
+  user_name   String   @default("Anonim") @db.VarChar(255)
+  status      String   @default("pending") @db.VarChar(50) // pending | approved | rejected | played
+  requested_at DateTime @default(now()) @db.Timestamptz
+
+  track Track @relation(fields: [track_id], references: [id], onDelete: Cascade)
+
+  @@index([track_id])
+  @@index([status])
+  @@map("song_requests")
+}
+
+// ---------- Fan features ----------
+
+model FanFavorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  user_id   String   @db.Uuid
+  track_id  String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  user  User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  track Track @relation(fields: [track_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, track_id])
+  @@index([user_id])
+  @@index([track_id])
+  @@map("fan_favorites")
+}
+
+model Follow {
+  id         String   @id @default(uuid()) @db.Uuid
+  follower_id String  @db.Uuid
+  following_id String @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  follower User @relation("Follower", fields: [follower_id], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [following_id], references: [id], onDelete: Cascade)
+
+  @@unique([follower_id, following_id])
+  @@index([follower_id])
+  @@index([following_id])
+  @@map("follows")
+}
+
+model ChannelSub {
+  id           String   @id @default(uuid()) @db.Uuid
+  user_id      String   @db.Uuid
+  channel_id   String   @db.VarChar(255)
+  subscribed_at DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([channel_id])
+  @@map("channel_subs")
+}
+
+// ---------- Notificări ----------
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  user_id   String   @db.Uuid
+  type      String   @db.VarChar(100)
+  title     String   @db.VarChar(255)
+  content   String?  @db.Text
+  is_read   Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([is_read])
+  @@index([created_at])
+  @@map("notifications")
+}
+
+// ---------- Vizite ----------
+
+model Visit {
+  id        String   @id @default(uuid()) @db.Uuid
+  path      String   @db.VarChar(500)
+  count     Int      @default(1)
+  last_visit DateTime @default(now()) @db.Timestamptz
+
+  @@index([path])
+  @@map("visits")
+}
+
+// ---------- Securitate ----------
+
+model BannedUser {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  reason     String?  @db.Text
+  banned_at  DateTime @default(now()) @db.Timestamptz
+  expires_at DateTime? @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("banned_users")
+}
+
+model MutedUser {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  reason     String?  @db.Text
+  muted_at   DateTime @default(now()) @db.Timestamptz
+  expires_at DateTime? @db.Timestamptz
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("muted_users")
+}
+
+model SecurityBan {
+  id         String   @id @default(uuid()) @db.Uuid
+  ip         String   @unique @db.VarChar(100)
+  reason     String?  @db.Text
+  banned_at  DateTime @default(now()) @db.Timestamptz
+  expires_at DateTime? @db.Timestamptz
+
+  @@index([ip])
+  @@map("security_bans")
+}
+
+model SecurityEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  type      String   @db.VarChar(100)
+  ip        String   @db.VarChar(100)
+  details   Json?
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@index([type])
+  @@index([ip])
+  @@index([created_at])
+  @@map("security_events")
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  type      String   @db.VarChar(100)
+  user_email String? @db.VarChar(255)
+  description String? @db.Text
+  ip        String?  @db.VarChar(100)
+  ts        DateTime @default(now()) @db.Timestamptz
+
+  @@index([type])
+  @@index([ts])
+  @@map("activity_log")
+}
+
+model BannedName {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(255)
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@map("banned_names")
+}

@@ -12,11 +12,14 @@ Straturi:
 5. Rate limiting: global 120/min + strict 10/min pe auth + limite per endpoint sensibil
 6. Detectare scanere după rafale de 404
 7. „Attack mode": la trafic anormal de mare, limitele se strâng temporar
-8. Jurnal `security_events` — fără parole, token-uri, cookie-uri sau corpuri de cereri
+8. IP-urile forwarded sunt acceptate doar de la TRUSTED_PROXIES explicit configurate
+9. Jurnal `security_events` — fără parole, token-uri, cookie-uri sau corpuri de cereri
 """
 
 import asyncio
+import ipaddress
 import logging
+import os
 import time
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -28,6 +31,13 @@ from fastapi.responses import JSONResponse
 logger = logging.getLogger("bioxic.security")
 
 _db = None  # injectat din server.py prin init_security()
+_TRUSTED_PROXIES = []
+for _proxy in os.environ.get("TRUSTED_PROXIES", "").split(","):
+    try:
+        if _proxy.strip():
+            _TRUSTED_PROXIES.append(ipaddress.ip_network(_proxy.strip(), strict=False))
+    except ValueError:
+        logger.error("Ignoring invalid TRUSTED_PROXIES entry")
 
 def init_security(db):
     global _db
@@ -103,10 +113,30 @@ _stats = {"blocked_today": 0, "day": "", "waf_hits": 0, "bans_total": 0}
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
+def client_ip_from_headers(headers, peer_host: str) -> str:
+    try:
+        peer = ipaddress.ip_address(peer_host.split("%", 1)[0])
+    except (AttributeError, ValueError):
+        return "?"
+
+    peer_is_trusted = any(peer in network for network in _TRUSTED_PROXIES)
+    if not peer_is_trusted:
+        return peer.compressed
+
+    forwarded = headers.get("x-forwarded-for", "")
+    for candidate in reversed(forwarded.split(",")):
+        try:
+            address = ipaddress.ip_address(candidate.strip().strip('"').split("%", 1)[0])
+        except ValueError:
+            continue
+        if any(address in network for network in _TRUSTED_PROXIES):
+            continue
+        return address.compressed
+    return peer.compressed
+
 def client_ip(request: Request) -> str:
-    return request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
-        request.client.host if request.client else "?"
-    )
+    peer_host = request.client.host if request.client else ""
+    return client_ip_from_headers(request.headers, peer_host)
 
 def _hit(bucket: dict, key: str, window: int) -> int:
     now = time.time()

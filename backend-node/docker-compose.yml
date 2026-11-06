@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bioxic-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set a unique URL-safe POSTGRES_PASSWORD}"
+      POSTGRES_DB: bioxic
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bioxic"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    container_name: bioxic-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD:?Set a unique URL-safe POSTGRES_PASSWORD}@postgres:5432/bioxic"
+      PORT: "5000"
+      NODE_ENV: "${NODE_ENV:-production}"
+      CORS_ORIGINS: "${CORS_ORIGINS:?Set the allowed website origins}"
+      JWT_SECRET: "${JWT_SECRET:?Set a random secret of at least 32 bytes}"
+      JWT_EXPIRES_IN: "24h"
+      ADMIN_EMAIL: "${ADMIN_EMAIL:?Set the initial administrator email}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set a unique administrator password of at least 16 characters}"
+      SITE_URL: "${SITE_URL:?Set the canonical website URL}"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
+      BIOXIC_STORAGE_DIR: "/app/uploads"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./uploads:/app/uploads
+    command: sh -c "npx prisma migrate deploy && node src/index.js"
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: bioxic-pgadmin
+    depends_on:
+      - postgres
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL:?Set the pgAdmin email}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD:?Set a unique pgAdmin password}"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

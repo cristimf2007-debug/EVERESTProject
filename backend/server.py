@@ -7,13 +7,14 @@ from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depend
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 import os, uuid, logging, json, asyncio, time, re, io, wave, struct, math
 from bson import ObjectId
-import bcrypt, jwt, httpx, requests
+import bcrypt, jwt, httpx
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
+from local_storage import get_object, put_object
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -25,43 +26,7 @@ sec.init_security(db)
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)  # fără Swagger/docs expuse
 api_router = APIRouter(prefix="/api")
 
-# ---------- EMERGENT OBJECT STORAGE ----------
-STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
-STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
-EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
 APP_NAME = "bioxic"
-_storage_key = None
-
-def init_storage(force: bool = False):
-    global _storage_key
-    if _storage_key and not force:
-        return _storage_key
-    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
-    resp.raise_for_status()
-    _storage_key = resp.json()["storage_key"]
-    return _storage_key
-
-def put_object(path: str, data: bytes, content_type: str) -> dict:
-    resp = requests.put(f"{STORAGE_URL}/objects/{path}",
-                        headers={"X-Storage-Key": init_storage(), "Content-Type": content_type},
-                        data=data, timeout=180)
-    if resp.status_code == 404:
-        init_storage(force=True)
-        resp = requests.put(f"{STORAGE_URL}/objects/{path}",
-                            headers={"X-Storage-Key": _storage_key, "Content-Type": content_type},
-                            data=data, timeout=180)
-    resp.raise_for_status()
-    return resp.json()
-
-def get_object(path: str):
-    resp = requests.get(f"{STORAGE_URL}/objects/{path}",
-                        headers={"X-Storage-Key": init_storage()}, timeout=120)
-    if resp.status_code == 404 and not path.startswith(APP_NAME):
-        init_storage(force=True)
-        resp = requests.get(f"{STORAGE_URL}/objects/{path}",
-                            headers={"X-Storage-Key": _storage_key}, timeout=120)
-    resp.raise_for_status()
-    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
 
 JWT_ALGORITHM = "HS256"
 CHANNEL_ID = "UC2gQmatVSAB3nzqeDmYY3gw"
@@ -117,13 +82,13 @@ async def get_current_admin(request: Request) -> dict:
         raise HTTPException(401, "Token invalid")
 
 class LoginInput(BaseModel):
-    email: str
-    password: str
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=1024)
 
 @api_router.post("/auth/login")
 async def login(input: LoginInput, request: Request, response: Response):
     email = input.email.lower().strip()
-    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
+    ip = client_ip(request)
     identifier = f"{ip}:{email}"
     attempts = await db.login_attempts.find_one({"identifier": identifier})
     if attempts and attempts.get("count", 0) >= 5:
@@ -152,33 +117,43 @@ async def auth_me(request: Request):
 
 @api_router.post("/auth/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token", path="/")
+    response.delete_cookie("access_token", path="/", httponly=True, secure=True, samesite="strict")
     return {"ok": True}
 
 async def seed_admin():
-    email = os.environ.get("ADMIN_EMAIL", "admin@bioxic.ro").lower()
-    password = os.environ.get("ADMIN_PASSWORD", "bioxic2024")
+    email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
+    password = os.environ.get("ADMIN_PASSWORD", "")
+    if (not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email) or
+            len(password.encode("utf-8")) < 16 or len(password.encode("utf-8")) > 72):
+        raise RuntimeError("Set a valid ADMIN_EMAIL and a unique ADMIN_PASSWORD between 16 and 72 bytes")
+
     existing = await db.users.find_one({"email": email})
     if not existing:
         await db.users.insert_one({"_id": str(uuid.uuid4()), "email": email,
                                    "password_hash": hash_password(password),
                                    "role": "admin", "created_at": datetime.now(timezone.utc).isoformat()})
-    elif not existing.get("password_hash") or not verify_password(password, existing["password_hash"]) or existing.get("role") != "admin":
-        # cont existent cu același email (ex. fan) → promovat la super-admin cu parola din .env
-        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password), "role": "admin"}})
+    elif existing.get("role") != "admin":
+        raise RuntimeError("ADMIN_EMAIL belongs to a non-admin account; resolve the account explicitly")
+    elif not existing.get("password_hash") or not verify_password(password, existing["password_hash"]):
+        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password)}})
     # EXCLUSIV: un singur super-admin — contul din .env; restul conturilor admin sunt retrogradate
     await db.users.update_many({"role": "admin", "email": {"$ne": email}},
                                {"$set": {"role": "fan", "demoted_at": datetime.now(timezone.utc).isoformat()}})
 
-# ---------- EMAIL (Resend managed, prin proxy Emergent) ----------
+# ---------- EMAIL (self-hosted SMTP) ----------
 from html import escape as html_escape
 from html.parser import HTMLParser
 from urllib.parse import urlparse
 import ipaddress
+import smtplib
+from email.message import EmailMessage
 
-EMAIL_BASE_URL = "https://integrations.emergentagent.com"  # constant, nu din env
-EMAIL_KEY = os.environ.get("EMERGENT_EMAIL_KEY")
 EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "BIOXIC")
+SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_FROM_EMAIL = os.environ.get("SMTP_FROM_EMAIL", SMTP_USER).strip()
 SITE_URL = os.environ.get("SITE_URL", "")
 
 _SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "goo.gl", "rebrand.ly")
@@ -245,23 +220,42 @@ def _assert_safe_email(subject: str, html: str) -> None:
             if not _same_site(m.group(1).lower(), real):
                 raise ValueError(f"Anchor text {m.group(1)!r} != link host {real!r} (G3)")
 
+def _send_smtp_email(*, to: str, subject: str, html: str):
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = f"{EMAIL_FROM_NAME} <{SMTP_FROM_EMAIL}>"
+    message["To"] = to
+    message.set_content("Acest mesaj BIOXIC este disponibil în format HTML.")
+    message.add_alternative(html, subtype="html")
+
+    if SMTP_PORT == 465:
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=30) as smtp:
+            if SMTP_USER:
+                smtp.login(SMTP_USER, SMTP_PASSWORD)
+            smtp.send_message(message)
+    else:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as smtp:
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.ehlo()
+            if SMTP_USER:
+                smtp.login(SMTP_USER, SMTP_PASSWORD)
+            smtp.send_message(message)
+    return message["Message-ID"]
+
+
 async def send_email(*, to: str, subject: str, html: str):
-    """Trimite email; niciodată nu aruncă — notificările nu blochează fluxul principal."""
-    if not EMAIL_KEY:
-        logger.warning("EMERGENT_EMAIL_KEY lipsă — email netrimis")
+    """Trimite email prin SMTP configurat local; notificările nu blochează fluxul principal."""
+    if not SMTP_HOST or not SMTP_FROM_EMAIL:
+        logger.warning("SMTP_HOST sau SMTP_FROM_EMAIL lipsește — email netrimis")
         return None
     try:
         _assert_safe_email(subject, html)
     except ValueError as ex:
         logger.error(f"Email blocat de gate: {ex}")
         return None
-    payload = {"to": [to], "subject": subject, "html": html, "from_name": EMAIL_FROM_NAME}
     try:
-        async with httpx.AsyncClient(timeout=30) as http:
-            resp = await http.post(f"{EMAIL_BASE_URL}/api/v1/email/send",
-                                   headers={"X-Email-Key": EMAIL_KEY}, json=payload)
-        resp.raise_for_status()
-        return resp.json().get("id")
+        return await asyncio.to_thread(_send_smtp_email, to=to, subject=subject, html=html)
     except Exception as ex:
         logger.warning(f"Email către {to} eșuat: {ex}")
         return None
@@ -356,7 +350,7 @@ async def add_announcement(a: AnnouncementInput, admin=Depends(get_current_admin
     asyncio.create_task(push_notification("anunt", doc["title"], doc["text"], "/"))
     asyncio.create_task(notify_subscribers(
         titlu=doc["title"], mesaj=doc["text"],
-        cta_text="Vezi site-ul", cta_url=SITE_URL or "https://bioxic-ai.preview.emergentagent.com",
+        cta_text="Vezi site-ul", cta_url=SITE_URL,
         subject=f"Anunț BIOXIC: {doc['title'][:60]}"))
     return doc
 
@@ -368,13 +362,13 @@ async def delete_announcement(aid: str, admin=Depends(get_current_admin)):
 # ---------- FAN ACCOUNTS (email/parolă + Google) ----------
 
 class FanRegister(BaseModel):
-    name: str
-    email: str
-    password: str
+    name: str = Field(min_length=1, max_length=60)
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=1024)
 
 class FanLogin(BaseModel):
-    email: str
-    password: str
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=1024)
 
 def create_fan_token(user_id: str, email: str) -> str:
     payload = {"sub": user_id, "email": email, "type": "fan",
@@ -384,7 +378,34 @@ def create_fan_token(user_id: str, email: str) -> str:
 def fan_out(u: dict) -> dict:
     return {"user_id": u.get("user_id") or u.get("_id"), "name": u.get("name", "Fan"),
             "email": u["email"], "picture": u.get("picture", ""), "role": u.get("role", "fan"),
-            "bio": u.get("bio", ""), "banner": u.get("banner", "")}
+            "bio": u.get("bio", ""), "banner": u.get("banner", ""),
+            "username": u.get("username", ""),
+            "privacy": u.get("privacy", {"profile_public": True, "show_followers": True,
+                                         "allow_friend_requests": True})}
+
+
+async def ensure_fan_username(user: dict) -> dict:
+    if user.get("username"):
+        return user
+    user_id = str(user.get("user_id") or user.get("_id") or uuid.uuid4().hex)
+    base = re.sub(r"[^a-z0-9]+", "-", (user.get("name") or "fan").lower()).strip("-")[:11] or "fan"
+    suffix = re.sub(r"[^a-zA-Z0-9]", "", user_id)[-12:].lower() or uuid.uuid4().hex[:12]
+    selector = {"_id": user["_id"]} if user.get("_id") is not None else {"user_id": user_id}
+    for attempt in range(5):
+        username = f"{base}-{suffix if attempt == 0 else uuid.uuid4().hex[:12]}"
+        existing = await db.users.find_one({"username": username}, {"user_id": 1, "_id": 1})
+        if existing and str(existing.get("user_id") or existing.get("_id")) != user_id:
+            continue
+        try:
+            await db.users.update_one(selector, {"$set": {"user_id": user_id, "username": username}})
+        except Exception as ex:
+            if ex.__class__.__name__ != "DuplicateKeyError":
+                raise
+            continue
+        user["user_id"] = user_id
+        user["username"] = username
+        return user
+    raise RuntimeError("Unable to allocate a unique BIOXIC username")
 
 async def get_current_fan(request: Request) -> dict:
     # 1. session_token (Google OAuth)
@@ -445,8 +466,8 @@ async def fan_register(f: FanRegister, request: Request, response: Response):
         raise HTTPException(400, "Completează numele")
     if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
         raise HTTPException(400, "Adresa de email nu pare validă")
-    if len(f.password) < 6:
-        raise HTTPException(400, "Parola trebuie să aibă minimum 6 caractere")
+    if len(f.password) < 6 or len(f.password.encode("utf-8")) > 72:
+        raise HTTPException(400, "Parola trebuie să aibă minimum 6 caractere și cel mult 72 de octeți")
     # anti-spam: maxim 5 conturi noi / oră / IP
     ip = client_ip(request)
     reg_key = f"reg:{ip}"
@@ -458,8 +479,11 @@ async def fan_register(f: FanRegister, request: Request, response: Response):
     if await db.users.find_one({"email": email}):
         raise HTTPException(400, "Există deja un cont cu acest email. Încearcă să te autentifici.")
     user_id = f"user_{uuid.uuid4().hex[:12]}"
+    username_base = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:11] or "fan"
+    username = f"{username_base}-{user_id[-12:]}"
     await db.users.insert_one({"user_id": user_id, "email": email, "name": name,
                                "password_hash": hash_password(f.password), "role": "fan",
+                               "username": username,
                                "created_at": datetime.now(timezone.utc).isoformat()})
     await db.login_attempts.update_one(
         {"identifier": reg_key},
@@ -468,7 +492,8 @@ async def fan_register(f: FanRegister, request: Request, response: Response):
     token = create_fan_token(user_id, email)
     response.set_cookie("fan_token", token, httponly=True, secure=True, samesite="lax", max_age=604800, path="/")
     await log_activity("register", f"{name} <{email}>", "Cont nou de fan", client_ip(request))
-    return {"token": token, "user": fan_out({"user_id": user_id, "email": email, "name": name})}
+    return {"token": token, "user": fan_out({"user_id": user_id, "email": email, "name": name,
+                                               "username": username})}
 
 @api_router.post("/fans/login")
 async def fan_login(f: FanLogin, request: Request, response: Response):
@@ -490,6 +515,7 @@ async def fan_login(f: FanLogin, request: Request, response: Response):
     await db.login_attempts.delete_one({"identifier": identifier})
     if await is_banned_user(user):
         raise HTTPException(403, "Contul a fost suspendat")
+    user = await ensure_fan_username(user)
     token = create_fan_token(user["user_id"], email)
     response.set_cookie("fan_token", token, httponly=True, secure=True, samesite="lax", max_age=604800, path="/")
     await log_activity("login", f"{user.get('name', '')} <{email}>", "Autentificare cu email", client_ip(request))
@@ -500,6 +526,7 @@ async def fan_me(request: Request):
     fan = await get_current_fan_optional(request)
     if not fan:
         return {"user": None}
+    fan = await ensure_fan_username(fan)
     return fan_out(fan)
 
 @api_router.post("/fans/logout")
@@ -507,46 +534,9 @@ async def fan_logout(request: Request, response: Response):
     st = request.cookies.get("session_token")
     if st:
         await db.user_sessions.delete_one({"session_token": st})
-    response.delete_cookie("session_token", path="/")
+    response.delete_cookie("session_token", path="/", httponly=True, secure=True, samesite="lax")
     response.delete_cookie("fan_token", path="/")
     return {"ok": True}
-
-class GoogleSessionInput(BaseModel):
-    session_id: str
-
-@api_router.post("/auth/google/session")
-async def google_session(input: GoogleSessionInput, request: Request, response: Response):
-    try:
-        async with httpx.AsyncClient(timeout=15) as http:
-            r = await http.get("https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
-                               headers={"X-Session-ID": input.session_id})
-            r.raise_for_status()
-            data = r.json()
-    except Exception as ex:
-        logger.warning(f"Google session-data eșuat: {ex}")
-        raise HTTPException(401, "Autentificarea Google a eșuat. Încearcă din nou.")
-    email = data["email"].lower().strip()
-    user = await db.users.find_one({"email": email})
-    if user and await is_banned_user(user):
-        raise HTTPException(403, "Contul a fost suspendat")
-    if user:
-        user_id = user.get("user_id") or user.get("_id")
-        await db.users.update_one({"email": email},
-                                  {"$set": {"name": data.get("name", user.get("name")), "picture": data.get("picture", "")}})
-    else:
-        user_id = f"user_{uuid.uuid4().hex[:12]}"
-        await db.users.insert_one({"user_id": user_id, "email": email, "name": data.get("name", "Fan"),
-                                   "picture": data.get("picture", ""), "role": "fan",
-                                   "created_at": datetime.now(timezone.utc).isoformat()})
-    await db.user_sessions.delete_many({"user_id": user_id})
-    await db.user_sessions.insert_one({"user_id": user_id, "session_token": data["session_token"],
-                                       "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
-                                       "created_at": datetime.now(timezone.utc)})
-    response.set_cookie("session_token", data["session_token"], httponly=True, secure=True,
-                        samesite="lax", max_age=604800, path="/")
-    await log_activity("login", f"{data.get('name', '')} <{email}>", "Autentificare Google", client_ip(request))
-    user = await db.users.find_one({"user_id": user_id})
-    return {"user": fan_out(user)}
 
 # ---------- GOOGLE OAUTH CU CLIENT PROPRIU (ecranul de consimțământ arată domeniul site-ului) ----------
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
@@ -578,7 +568,12 @@ def _read_oauth_state(state: str):
 
 
 def _public_origin(request: Request) -> str:
-    """Originea publică reală (https + domeniul vizitatorului), corect și în spatele proxy-ului."""
+    """Returnează domeniul canonic configurat, fără a deriva URL-ul OAuth dintr-un Host arbitrar."""
+    if SITE_URL:
+        configured = urlparse(SITE_URL)
+        if configured.scheme not in {"http", "https"} or not configured.netloc:
+            raise HTTPException(500, "SITE_URL trebuie să fie o origine HTTP(S) validă.")
+        return f"{configured.scheme}://{configured.netloc}"
     proto = request.headers.get("x-forwarded-proto", request.url.scheme)
     host = request.headers.get("x-forwarded-host", request.url.netloc)
     return f"{proto}://{host}"
@@ -586,11 +581,9 @@ def _public_origin(request: Request) -> str:
 
 @api_router.get("/auth/google/start")
 async def google_oauth_start(request: Request):
-    # REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     origin = _public_origin(request)
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-        # până sunt configurate cheile proprii, păstrăm funcțional serviciul de auth găzduit
-        return RedirectResponse(f"https://auth.emergentagent.com/?redirect={origin}/auth/success")
+        raise HTTPException(503, "Autentificarea Google nu este configurată pe acest server.")
     state = _make_oauth_state(origin)
     from urllib.parse import urlencode
     params = {
@@ -605,10 +598,12 @@ async def google_oauth_start(request: Request):
 
 
 @api_router.get("/auth/google/callback")
-async def google_oauth_callback(request: Request, code: str = "", state: str = ""):
+async def google_oauth_callback(request: Request, code: str = "", state: str = "", error: str = ""):
     origin = _read_oauth_state(state)
-    if not origin or not code:
+    if not origin:
         raise HTTPException(400, "Sesiune OAuth invalidă sau expirată. Încearcă din nou.")
+    if error or not code:
+        return RedirectResponse(f"{origin}/auth/success?auth_error=google")
     try:
         async with httpx.AsyncClient(timeout=15) as http:
             tok = await http.post("https://oauth2.googleapis.com/token", data={
@@ -625,24 +620,30 @@ async def google_oauth_callback(request: Request, code: str = "", state: str = "
         raise
     except Exception as ex:
         logger.warning(f"Google callback eșuat: {ex}")
-        raise HTTPException(401, "Autentificarea Google a eșuat. Încearcă din nou.")
+        return RedirectResponse(f"{origin}/auth/success?auth_error=google")
 
     email = (data.get("email") or "").lower().strip()
-    if not email:
-        raise HTTPException(400, "Contul Google nu a returnat un email.")
+    if not email or not data.get("email_verified"):
+        return RedirectResponse(f"{origin}/auth/success?auth_error=google")
     user = await db.users.find_one({"email": email})
     if user and await is_banned_user(user):
-        raise HTTPException(403, "Contul a fost suspendat")
+        return RedirectResponse(f"{origin}/auth/success?auth_error=suspended")
     if user:
         # contul existent (inclusiv cele create prin auth-ul vechi) își păstrează datele
-        user_id = user.get("user_id") or str(user.get("_id"))
-        await db.users.update_one({"email": email},
-                                  {"$set": {"name": data.get("name", user.get("name")), "picture": data.get("picture", "")}})
+        user_id = str(user.get("user_id") or user.get("_id"))
+        oauth_updates = {"user_id": user_id}
+        if not user.get("name_customized"):
+            oauth_updates["name"] = data.get("name", user.get("name"))
+        if not user.get("avatar_customized"):
+            oauth_updates["picture"] = data.get("picture", "")
+        await db.users.update_one({"email": email}, {"$set": oauth_updates})
     else:
         user_id = f"user_{uuid.uuid4().hex[:12]}"
         await db.users.insert_one({"user_id": user_id, "email": email, "name": data.get("name", "Fan"),
                                    "picture": data.get("picture", ""), "role": "fan",
                                    "created_at": datetime.now(timezone.utc).isoformat()})
+    user = await db.users.find_one({"email": email})
+    await ensure_fan_username(user)
     await db.user_sessions.delete_many({"user_id": user_id})
     session_token = str(uuid.uuid4())
     await db.user_sessions.insert_one({"user_id": user_id, "session_token": session_token,
@@ -710,6 +711,8 @@ async def follow_status(request: Request):
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     bio: Optional[str] = None
+    username: Optional[str] = Field(default=None, min_length=3, max_length=24, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
+    privacy: Optional[dict] = None
 
 @api_router.patch("/fans/me")
 async def update_profile(p: ProfileUpdate, fan=Depends(get_current_fan)):
@@ -717,13 +720,31 @@ async def update_profile(p: ProfileUpdate, fan=Depends(get_current_fan)):
     updates = {}
     if p.name is not None and p.name.strip():
         updates["name"] = p.name.strip()[:60]
+        updates["name_customized"] = True
     if p.bio is not None:
         updates["bio"] = p.bio.strip()[:300]
+    if p.username is not None:
+        updates["username"] = p.username.lower()
+    if p.privacy is not None:
+        allowed_privacy = {"profile_public", "show_followers", "allow_friend_requests"}
+        if set(p.privacy) - allowed_privacy or any(not isinstance(value, bool) for value in p.privacy.values()):
+            raise HTTPException(400, "Preferințe de confidențialitate invalide")
+        current_privacy = fan.get("privacy", {})
+        updates["privacy"] = {**{key: bool(current_privacy.get(key, True)) for key in allowed_privacy},
+                              **p.privacy}
     if updates:
-        await db.users.update_one({"user_id": uid}, {"$set": updates})
-    user = await db.users.find_one({"user_id": uid})
+        try:
+            await db.users.update_one({"user_id": uid}, {"$set": updates})
+        except Exception as ex:
+            if ex.__class__.__name__ == "DuplicateKeyError":
+                raise HTTPException(409, "Acest nume de utilizator este deja folosit")
+            raise
+    user = await db.users.find_one({"user_id": uid}) or await db.users.find_one({"_id": uid})
+    user = await ensure_fan_username(user)
     out = fan_out(user)
     out["bio"] = user.get("bio", "")
+    out["privacy"] = user.get("privacy", {"profile_public": True, "show_followers": True,
+                                            "allow_friend_requests": True})
     return out
 
 async def _save_image_upload(file: UploadFile, sub: str) -> str:
@@ -733,6 +754,14 @@ async def _save_image_upload(file: UploadFile, sub: str) -> str:
     content = await file.read()
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(400, "Imagine prea mare (max 10MB)")
+    signatures = {
+        ".jpg": lambda data: data.startswith(b"\xff\xd8\xff"),
+        ".jpeg": lambda data: data.startswith(b"\xff\xd8\xff"),
+        ".png": lambda data: data.startswith(b"\x89PNG\r\n\x1a\n"),
+        ".webp": lambda data: len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP",
+    }
+    if ext not in signatures or not signatures[ext](content):
+        raise HTTPException(400, "Fișierul nu este o imagine JPG, PNG sau WebP validă")
     path = f"{APP_NAME}/uploads/{sub}/{uuid.uuid4().hex}{ext}"
     ct = MIME.get(ext, "image/jpeg")
     try:
@@ -751,7 +780,7 @@ async def _save_image_upload(file: UploadFile, sub: str) -> str:
 async def upload_avatar(avatar: UploadFile = File(...), fan=Depends(get_current_fan)):
     serve_url = await _save_image_upload(avatar, "avatars")
     uid = fan.get("user_id") or fan.get("_id")
-    await db.users.update_one({"user_id": uid}, {"$set": {"picture": serve_url}})
+    await db.users.update_one({"user_id": uid}, {"$set": {"picture": serve_url, "avatar_customized": True}})
     return {"picture": serve_url}
 
 @api_router.post("/fans/me/banner")
@@ -762,16 +791,305 @@ async def upload_banner(banner: UploadFile = File(...), fan=Depends(get_current_
     return {"banner": serve_url}
 
 @api_router.get("/fans/{user_id}/public")
-async def public_profile(user_id: str):
-    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+async def public_profile(user_id: str, request: Request):
+    user = await db.users.find_one({"$or": [{"user_id": user_id}, {"username": user_id}]}, {"_id": 0})
     if not user:
         raise HTTPException(404, "Profil inexistent")
-    favs = await db.fan_favorites.find({"user_id": user_id}, {"_id": 0}).to_list(100)
+    privacy = user.get("privacy", {})
+    viewer = await get_current_fan_optional(request)
+    profile_id = user.get("user_id") or user.get("_id")
+    viewer_id = _fan_id(viewer) if viewer else None
+    if not privacy.get("profile_public", True) and viewer_id != str(profile_id):
+        raise HTTPException(404, "Profilul nu este public")
+    favs = await db.fan_favorites.find({"user_id": profile_id}, {"_id": 0}).to_list(100)
     ids = [f["track_id"] for f in favs]
     tracks = await db.tracks.find({"id": {"$in": ids}}, {"_id": 0}).to_list(100)
-    return {"user_id": user_id, "name": user.get("name", "Fan"), "picture": user.get("picture", ""),
+    followers = await db.user_follows.count_documents({"following_id": profile_id})
+    following = await db.user_follows.count_documents({"follower_id": profile_id})
+    is_following = bool(viewer_id and await db.user_follows.find_one(
+        {"follower_id": viewer_id, "following_id": str(profile_id)}
+    ))
+    friend_status = None
+    if viewer_id and viewer_id != str(profile_id):
+        pair = sorted([viewer_id, str(profile_id)])
+        if await db.friendships.find_one({"user_low": pair[0], "user_high": pair[1]}):
+            friend_status = "friends"
+        else:
+            request_doc = await db.friend_requests.find_one({
+                "status": "pending",
+                "$or": [{"from_user_id": viewer_id, "to_user_id": str(profile_id)},
+                        {"from_user_id": str(profile_id), "to_user_id": viewer_id}],
+            })
+            if request_doc:
+                friend_status = "sent" if request_doc["from_user_id"] == viewer_id else "received"
+    return {"user_id": profile_id, "username": user.get("username", user_id),
+            "name": user.get("name", "Fan"), "picture": user.get("picture", ""),
             "bio": user.get("bio", ""), "banner": user.get("banner", ""),
-            "created_at": user.get("created_at", ""), "favorites": tracks}
+            "created_at": user.get("created_at", ""), "favorites": tracks,
+            "followers": followers if privacy.get("show_followers", True) else None,
+            "following": following if privacy.get("show_followers", True) else None,
+            "is_following": is_following, "friend_status": friend_status}
+
+
+def _fan_id(fan: dict) -> str:
+    return str(fan.get("user_id") or fan.get("_id"))
+
+
+async def _community_user(user_id: str) -> dict:
+    user = await db.users.find_one({"$or": [{"user_id": user_id}, {"_id": user_id}]})
+    if not user:
+        raise HTTPException(404, "Un membru din această conexiune nu mai există")
+    user = await ensure_fan_username(user)
+    return {"user_id": _fan_id(user), "username": user["username"],
+            "name": user.get("name", "Fan"), "picture": user.get("picture", "")}
+
+
+async def _personal_notification(user_id: str, kind: str, title: str, text: str, url: str):
+    await db.user_notifications.insert_one({
+        "id": str(uuid.uuid4()), "user_id": user_id, "kind": kind, "title": title[:120],
+        "text": text[:300], "url": url, "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+@api_router.get("/fans/search")
+async def search_fans(q: str = "", fan=Depends(get_current_fan)):
+    query = q.strip().lstrip("@")[:24]
+    if len(query) < 2:
+        return []
+    current_id = _fan_id(fan)
+    users = await db.users.find(
+        {"username": {"$regex": re.escape(query), "$options": "i"},
+         "role": "fan", "user_id": {"$ne": current_id}},
+        {"_id": 0, "user_id": 1, "username": 1, "name": 1, "picture": 1},
+    ).limit(12).to_list(12)
+    return users
+
+
+@api_router.get("/fans/social/{username}/followers")
+async def list_fan_followers(username: str, request: Request):
+    user = await db.users.find_one({"username": username.lower(), "role": "fan"},
+                                   {"user_id": 1, "_id": 1, "privacy": 1})
+    if not user:
+        raise HTTPException(404, "Profil inexistent")
+    viewer = await get_current_fan_optional(request)
+    viewer_id = _fan_id(viewer) if viewer else None
+    target_id = _fan_id(user)
+    if not user.get("privacy", {}).get("profile_public", True) and viewer_id != target_id:
+        raise HTTPException(404, "Profil inexistent")
+    if not user.get("privacy", {}).get("show_followers", True) and viewer_id != target_id:
+        raise HTTPException(403, "Listele de urmăritori sunt private")
+    followers = await db.user_follows.find({"following_id": target_id}).sort("created_at", -1).limit(100).to_list(100)
+    following = await db.user_follows.find({"follower_id": target_id}).sort("created_at", -1).limit(100).to_list(100)
+    return {
+        "followers": [await _community_user(str(row["follower_id"])) for row in followers],
+        "following": [await _community_user(str(row["following_id"])) for row in following],
+    }
+
+
+@api_router.post("/fans/social/follow")
+async def follow_fan(payload: dict, fan=Depends(get_current_fan)):
+    username = payload.get("username") if isinstance(payload, dict) else None
+    if not isinstance(username, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]{2,23}", username):
+        raise HTTPException(400, "Nume de utilizator invalid")
+    current_id = _fan_id(fan)
+    target = await db.users.find_one({"username": username.lower(), "role": "fan"})
+    if not target:
+        raise HTTPException(404, "Profil inexistent")
+    target_id = _fan_id(target)
+    if current_id == target_id:
+        raise HTTPException(400, "Nu te poți urmări pe tine")
+    result = await db.user_follows.update_one(
+        {"follower_id": current_id, "following_id": target_id},
+        {"$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    if result.upserted_id:
+        await _personal_notification(target_id, "follow", "Ai un urmăritor nou",
+                                     f"@{fan.get('username', 'membru')} te urmărește acum.",
+                                     f"/u/{fan.get('username', '')}")
+    return {"following": True}
+
+
+@api_router.delete("/fans/social/follow/{username}")
+async def unfollow_fan(username: str, fan=Depends(get_current_fan)):
+    target = await db.users.find_one({"username": username.lower(), "role": "fan"},
+                                     {"user_id": 1, "_id": 1})
+    if not target:
+        raise HTTPException(404, "Profil inexistent")
+    await db.user_follows.delete_one({"follower_id": _fan_id(fan), "following_id": _fan_id(target)})
+    return {"following": False}
+
+
+@api_router.get("/fans/friends")
+async def list_friends(fan=Depends(get_current_fan)):
+    user_id = _fan_id(fan)
+    rows = await db.friendships.find({"user_ids": user_id}).sort("created_at", -1).limit(200).to_list(200)
+    others = [next((str(uid) for uid in row["user_ids"] if str(uid) != user_id), "") for row in rows]
+    return [await _community_user(other_id) for other_id in others if other_id]
+
+
+@api_router.get("/fans/friends/requests")
+async def list_friend_requests(fan=Depends(get_current_fan)):
+    user_id = _fan_id(fan)
+    rows = await db.friend_requests.find({
+        "$or": [{"to_user_id": user_id, "status": "pending"},
+                {"from_user_id": user_id, "status": "pending"}]
+    }).sort("created_at", -1).limit(100).to_list(100)
+    result = []
+    for row in rows:
+        other_id = row["from_user_id"] if row["to_user_id"] == user_id else row["to_user_id"]
+        result.append({**{key: row.get(key) for key in ("id", "status", "created_at")},
+                       "direction": "incoming" if row["to_user_id"] == user_id else "outgoing",
+                       "user": await _community_user(str(other_id))})
+    return result
+
+
+@api_router.post("/fans/friends/requests")
+async def send_friend_request(payload: dict, fan=Depends(get_current_fan)):
+    username = payload.get("username") if isinstance(payload, dict) else None
+    if not isinstance(username, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]{2,23}", username):
+        raise HTTPException(400, "Nume de utilizator invalid")
+    current_id = _fan_id(fan)
+    target = await db.users.find_one({"username": username.lower(), "role": "fan"})
+    if not target:
+        raise HTTPException(404, "Profil inexistent")
+    target_id = _fan_id(target)
+    if current_id == target_id:
+        raise HTTPException(400, "Nu poți trimite o cerere către tine")
+    if not target.get("privacy", {}).get("allow_friend_requests", True):
+        raise HTTPException(403, "Acest membru nu acceptă cereri de prietenie")
+    pair = sorted([current_id, target_id])
+    if await db.friendships.find_one({"user_ids": {"$all": pair}}):
+        raise HTTPException(409, "Sunteți deja prieteni")
+    if await db.friend_requests.find_one({
+        "status": "pending",
+        "$or": [{"from_user_id": current_id, "to_user_id": target_id},
+                {"from_user_id": target_id, "to_user_id": current_id}],
+    }):
+        raise HTTPException(409, "Există deja o cerere de prietenie")
+    request_id = str(uuid.uuid4())
+    try:
+        await db.friend_requests.insert_one({
+            "id": request_id, "from_user_id": current_id, "to_user_id": target_id,
+            "pair_low": pair[0], "pair_high": pair[1], "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception as ex:
+        if ex.__class__.__name__ == "DuplicateKeyError":
+            raise HTTPException(409, "Există deja o cerere de prietenie")
+        raise
+    await _personal_notification(target_id, "friend_request", "Cerere de prietenie",
+                                 f"@{fan.get('username', 'membru')} vrea să vă conectați.",
+                                 "/community?tab=friends")
+    return {"id": request_id, "status": "pending"}
+
+
+@api_router.patch("/fans/friends/requests/{request_id}")
+async def answer_friend_request(request_id: str, payload: dict, fan=Depends(get_current_fan)):
+    action = payload.get("action") if isinstance(payload, dict) else None
+    if action not in {"accept", "decline"}:
+        raise HTTPException(400, "Acțiune invalidă")
+    user_id = _fan_id(fan)
+    request_doc = await db.friend_requests.find_one({
+        "id": request_id, "to_user_id": user_id, "status": "pending",
+    })
+    if not request_doc:
+        raise HTTPException(404, "Cerere inexistentă")
+    if action == "accept":
+        pair = sorted([user_id, request_doc["from_user_id"]])
+        await db.friendships.update_one(
+            {"user_low": pair[0], "user_high": pair[1]},
+            {"$setOnInsert": {"user_ids": pair, "user_low": pair[0], "user_high": pair[1],
+                              "created_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True,
+        )
+        await _personal_notification(request_doc["from_user_id"], "friend_accepted", "Cerere acceptată",
+                                     f"@{fan.get('username', 'membru')} a acceptat cererea ta.",
+                                     "/community?tab=friends")
+    await db.friend_requests.delete_one({"id": request_id})
+    return {"ok": True}
+
+
+@api_router.delete("/fans/friends/{other_id}")
+async def remove_friend(other_id: str, fan=Depends(get_current_fan)):
+    user_id = _fan_id(fan)
+    await db.friendships.delete_one({"user_ids": {"$all": sorted([user_id, other_id])}})
+    return {"ok": True}
+
+
+async def _require_friendship(user_id: str, other_id: str):
+    if user_id == other_id or not await db.friendships.find_one(
+        {"user_ids": {"$all": sorted([user_id, other_id])}}
+    ):
+        raise HTTPException(403, "Mesajele private sunt disponibile doar între prieteni")
+
+
+@api_router.get("/fans/conversations")
+async def list_conversations(fan=Depends(get_current_fan)):
+    user_id = _fan_id(fan)
+    messages = await db.direct_messages.find(
+        {"$or": [{"from_user_id": user_id}, {"to_user_id": user_id}]}
+    ).sort("created_at", -1).limit(500).to_list(500)
+    latest = {}
+    for message in messages:
+        other_id = message["to_user_id"] if message["from_user_id"] == user_id else message["from_user_id"]
+        latest.setdefault(str(other_id), message)
+    friendships = await db.friendships.find({"user_ids": user_id}).limit(200).to_list(200)
+    for friendship in friendships:
+        other_id = next((str(uid) for uid in friendship["user_ids"] if str(uid) != user_id), "")
+        if other_id:
+            latest.setdefault(other_id, None)
+    result = []
+    for other_id, message in latest.items():
+        if await db.friendships.find_one({"user_ids": {"$all": sorted([user_id, other_id])}}):
+            result.append({"user": await _community_user(other_id), "last_message": message})
+    return result
+
+
+@api_router.get("/fans/messages/{other_id}")
+async def list_private_messages(other_id: str, fan=Depends(get_current_fan)):
+    user_id = _fan_id(fan)
+    await _require_friendship(user_id, other_id)
+    rows = await db.direct_messages.find({
+        "$or": [{"from_user_id": user_id, "to_user_id": other_id},
+                {"from_user_id": other_id, "to_user_id": user_id}]
+    }).sort("created_at", -1).limit(100).to_list(100)
+    rows.reverse()
+    return [{key: row.get(key) for key in ("id", "from_user_id", "to_user_id", "text", "created_at")}
+            for row in rows]
+
+
+@api_router.post("/fans/messages/{other_id}")
+async def send_private_message(other_id: str, payload: dict, fan=Depends(get_current_fan)):
+    text = payload.get("text") if isinstance(payload, dict) else None
+    if not isinstance(text, str) or not text.strip() or len(text.strip()) > 2000:
+        raise HTTPException(400, "Mesaj invalid (maxim 2000 de caractere)")
+    user_id = _fan_id(fan)
+    await _require_friendship(user_id, other_id)
+    message = {"id": str(uuid.uuid4()), "from_user_id": user_id, "to_user_id": other_id,
+               "text": text.strip(), "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.direct_messages.insert_one(message)
+    await _personal_notification(other_id, "message", "Mesaj nou",
+                                 f"Mesaj nou de la @{fan.get('username', 'membru')}.",
+                                 "/community?tab=messages")
+    return {key: message[key] for key in ("id", "from_user_id", "to_user_id", "text", "created_at")}
+
+
+@api_router.get("/fans/notifications")
+async def list_fan_notifications(fan=Depends(get_current_fan)):
+    rows = await db.user_notifications.find({"user_id": _fan_id(fan)}, {"_id": 0}).sort("created_at", -1).limit(50).to_list(50)
+    return rows
+
+
+@api_router.post("/fans/notifications/{notification_id}/read")
+async def read_fan_notification(notification_id: str, fan=Depends(get_current_fan)):
+    result = await db.user_notifications.update_one(
+        {"id": notification_id, "user_id": _fan_id(fan)}, {"$set": {"read": True}}
+    )
+    if not result.matched_count:
+        raise HTTPException(404, "Notificare inexistentă")
+    return {"ok": True}
 
 # ---------- VIDEOCLIPURI UPLOADATE (admin) ----------
 
@@ -991,11 +1309,11 @@ async def get_track(track_id: str):
 
 # OG share — pagini HTML cu meta pentru WhatsApp/TikTok/Facebook
 @api_router.get("/share/{slug}")
-async def share_track(slug: str):
+async def share_track(slug: str, request: Request):
     t = await db.tracks.find_one({"$or": [{"slug": slug}, {"id": slug}]}, {"_id": 0})
     if not t:
         raise HTTPException(404, "Piesa nu există")
-    base = SITE_URL or "https://bioxic-ai.preview.emergentagent.com"
+    base = SITE_URL.rstrip("/") if SITE_URL else _public_origin(request)
     cover = t.get("cover_url", "")
     if cover.startswith("/"):
         cover = base + cover
@@ -1676,8 +1994,13 @@ CHAT_BAD_WORDS = {"muie", "pula", "pizda", "coaie", "fut", "futu-ti", "cacat", "
 
 @app.websocket("/api/ws/chat")
 async def chat_ws(ws: WebSocket):
+    origin = ws.headers.get("origin")
+    allowed_origins = [value.strip() for value in os.environ.get("CORS_ORIGINS", "").split(",") if value.strip()]
+    if origin and origin not in (allowed_origins or ["http://localhost:3000"]):
+        await ws.close(code=1008)
+        return
     # IP banat automat de WAF (scanere/flood) → refuzăm conexiunea
-    ws_ip = ws.headers.get("x-forwarded-for", "").split(",")[0].strip() or (ws.client.host if ws.client else "?")
+    ws_ip = sec.client_ip_from_headers(ws.headers, ws.client.host if ws.client else "")
     if await sec.is_ip_banned(ws_ip):
         await ws.accept()
         await ws.send_text(json.dumps({"type": "banned"}))
@@ -1789,7 +2112,7 @@ async def ban_name(b: BanInput, admin=Depends(get_current_admin)):
 # ---------- SUPER ADMIN: panou secret, jurnal de activitate, moderare ----------
 
 def client_ip(request: Request) -> str:
-    return request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "?")
+    return sec.client_ip(request)
 
 
 async def log_activity(kind: str, actor: str, detail: str = "", ip: str = ""):
@@ -2087,11 +2410,25 @@ async def seed_tracks():
 
 @app.on_event("startup")
 async def startup():
+    if len(os.environ.get("JWT_SECRET", "").encode()) < 32:
+        raise RuntimeError("JWT_SECRET must be configured with at least 32 bytes")
     await db.users.create_index("email", unique=True)
     await db.users.create_index("user_id")
+    await db.users.create_index("username", unique=True, sparse=True)
     await db.user_sessions.create_index("session_token")
     await db.user_sessions.create_index("expires_at", expireAfterSeconds=0)
     await db.login_attempts.create_index("identifier")
+    await db.user_follows.create_index([("follower_id", 1), ("following_id", 1)], unique=True)
+    await db.user_follows.create_index("following_id")
+    await db.friendships.create_index("user_ids")
+    await db.friendships.create_index([("user_low", 1), ("user_high", 1)], unique=True, sparse=True)
+    await db.friend_requests.create_index([("to_user_id", 1), ("status", 1)])
+    await db.friend_requests.create_index([("from_user_id", 1), ("status", 1)])
+    await db.friend_requests.create_index([("pair_low", 1), ("pair_high", 1)],
+                                          unique=True, partialFilterExpression={"status": "pending"})
+    await db.direct_messages.create_index([("from_user_id", 1), ("to_user_id", 1), ("created_at", -1)])
+    await db.direct_messages.create_index([("to_user_id", 1), ("from_user_id", 1), ("created_at", -1)])
+    await db.user_notifications.create_index([("user_id", 1), ("created_at", -1)])
     await db.tracks.create_index("id", unique=True)
     await db.files.create_index("storage_path", unique=True)
     await db.activity_log.create_index("ts")

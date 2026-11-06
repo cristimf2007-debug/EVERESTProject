@@ -10,7 +10,7 @@
 import os, time, pytest, requests
 from pymongo import MongoClient
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://bioxic-ai.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001").rstrip("/")
 API = f"{BASE_URL}/api"
 ADMIN_EMAIL = "admin@bioxic.ro"
 ADMIN_PASS = "bioxic2024"

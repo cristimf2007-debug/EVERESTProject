@@ -1,39 +1,27 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { BadgeCheck, AlertTriangle, Gavel, ShieldCheck, Music2, ArrowRight, MapPin, Mountain, ArrowLeft } from "lucide-react";
-
-const COLABS = ["Nek Music", "LuCash", "AMMA", "Big Up", "Bogdan de la Ploiești", "Costel Biju", "Jador"];
+import { BadgeCheck, Music2, ArrowRight, MapPin, Mountain, ArrowLeft, CalendarDays, Globe2 } from "lucide-react";
 
 const TIMELINE = [
   {
-    era: "Copilăria",
-    title: "Focșani, România",
-    text: "Cristian Maxim crește în Focșani, cu muzica mereu pe fundal. Din joacă cu sunetele, curiozitatea devine obsesie: cum se naște o piesă, strat cu strat.",
+    era: "2007",
+    title: "Începuturile în Vrancea",
+    text: "Cristian Maxim s-a născut pe 1 martie 2007, în Focșani, și a crescut în Jăriștea, Vrancea.",
   },
   {
-    era: "Începuturile",
-    title: "Producție învățată singur",
-    text: "Fără studii de profil și fără echipă — un laptop, o cameră și nopți întregi de sampling, mixat și refăcut de la zero. Așa se formează urechea și stilul care vor deveni BIOXIC.",
+    era: "Parcurs creativ",
+    title: "Aproape 8 ani de producție",
+    text: "BIOXIC dezvoltă remixuri, mashup-uri și producții muzicale, construind o identitate proprie în studio.",
   },
   {
-    era: "Momentul",
-    title: "„Sună și mergem” (BIOXIC & KET)",
-    text: "Mashup-ul care a dus proiectul dincolo de camera din Focșani. De aici, numele BIOXIC începe să apară alături de artiști cunoscuți ai scenei.",
+    era: "Prezent",
+    title: "Între România și Regatul Unit",
+    text: "Activ între România și Regatul Unit, Cristian continuă să lucreze sub numele BIOXIC și să dezvolte proiecte muzicale independente.",
   },
   {
-    era: "Colaborări",
-    title: "Pe piese cu nume mari",
-    text: `Remixuri și producții alături de ${COLABS.slice(0, -1).join(", ")} și ${COLABS[COLABS.length - 1]} — fiecare colaborare confirmată adăugând un strat nou în sunetul propriu.`,
-  },
-  {
-    era: "Cotitură",
-    title: "3 strike-uri și o decizie",
-    text: "YouTube îi dă 3 strike-uri, iar remixurile dispar de pe platforme în câteva ore. Trece chiar și printr-un caz penal — da, pe bune. Răspunsul: propria platformă, unde nimeni nu mai șterge nimic.",
-  },
-  {
-    era: "Azi",
-    title: "Everest Manele",
-    text: "Cristian își fundamentează propria casă de discuri: Everest Manele. Sub umbrela ei apar producțiile, mashup-urile și Sample Pack Vol. 1 — direct din studio, direct la oameni.",
+    era: "Everest Manele",
+    title: "O casă de discuri independentă",
+    text: "Everest Manele este label-ul fondat de BIOXIC și locul în care își prezintă proiectele și Sample Pack Vol. 1.",
   },
 ];
 
@@ -53,12 +41,12 @@ export default function Despre() {
             Cristian Maxim<br /><span className="text-[var(--flame)]">— BIOXIC</span>
           </h1>
           <p className="text-[var(--text-2)] text-sm sm:text-base leading-relaxed mt-5 max-w-xl">
-            Producător muzical, 19 ani, din Focșani. Fondatorul casei de discuri Everest Manele și
-            omul care și-a construit propria platformă atunci când platformele i-au închis ușile.
+            Producător muzical român, cunoscut ca BIOXIC. Realizează remixuri, mashup-uri și producții,
+            fiind fondatorul casei de discuri Everest Manele.
           </p>
           <p className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-6 text-[10px] font-mono-x uppercase tracking-[0.2em] text-[var(--text-3)]">
-            <span className="inline-flex items-center gap-1.5"><MapPin size={11} /> Focșani, România</span>
-            <span className="inline-flex items-center gap-1.5"><BadgeCheck size={11} className="text-[var(--flame)]" /> Proiect verificat</span>
+            <span className="inline-flex items-center gap-1.5"><MapPin size={11} /> Focșani · Jăriștea, Vrancea</span>
+            <span className="inline-flex items-center gap-1.5"><Globe2 size={11} className="text-[var(--flame)]" /> România · Regatul Unit</span>
             <span className="inline-flex items-center gap-1.5"><Mountain size={11} /> Everest Manele</span>
           </p>
         </div>
@@ -97,10 +85,10 @@ export default function Despre() {
       {/* realizări reale, discrete */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mt-20 rv" data-testid="despre-stats">
         {[
-          { icon: Music2, num: "KET ×", label: "Mashup „Sună și mergem”" },
-          { icon: AlertTriangle, num: "3×", label: "Strike-uri pe YouTube" },
-          { icon: Gavel, num: "1×", label: "Caz penal — depășit" },
-          { icon: ShieldCheck, num: "0", label: "Ștergeri aici" },
+        { icon: CalendarDays, num: "2007", label: "Născut pe 1 martie" },
+        { icon: Music2, num: "~8 ani", label: "Experiență în producție" },
+        { icon: BadgeCheck, num: "50M+", label: "Vizualizări cumulate" },
+        { icon: Mountain, num: "1", label: "Label fondat: Everest Manele" },
         ].map((c) => {
           const Icon = c.icon;
           return (
@@ -120,9 +108,8 @@ export default function Despre() {
             <p className="font-mono-x text-[10px] uppercase tracking-[0.28em] text-[#E8B48F]">Viziunea</p>
             <h2 className="font-display text-3xl sm:text-4xl tracking-tight mt-4">Muzică fără intermediari</h2>
             <p className="text-[#D6CFC4] text-sm sm:text-base leading-relaxed mt-5">
-              BIOXIC înseamnă libertatea de a lansa exact ce sună bine, când sună bine. Everest Manele e dovada:
-              un label tânăr, independent, construit pe încredere directă cu oamenii care ascultă.
-              „No risks, no hits" nu e un slogan — e felul în care s-a ajuns aici.
+              BIOXIC este spațiul creativ al lui Cristian Maxim. Prin Everest Manele, proiectele muzicale,
+              remixurile, mashup-urile și resursele digitale sunt prezentate într-un loc direct și independent.
             </p>
             <div className="flex flex-wrap gap-3 mt-8">
               <Link to="/everest-manele" className="btn-flame !h-11 !px-6" data-testid="despre-to-label">Everest Manele</Link>

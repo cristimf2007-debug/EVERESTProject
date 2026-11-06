@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import api from "@/lib/api";
 
 const FanContext = createContext(null);
@@ -13,26 +13,21 @@ export function FanProvider({ children }) {
     } catch { return null; }
   });
   const [loginOpen, setLoginOpen] = useState(false);
+  const [authError, setAuthError] = useState("");
 
-  const setMe = (u) => {
+  const setMe = useCallback((u) => {
     setMeState(u);
     try {
       if (u && typeof u === "object") sessionStorage.setItem(CACHE_KEY, JSON.stringify(u));
       else sessionStorage.removeItem(CACHE_KEY);
     } catch { /* storage blocat */ }
-  };
-
-  useEffect(() => {
-    // CRITICAL: dacă revenim din OAuth, AuthCallback face schimbul de sesiune — sărim verificarea
-    if (window.location.hash?.includes("session_id=")) return;
-    api.get("/fans/me").then((r) => setMe(r.data?.user_id ? r.data : false)).catch(() => setMe(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loginGoogle = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    // flow propriu (client Google al BIOXIC → consimțământul arată bioxic.ro);
-    // serverul redirecționează spre serviciul găzduit până sunt configurate cheile proprii
+  useEffect(() => {
+    api.get("/fans/me").then((r) => setMe(r.data?.user_id ? r.data : false)).catch(() => setMe(false));
+  }, [setMe]);
+
+  const loginGoogle = async () => {
     window.location.href = `${process.env.REACT_APP_BACKEND_URL}/api/auth/google/start`;
   };
 
@@ -47,12 +42,12 @@ export function FanProvider({ children }) {
   };
 
   const logout = async () => {
-    await api.post("/fans/logout").catch(() => {});
+    await api.post("/fans/logout");
     setMe(false);
   };
 
   return (
-    <FanContext.Provider value={{ me, setMe, loginOpen, setLoginOpen, loginGoogle, loginEmail, registerEmail, logout }}>
+    <FanContext.Provider value={{ me, setMe, loginOpen, setLoginOpen, authError, setAuthError, loginGoogle, loginEmail, registerEmail, logout }}>
       {children}
     </FanContext.Provider>
   );

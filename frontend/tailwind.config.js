@@ -15,39 +15,39 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)'
       },
       colors: {
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        background: 'var(--void)',
+        foreground: 'var(--text)',
         card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))'
+          DEFAULT: 'var(--obsidian)',
+          foreground: 'var(--text)'
         },
         popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))'
+          DEFAULT: 'var(--obsidian-2)',
+          foreground: 'var(--text)'
         },
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))'
+          DEFAULT: 'var(--text)',
+          foreground: 'var(--void)'
         },
         secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))'
+          DEFAULT: 'var(--steel)',
+          foreground: 'var(--text)'
         },
         muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))'
+          DEFAULT: 'var(--obsidian-2)',
+          foreground: 'var(--text-2)'
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))'
+          DEFAULT: 'var(--steel)',
+          foreground: 'var(--text)'
         },
         destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))'
+          DEFAULT: 'var(--live)',
+          foreground: 'var(--void)'
         },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
+        border: 'var(--edge)',
+        input: 'var(--edge-hi)',
+        ring: 'var(--text)',
         chart: {
           '1': 'hsl(var(--chart-1))',
           '2': 'hsl(var(--chart-2))',

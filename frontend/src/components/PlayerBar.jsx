@@ -10,7 +10,7 @@ const fmt = (s) => (isFinite(s) && s >= 0) ? `${Math.floor(s / 60)}:${String(Mat
 // Player docabil: LIVE = fără seek; PIESĂ = seek + timpi + versuri + coadă; minimizează într-o pilulă de sticlă
 export default function PlayerBar() {
   const { pathname } = useLocation();
-  const { current, mode, status, playing, progress, duration, volume, muted, listeners,
+  const { hasPlaybackIntent, current, mode, status, playing, progress, duration, volume, muted, listeners,
           queue, trackIdx, toggle, stop, next, prev, seek, setVolume, toggleMute, playTrack,
           shuffle, repeat, toggleShuffle, cycleRepeat } = useRadio();
   const [minimized, setMinimized] = useState(false);
@@ -18,7 +18,7 @@ export default function PlayerBar() {
   const [lyricsOpen, setLyricsOpen] = useState(false);
 
   if (pathname.startsWith("/clipuri") || pathname === "/live" || pathname === "/tv" || pathname.startsWith("/admin") || pathname.startsWith("/secret-mod")) return null;
-  if (!current) return null;
+  if (!current || !hasPlaybackIntent) return null;
 
   const isLive = mode === "live";
   const pct = duration ? Math.min(100, (progress / duration) * 100) : 0;
@@ -94,7 +94,10 @@ export default function PlayerBar() {
         <button className="pb-icon" onClick={() => setMinimized(true)} aria-label="Minimizează playerul" data-testid="pb-minimize"><ChevronDown /></button>
         {/* seek bar DOAR în modul piesă — la live nu există */}
         {!isLive && (
-          <div className="pb-bar-wrap seekable" onClick={onSeek} data-testid="pb-seek-track" role="slider" aria-label="Poziție piesă" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
+          <div className="pb-bar-wrap seekable" onClick={onSeek} data-testid="pb-seek-track" tabIndex={0} onKeyDown={(e) => {
+            const targets = { ArrowLeft: progress - 5, ArrowRight: progress + 5, Home: 0, End: duration };
+            if (e.key in targets) { e.preventDefault(); seek(Math.max(0, Math.min(duration, targets[e.key]))); }
+          }} role="slider" aria-label="Poziție piesă" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
             <div className="pb-bar"><i style={{ width: `${pct}%` }} /></div>
           </div>
         )}

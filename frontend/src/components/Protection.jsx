@@ -7,7 +7,7 @@ export default function Protection() {
   useEffect(() => {
     const noContext = (e) => e.preventDefault();
     const noKeys = (e) => {
-      const k = e.key.toLowerCase();
+      const k = typeof e.key === "string" ? e.key.toLowerCase() : "";
       if (
         e.key === "F12" ||
         (e.ctrlKey && e.shiftKey && ["i", "j", "c", "k"].includes(k)) ||

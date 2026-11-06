@@ -2,13 +2,13 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Package, Download, ShieldCheck, Music2, Check } from "lucide-react";
 
-const PAYPAL_URL = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=A8F6WTGW3RU94";
+const PAYPAL_URL = "https://www.paypal.com/ncp/payment/47UXM5YBBLLPQ";
 
 const INCLUDES = [
-  "Sunete construite din sesiunile de producție BIOXIC",
-  "Gata de folosit în orice DAW",
-  "Licență de folosire în propriile producții",
-  "Lansat oficial sub Everest Manele",
+  "Primul sample pack oficial Everest Manele",
+  "Creat în contextul producțiilor BIOXIC",
+  "Produs digital disponibil prin checkout-ul oficial PayPal",
+  "Detaliile de livrare sunt confirmate în fluxul de cumpărare",
 ];
 
 // Sample Pack Vol. 1 — pagina produsului digital al label-ului

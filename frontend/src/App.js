@@ -19,6 +19,10 @@ import Contact from "@/pages/Contact";
 import TvPage from "@/pages/TvPage";
 import Pareri from "@/pages/Pareri";
 import Despre from "@/pages/Despre";
+import EverestManele from "@/pages/EverestManele";
+import SamplePack from "@/pages/SamplePack";
+import ProfilePage from "@/pages/ProfilePage";
+import CommunityPage from "@/pages/CommunityPage";
 import Proiecte from "@/pages/Proiecte";
 import NotFound from "@/pages/NotFound";
 import { applyA11y } from "@/lib/a11y";
@@ -28,39 +32,41 @@ const Admin = lazy(() => import("@/pages/Admin"));
 const LiveRoom = lazy(() => import("@/pages/LiveRoom"));
 const SecretMod = lazy(() => import("@/pages/SecretMod"));
 
-// Procesează returul din Google OAuth (#session_id=...)
+// Procesează returul direct din Google OAuth.
 function AuthCallback() {
   const navigate = useNavigate();
-  const { setMe } = useFan();
+  const { setMe, setAuthError, setLoginOpen } = useFan();
   const done = useRef(false);
 
   useEffect(() => {
     if (done.current) return;
     done.current = true; // sincron — StrictMode safe
-    const sid = new URLSearchParams(window.location.hash.slice(1)).get("session_id");
-    if (!sid) {
-      // flow OAuth propriu: cookie-urile de sesiune sunt deja setate de backend la callback
-      api.get("/fans/me")
-        .then((r) => {
-          if (!r.data?.user_id) throw new Error("no session");
-          setMe(r.data);
-          toast.success(`Bine ai venit, ${r.data.name}!`);
-        })
-        .catch(() => toast.error("Autentificarea a eșuat. Încearcă din nou."))
-        .finally(() => navigate("/", { replace: true }));
+    const authError = new URLSearchParams(window.location.search).get("auth_error")
+      || new URLSearchParams(window.location.search).get("error");
+    if (authError) {
+      const message = authError === "suspended"
+        ? "Acest cont este suspendat."
+        : "Autentificarea Google a fost anulată sau a eșuat. Încearcă din nou.";
+      setAuthError(message);
+      setLoginOpen(true);
+      navigate("/", { replace: true });
       return;
     }
-    api.post("/auth/google/session", { session_id: sid })
+    api.get("/fans/me")
       .then((r) => {
-        setMe(r.data.user);
-        toast.success(`Bine ai venit, ${r.data.user.name}!`);
+        if (!r.data?.user_id) throw new Error("no session");
+        setMe(r.data);
+        setAuthError("");
+        toast.success(`Bine ai venit, ${r.data.name}!`);
       })
-      .catch(() => toast.error("Autentificarea a eșuat. Încearcă din nou."))
-      .finally(() => {
-        window.history.replaceState(null, "", "/");
-        navigate("/", { replace: true });
-      });
-  }, [navigate, setMe]);
+      .catch(() => {
+        const message = "Autentificarea a eșuat. Încearcă din nou.";
+        setAuthError(message);
+        setLoginOpen(true);
+        toast.error(message);
+      })
+      .finally(() => navigate("/", { replace: true }));
+  }, [navigate, setAuthError, setLoginOpen, setMe]);
 
   return (
     <div className="min-h-[60vh] grid place-items-center" data-testid="auth-callback">
@@ -90,9 +96,7 @@ function ScrollManager() {
 
 function Shell() {
   const location = useLocation();
-  // CRITICAL: detectează session_id SINCRON, în render (useLocation, nu window.location)
-  // + ruta /auth/success (OAuth propriu — cookie-urile sunt deja setate de backend, fără hash)
-  if (location.hash?.includes("session_id=") || location.pathname === "/auth/success") {
+  if (location.pathname === "/auth/success") {
     return <AuthCallback />;
   }
   return <ShellInner location={location} />;
@@ -143,14 +147,16 @@ function ShellInner({ location }) {
       {!isAdmin && !isLive && <ChannelHeader />}
       <ScrollManager />
       <VersionChecker />
-      <main className={`relative z-10 ${isLive ? "" : "pb-44 md:pb-32"} ${isAdmin || isLive ? "" : "pt-20 md:pt-24"}`}>
+      <main id="main-content" tabIndex={-1} className={`relative z-10 ${isLive ? "" : "pb-44 md:pb-32"} `}>
         <Routes>
           <Route path="/" element={<Noutati />} />
           <Route path="/muzica/*" element={<Muzica />} />
           {/* redirecturi din structurile vechi — linkurile vechi nu se strică */}
           <Route path="/piese" element={<Navigate to="/muzica" replace />} />
-          <Route path="/radio" element={<Navigate to="/muzica" replace />} />
+          <Route path="/radio" element={<Muzica />} />
           <Route path="/despre" element={<Despre />} />
+          <Route path="/everest-manele" element={<EverestManele />} />
+          <Route path="/sample-pack" element={<SamplePack />} />
           <Route path="/proiecte" element={<Proiecte />} />
           <Route path="/live" element={
             <Suspense fallback={<div className="min-h-[60vh] grid place-items-center"><p className="font-mono-x text-xs uppercase tracking-widest text-[var(--text-2)] animate-pulse">Se deschide camera live…</p></div>}>
@@ -162,6 +168,8 @@ function ShellInner({ location }) {
           <Route path="/pareri" element={<Pareri />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/tv" element={<TvPage />} />
+          <Route path="/u/:username" element={<ProfilePage />} />
+          <Route path="/community" element={<CommunityPage />} />
           <Route path="/admin" element={
             <Suspense fallback={<div className="min-h-[60vh] grid place-items-center"><p className="font-mono-x text-xs uppercase tracking-widest text-[var(--text-2)] animate-pulse">Se încarcă…</p></div>}>
               <Admin />
